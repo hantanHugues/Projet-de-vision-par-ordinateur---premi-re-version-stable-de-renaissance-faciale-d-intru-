@@ -39,25 +39,27 @@ uv venv --python 3.11 .venv-deepface
 uv pip install -r requirements.txt
 ```
 
-## Utilisation (Phase 6 - Architecture Client/Serveur)
+## Utilisation (Phase 7 - Architecture Client/Serveur Haute Sécurité)
 
 Le système est séparé en deux pour garder la vidéo fluide à 30 FPS pendant que l'IA tourne en arrière-plan.
 Assurez-vous d'avoir activé votre environnement (`.venv-deepface\Scripts\activate`) dans vos terminaux.
 
-### 1. Démarrer le Cerveau (Serveur FastAPI)
+### 1. Démarrer le Cerveau Central (Serveur FastAPI)
 Ouvrez un premier terminal et lancez l'API :
 ```bash
 python -m uvicorn api:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2. Démarrer l'Œil (Client Caméra)
-Ouvrez un second terminal et lancez la capture vidéo :
+### 2. Démarrer la Caméra de Bord (Client OpenCV Interactif)
+Ouvrez un second terminal et lancez la capture vidéo locale :
 ```bash
 python client_camera.py
 ```
+*(Le script vous demandera interactivement si vous souhaitez utiliser votre Webcam PC classique [1] ou le flux Haute Qualité d'une app réseau type IP Webcam sur votre téléphone [2]).*
 
-**Contrôles :**
-- `q` → Quitter la fenêtre vidéo
+**Contrôles du Terminal Client :**
+- `enroll [Ton Nom]` → Pour s'inscrire officiellement dans la base de données.
+- `Echap` → Quitter le programme proprement.
 
 ## Phases de développement
 
