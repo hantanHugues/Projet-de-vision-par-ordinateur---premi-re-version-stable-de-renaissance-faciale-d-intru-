@@ -61,6 +61,39 @@ class YoloDetector:
                     "confidence": conf
                 })
                 
+        # --- PATCH ANTI-CLONAGE (Exclusivité Spatiale Absolue) ---
+        # Parfois, YOLO sort 2 boîtes sur la même personne : une pour la tête, une pour le corps entier.
+        # Le paramètre iou=0.35 ne suffit pas à les fusionner si la tête est trop petite (Intersection sur Union faible).
+        # On va supprimer manuellement les boîtes qui sont "incluses" dans une autre image plus grande.
+        filtered_detections = []
+        for i, d1 in enumerate(detections):
+            is_contained = False
+            box1 = d1["box"]
+            area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
+            
+            for j, d2 in enumerate(detections):
+                if i == j: continue
+                box2 = d2["box"]
+                area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
+                
+                # Calcul de l'aire d'intersection
+                x_left = max(box1[0], box2[0])
+                y_top = max(box1[1], box2[1])
+                x_right = min(box1[2], box2[2])
+                y_bottom = min(box1[3], box2[3])
+                
+                if x_right > x_left and y_bottom > y_top:
+                    intersection = (x_right - x_left) * (y_bottom - y_top)
+                    # Si plus de 50% de la boîte 1 est dans la boîte 2 ET que la boîte 2 est plus grande
+                    if intersection / area1 > 0.5 and area2 > area1:
+                        is_contained = True
+                        break
+                        
+            if not is_contained:
+                filtered_detections.append(d1)
+                
+        detections = filtered_detections
+
         # --- Logique anti-spam ---
         current_count = len(detections)
         # La discussion "YOLO <-> MediaPipe" est gérée par main.py

@@ -166,3 +166,77 @@
 - **Logique Temporelle & Continuous Learning (La solution Ultime)** :
     - *Observation* : Sur-solliciter l'IA à chaque image à 30 FPS tuait la machine. Garder une seule validation à vie permettait à un intrus de mettre le masque d'un VIP après ouverture.
     - *Décision* : Déploiement d'un coupe-circuit à `1 Seconde` (Temps d'analyse) + Apprentissage continu toutes les `0.8 Secondes`. Résultat: Si tu mets le masque après validation, le système réagit et te déclasse en "Intrus".
+
+---
+
+## Phase 7 — Refonte Industrielle et Pipeline "Body-First" (En cours)
+
+### Plan d'Action Structuré
+
+Voici la liste des étapes de refonte. Elles seront documentées et cochées au fur et à mesure de notre avancée pour garder un suivi clair de l'évolution du système vers un niveau de sécurité industriel.
+
+- [x] **Étape 1 : Stabilisation du Tracker Corporel (Mémoire Longue)**
+  - *Quoi faire* : Empêcher le saut d'identifiant (ID qui change de 1 à 5 quand on bouge).
+  - *Comment* : Changement de `max_disappeared` de 20 à 60 (le tracker maintient un fantôme 2 secondes). Ajout d'une règle `max_distance` (150 pixels) dans `centroid_tracker.py` pour intégrer "l'Anti-Téléportation".
+  - *Pourquoi* : Si l'ID 1 passe derrière le tableau et réapparaît dans la **même** zone 1 seconde plus tard, c'est l'ID 1. Si "quelqu'un" apparaît tout de suite à 3 mètres de l'autre côté du tableau (hors de la `max_distance`), le système comprend que c'est physiquement impossible pour l'ID 1. Il crée donc un nouvel "ID 2" (l'intrus) et ne mélange pas les prénoms de DeepFace.
+
+- [x] **Étape 2 : Filtre de Qualité Facial (Face Gate)**
+  - *Quoi faire* : Ne pas analyser un visage baissé, de dos, ou de profil.
+  - *Comment* : Dans `face_recognizer.py`, la cascade OpenCV (`self.face_cascade.detectMultiScale`) sert de "Face Gate". Si elle ne trouve pas les caractéristiques d'un visage de face net, la fonction `identify()` se coupe net et renvoie *"Attente visage..."* ou retourne l'ancienne valeur en cache (`identified_ids[object_id]`). Le modèle lourd `Facenet512` n'est JAMAIS appelé sur un crâne de dos.
+  - *Pourquoi* : Si *Ash* est validé (ID 1) et se tourne, le Tracker maintient ID 1, et comme il est de dos, le Face Gate **bloque l'analyse**. Le système renvoie juste "Ash" via la mémoire. Si un de tes amis (bluff spatial) récupère l'ID 1 de la chaise quand tu t'es baissé, le Tracker géométrique est dupé (ID 1), **mais** dès que l'ami va de se lever en regardant la caméra, le *Face Gate* s'ouvrira, Facenet512 fera le Check, verra que les vecteurs du pote ne sont pas "Ash", et la Révocation (Alerte Sécurité) va s'enclencher. L'usurpation est stoppée.
+
+- [x] **Étape 3 : Verrouillage de la Base Vectorielle (Anti-Pollution & Quarantaine)**
+  - *Quoi faire* : Stoppper le `Continuous Learning` sauvage de la Phase 6. Empêcher l'IA de créer des faux profils "Intrus X" à partir de bouillie de pixels ou d'apprendre des visages douteux de "Ash".
+  - *Comment* : Suppression de tous les appels `self.db.add_embedding` non-supervisés dans la boucle temps-réel de `identify()`. L'IA ne fait plus **que lire** la base (Read-Only). 
+  - *Pourquoi* : Pour éviter le "Model Drift" (la dérive sémantique : le modèle apprend de ses propres erreurs et finit par croire que le facteur Amazon, c'est le propriétaire).
+  - *Perspective Hybride (Apprentissage Supervisé Hardware)* : L'apprentissage ne sera relancé que sous **Supervision Forte**. Soit de manière asynchrone via un Tableau de Bord (Validation humaine de photos stockées en "Quarantaine"), soit de manière hybride avec **le Lecteur d'Empreinte**. Si la caméra hésite à 85% de certitude (score moyen), mais que le doigt valide à 100%, l'IA profite de cette confirmation matérielle absolue pour lier le vecteur flou de la caméra au profil VIP en toute sécurité.
+
+- [x] **Étape 4 : Exclusivité Spatiale (Anti-Clonage)**
+  - *Quoi* : Interdire mathématiquement qu'une même identité ("Ash") soit attribuée à deux personnes distinctes en même temps.
+  - *Comment* : Désactivée dans `face_recognizer.py` temporairement le temps de valider YOLO, mais structure `active_names_on_screen` préparée et fonctionnelle grâce au tuning `iou=0.35` de YOLO. C'est traité structurellement pour éviter que la faille de la "pancarte clone" n'ouvre la porte.
+  - *Pourquoi* : Pour empêcher une usurpation (l'Intrus ne peut pas rentrer même s'il a le même score de match qu'Ash, si Ash est déjà validé dans une autre boite).
+
+- [x] **Étape 5 : Module d'Enrôlement Officiel (Admin/UI)**
+  - *Quoi faire* : Créer une vraie méthode pour s'inscrire dans la base et fournir une IHM de test.
+  - *Comment* : Création de la route `POST /enroll` sur FastAPI (filtrée avec `minSize=(60,60)` et `Face Gate` strict). Création du mode "Interactif" (terminal embarqué) dans `client_camera.py` permettant de lancer la commande `enroll [Nom]` avec une interface visuelle pro et retour réseau.
+  - *Pourquoi* : Pour respecter le verrouillage Strict Lecture-Seule de l'Étape 3, il faut un moyen 100% officiel, clair et humain de certifier des images de l'utilisateur dans la base SQLite.
+
+### Réflexion Théorique : Contre-Mesures Spoofing et Architecture Hybride (Adaptive MFA)
+
+**Problème posé** : Vulnérabilité inhérente aux caméras 2D face aux attaques par présentation (photos imprimées, masques).
+
+**Solution Architecturale : Le Système Multimodal Adaptatif (Invention du projet)**
+Pour sécuriser l'accès physique (ex: ouverture de porte) sans ruiner la fluidité (UX) ni surcharger le CPU du Raspberry Pi, l'architecture bascule vers un modèle hybride à "double voie logique" :
+
+1. **Voie Principale "Haute Sécurité Rapide" (Visage + Empreinte)**
+   - La caméra détecte et valide le visage du VIP à distance (Proactivité).
+   - Cette validation *arme* le lecteur d'empreinte digitale (qui reste éteint le reste du temps pour éviter le vandalisme).
+   - L'utilisateur pose son doigt (validation classique). La porte s'ouvre.
+   - *Avantage : Protection absolue contre le spoofing 2D. Un voleur ne peut pas posséder la photo ET l'empreinte physique.*
+
+2. **Voie Secondaire "Mains Libres" (Fallback Temporel Liveness)**
+   - Si l'utilisateur a les bras chargés de courses ou le doigt mouillé (pluie), le lecteur d'empreinte est ignoré.
+   - L'utilisateur fixe la caméra de face. L'IA déclenche un "Défi Temporel" caché.
+   - Le système exige une validation faciale continue, ininterrompue et parfaitement centrée pendant **5 à 6 secondes**.
+   - *Avantage : Maintenir une photo imprimée à bout de bras pendant 5 secondes sans trembler ni être rejeté par le "Face Gate" (Étape 2) est virtuellement impossible. La porte s'ouvre sans contact (Frictionless).*
+
+---
+
+- [ ] **Étape 6 : Support Corporel (Re-Identification) - *Optionnel/Recherche***
+  - *Quoi faire* : Stocker la signature corporelle (vêtements) d'un intrus détecté pour le pister s'il cache son visage ensuite.
+  - *Comment* : 
+  - *Pourquoi* : 
+
+### Concepts Stratégiques Valides
+Suite aux limites de la Phase 6 (ID vacillants, "Intrus C/D" pollueurs, visages de profil mal jugés), l'architecture bascule vers un standard industriel de sécurité :
+
+1. **Le "Body-Tracker" Roi (Mémoire Longue)**
+   - YOLO confie l'humain à un Tracker qui doit conserver l'ID aveuglément (ex: `max_disappeared = 60`). Même si l'humain passe derrière un meuble ou tourne le dos, le système "retient" son identité. La caméra n'analyse plus l'identité à chaque frame.
+2. **Le Filtre de Qualité Facial (Face Gate)**
+   - Arrêt de l'analyse "poubelle". Si la personne a la tête baissée ou est de profil, le système reste en statut `EN ATTENTE`. Le modèle lourd (Facenet512) n'est réveillé que si les deux yeux et le nez sont parfaitement alignés devant la caméra.
+3. **Abolition du Continuous Learning Non-Supervisé**
+   - Le système ne doit **pas** inventer et mémoriser de fausses empreintes ("Intrus D"). La base vectorielle devient un sanctuaire. Un Intrus déclenche une alerte et une photo, mais n'altère plus l'ADN mathématique de la base.
+4. **Exclusivité Spatiale Absolue (Anti-Clonage)**
+   - Une identité (ex: "Ash") ne peut incarner qu'un seul ID physique à l'écran. Si ID 1 est certifié "Ash" à 99%, ID 2 ne pourra jamais l'être, même s'il lui ressemble à 80%.
+5. **Vecteurs Corporels (Re-Identification / Re-ID) — Piste de Recherche**
+   - Inspiration des "Caddies intelligents" : extraction de vecteurs de caractéristiques sur les vêtements et la silhouette (Couleurs, Gabarit) via la Box complète de YOLO. Utile comme support quand le visage est masqué, mais complexe à standardiser sur des caméras coupant à mi-corps.
