@@ -70,7 +70,7 @@ python client_camera.py
 | 3 | Analyse posturale (MediaPipe) | ❌ Inadapté (cf. Journal) |
 | 4 | Suivi d'objets (Centroid Tracker) | ✅ Complété |
 | 5 | Reconnaissance faciale (DeepFace/VGG) | ✅ Complété |
-| 6 | Architecture Serveur (FastAPI + SQLite) | 🔄 En développement |
+| 6 | Architecture Serveur (FastAPI + SQLite) | ✅ Complété |
 | 7 | Source ESP32-CAM | ⏳ |
 
 ## Historique d'Implémentation (Trace)
