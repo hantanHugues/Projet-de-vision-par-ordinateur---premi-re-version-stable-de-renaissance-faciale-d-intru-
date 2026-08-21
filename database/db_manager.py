@@ -189,7 +189,7 @@ class DatabaseManager:
         cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO event_logs (profile_id, confidence, event_type, snapshot_path) VALUES (?, ?, ?, ?)",
-            (profile_id, confidence, event_type, snapshot_path)
+            (profile_id, float(confidence), event_type, snapshot_path)
         )
         conn.commit()
         conn.close()

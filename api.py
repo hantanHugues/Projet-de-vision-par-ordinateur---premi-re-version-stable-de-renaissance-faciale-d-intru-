@@ -500,12 +500,13 @@ async def get_config():
 
 
 @app.put("/config")
-async def update_config(updates: dict):
+async def update_config(updates: dict, authorization: Optional[str] = Header(None)):
     """
     Met à jour un ou plusieurs paramètres de configuration.
     Body JSON : {"ALERT_GRACE_PERIOD": 90, "MFA_REQUIRED": true}
     Les clés inconnues sont ignorées silencieusement.
     """
+    _check_token(authorization)
     allowed = set(face_recognizer.db.get_effective_config().keys())
     applied = {}
     for key, value in updates.items():
@@ -698,11 +699,12 @@ async def liveness_result(
 
 
 @app.post("/iot/door")
-async def iot_door(action: str = Form(...)):
+async def iot_door(action: str = Form(...), authorization: Optional[str] = Header(None)):
     """
     Contrôle manuel de la porte (simulation clavier).
     action = 'open' | 'close' | 'toggle'
     """
+    _check_token(authorization)
     if action == "open":
         iot.open_door()
     elif action == "close":
@@ -718,11 +720,12 @@ async def iot_door(action: str = Form(...)):
 
 
 @app.post("/iot/fingerprint")
-async def iot_fingerprint(action: str = Form(...)):
+async def iot_fingerprint(action: str = Form(...), authorization: Optional[str] = Header(None)):
     """
     Contrôle manuel du lecteur d'empreinte (simulation clavier).
     action = 'wake' | 'sleep'
     """
+    _check_token(authorization)
     if action == "wake":
         iot.wake_fingerprint()
     elif action == "sleep":
@@ -736,11 +739,12 @@ async def iot_fingerprint(action: str = Form(...)):
 
 
 @app.post("/iot/light")
-async def iot_light(action: str = Form(...)):
+async def iot_light(action: str = Form(...), authorization: Optional[str] = Header(None)):
     """
     Contrôle manuel de l'éclairage (simulation clavier).
     action = 'welcome' | 'alert' | 'off'
     """
+    _check_token(authorization)
     if action == "welcome":
         iot.set_light_welcome()
     elif action == "alert":
