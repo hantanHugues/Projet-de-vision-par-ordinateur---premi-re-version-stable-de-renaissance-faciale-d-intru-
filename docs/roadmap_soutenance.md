@@ -51,3 +51,18 @@ Une grande partie du projet a consisté à analyser et surmonter nos propres imp
 ### B. Le "Color Re-ID" (Tracking Continu malgré les occlusions)
 * **L'Erreur Initiale (Archive) :** Notre module de Tracking de base (`CentroidTracker`) utilisait uniquement une règle de distance (`150 pixels`). Si une personne s'absentait de la caméra 1 seconde et réapparaissait de l'autre côté de la pièce, elle était considérée comme un clone intrus, obligeant le système à relancer tout le coûteux réseau DeepFace pour la ré-identifier.
 * **La Solution Apportée :** Plutôt que de lancer un second modèle Deep Learning, une méthode colorimétrique extrêmement légère a été codée : l'Histogramme de Couleurs HSV (`cv2.calcHist`). La signature vestimentaire de chaque personne est encodée. Même si la personne disparaît derrière un mur, le Tracker utilise son vêtement (match > 85%) pour lui redonner immédiatement sa bonne identité sans réveiller l'IA faciale.
+
+## 5. Perspectives : Optimisation Edge Computing (Raspberry Pi 4) & Pipeline de Pré-traitement
+*Ajout du 8 Mai 2026 : Documentation des réflexions pour la transposition sur matériel embarqué.*
+
+### A. Le Pipeline de Pré-traitement de l'Image ("Garbage In, Garbage Out")
+Pour faciliter la tâche des modèles IA et accélérer l'inférence, nous prévoyons un pipeline strict avant l'analyse :
+1. **Downscaling pour YOLO :** La détection spatiale ne nécessite pas de détails HD. Redimensionner le flux d'entrée (640x640 ou 320x320) avant de le passer à YOLO allège drastiquement l'usage RAM/CPU.
+2. **Grayscale + Histogram Equalization (Pour le Face Gate) :** Le filtre de qualité HaarCascade d'OpenCV est conçu pour repérer des variations géométriques de lumière. Le convertir en Niveaux de Gris (Grayscale) accélère la détection, et égaliser l'histogramme booste artificiellement le contraste pour éviter les ratés.
+3. **Filtre CLAHE (Contrast Limited Adaptive Histogram Equalization) :** Pour le modèle biométrique Facenet512, les contre-jours de webcam corrompent les *embeddings* mathématiques. Appliquer un filtre CLAHE ciblée *uniquement* sur la boite englobante du visage permet d'éclairer les zones d'ombre de façon locale sans cramer les zones claires de l'image.
+4. **Face Alignment :** Obligation mathématique d'incorporer un alignement (via OpenCV ou le paramètre lign=True de DeepFace) avant la vectorisation. Des yeux parfaitement sur le même axe horizontal stabilisent drastiquement le *Threshold* cosinus.
+
+### B. Optimisation des Modèles Numériques (Quantization)
+Le Raspberry Pi 4 s'effondrera face à un modèle PyTorch ou Keras en virgule flottante (FP32).
+* **Décision Architecture (Prévue) :** Conversion du réseau de YOLOv8n et de DeepFace en format ONNX ou .tflite (TensorFlow Lite).
+* **Quantization INT8 :** Transformer les poids du réseau de 32-bits (loat) en 8-bits (int). Perte estimée de précision : ~2%, Gain de vitesse estimé : x3 ou x4 grâce aux instructions spécifiques ARM du Raspberry Pi. Cela permettra d'achever la transition vers le "vrai" Edge Computing autonome.

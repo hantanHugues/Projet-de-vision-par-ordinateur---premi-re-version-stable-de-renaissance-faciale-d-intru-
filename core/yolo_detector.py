@@ -39,14 +39,15 @@ class YoloDetector:
         # Inférence avec stream=False pour traiter une image fixe à la fois.
         # conf permet d'omettre les "bruits" où l'IA n'est pas certaine.
         # iou=0.4 force YOLO à fusionner les boîtes qui se superposent (Anti double-détection)
+        # imgsz=320 force le downscaling INTÉGRÉ dans YOLO pour économiser drastiquement le bus CPU (Optimisation Edge)
         results = self._model(
-            frame, 
-            conf=config.YOLO_CONFIDENCE_THRESHOLD, 
-            classes=classes, 
+            frame,
+            conf=config.YOLO_CONFIDENCE_THRESHOLD,
+            classes=classes,
             verbose=False,
-            iou=0.35 
+            imgsz=config.YOLO_IMAGE_SIZE,
+            iou=config.YOLO_IOU
         )
-
         detections = []
         # Parcourir les boîtes englobantes (boxes) du résultat
         for result in results:
@@ -61,38 +62,13 @@ class YoloDetector:
                     "confidence": conf
                 })
                 
-        # --- PATCH ANTI-CLONAGE (Exclusivité Spatiale Absolue) ---
-        # Parfois, YOLO sort 2 boîtes sur la même personne : une pour la tête, une pour le corps entier.
-        # Le paramètre iou=0.35 ne suffit pas à les fusionner si la tête est trop petite (Intersection sur Union faible).
-        # On va supprimer manuellement les boîtes qui sont "incluses" dans une autre image plus grande.
-        filtered_detections = []
-        for i, d1 in enumerate(detections):
-            is_contained = False
-            box1 = d1["box"]
-            area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
-            
-            for j, d2 in enumerate(detections):
-                if i == j: continue
-                box2 = d2["box"]
-                area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
-                
-                # Calcul de l'aire d'intersection
-                x_left = max(box1[0], box2[0])
-                y_top = max(box1[1], box2[1])
-                x_right = min(box1[2], box2[2])
-                y_bottom = min(box1[3], box2[3])
-                
-                if x_right > x_left and y_bottom > y_top:
-                    intersection = (x_right - x_left) * (y_bottom - y_top)
-                    # Si plus de 50% de la boîte 1 est dans la boîte 2 ET que la boîte 2 est plus grande
-                    if intersection / area1 > 0.5 and area2 > area1:
-                        is_contained = True
-                        break
-                        
-            if not is_contained:
-                filtered_detections.append(d1)
-                
-        detections = filtered_detections
+        # --- NMS MANUEL (Non-Maximum Suppression) ---
+        # YOLO peut produire plusieurs boîtes pour la même personne :
+        #   - tête + corps entier  → cas "contenement"
+        #   - haut du corps + bas du corps → cas "adjacents" (non géré par un filtre de containment simple)
+        # Solution : NMS standard par IoU. On garde la boîte la plus confiante et on supprime
+        # toutes celles qui chevauchent à plus de POST_NMS_IOU_THRESHOLD.
+        detections = self._nms(detections, iou_threshold=0.30)
 
         # --- Logique anti-spam ---
         current_count = len(detections)
@@ -104,6 +80,38 @@ class YoloDetector:
         self._last_human_count = current_count
                 
         return detections
+
+    def _iou(self, box1, box2):
+        """Calcule l'Intersection sur Union entre deux boîtes [x1,y1,x2,y2]."""
+        x1 = max(box1[0], box2[0])
+        y1 = max(box1[1], box2[1])
+        x2 = min(box1[2], box2[2])
+        y2 = min(box1[3], box2[3])
+        inter = max(0, x2 - x1) * max(0, y2 - y1)
+        if inter == 0:
+            return 0.0
+        area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
+        area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
+        return inter / (area1 + area2 - inter)
+
+    def _nms(self, detections, iou_threshold=0.30):
+        """
+        NMS manuel — trie par confiance (desc), garde la meilleure boîte,
+        supprime toutes celles qui chevauchent à plus de iou_threshold.
+        Couvre les cas "boîte dans boîte" ET "boîtes adjacentes" (angle mort du filtre containment).
+        """
+        if len(detections) <= 1:
+            return detections
+        detections = sorted(detections, key=lambda d: d["confidence"], reverse=True)
+        kept = []
+        while detections:
+            best = detections.pop(0)
+            kept.append(best)
+            detections = [
+                d for d in detections
+                if self._iou(best["box"], d["box"]) < iou_threshold
+            ]
+        return kept
 
     def draw_boxes(self, frame, detections):
         """

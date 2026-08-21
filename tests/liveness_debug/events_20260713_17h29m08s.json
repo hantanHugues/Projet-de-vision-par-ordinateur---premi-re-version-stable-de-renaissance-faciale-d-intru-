@@ -1,0 +1,401 @@
+{
+  "session_start": "2026-07-13T17:28:13.248",
+  "session_end": "2026-07-13T17:29:08.924",
+  "frames": 1606,
+  "thresholds": {
+    "blink": 0.35,
+    "smile": 0.45
+  },
+  "events": [
+    {
+      "t": "2026-07-13T17:28:14.977",
+      "event": "BLINK_START",
+      "blink_avg": 0.4609
+    },
+    {
+      "t": "2026-07-13T17:28:15.043",
+      "event": "BLINK_END",
+      "blink_avg": 0.3031
+    },
+    {
+      "t": "2026-07-13T17:28:16.237",
+      "event": "BLINK_START",
+      "blink_avg": 0.435
+    },
+    {
+      "t": "2026-07-13T17:28:16.390",
+      "event": "BLINK_END",
+      "blink_avg": 0.2658
+    },
+    {
+      "t": "2026-07-13T17:28:16.454",
+      "event": "BLINK_START",
+      "blink_avg": 0.3516
+    },
+    {
+      "t": "2026-07-13T17:28:16.516",
+      "event": "BLINK_END",
+      "blink_avg": 0.2187
+    },
+    {
+      "t": "2026-07-13T17:28:16.578",
+      "event": "BLINK_START",
+      "blink_avg": 0.3637
+    },
+    {
+      "t": "2026-07-13T17:28:16.642",
+      "event": "BLINK_END",
+      "blink_avg": 0.1956
+    },
+    {
+      "t": "2026-07-13T17:28:17.718",
+      "event": "BLINK_START",
+      "blink_avg": 0.6842
+    },
+    {
+      "t": "2026-07-13T17:28:34.201",
+      "event": "BLINK_END",
+      "blink_avg": 0.1009
+    },
+    {
+      "t": "2026-07-13T17:28:39.833",
+      "event": "SMILE_START",
+      "smile_avg": 0.4921
+    },
+    {
+      "t": "2026-07-13T17:28:40.701",
+      "event": "SMILE_END",
+      "smile_avg": 0.4435
+    },
+    {
+      "t": "2026-07-13T17:28:40.767",
+      "event": "SMILE_START",
+      "smile_avg": 0.612
+    },
+    {
+      "t": "2026-07-13T17:28:40.834",
+      "event": "SMILE_END",
+      "smile_avg": 0.3372
+    },
+    {
+      "t": "2026-07-13T17:28:40.902",
+      "event": "SMILE_START",
+      "smile_avg": 0.6575
+    },
+    {
+      "t": "2026-07-13T17:28:40.965",
+      "event": "SMILE_END",
+      "smile_avg": 0.0448
+    },
+    {
+      "t": "2026-07-13T17:28:41.843",
+      "event": "SMILE_START",
+      "smile_avg": 0.6504
+    },
+    {
+      "t": "2026-07-13T17:28:42.915",
+      "event": "SMILE_END",
+      "smile_avg": 0.0623
+    },
+    {
+      "t": "2026-07-13T17:28:43.990",
+      "event": "SMILE_START",
+      "smile_avg": 0.6258
+    },
+    {
+      "t": "2026-07-13T17:28:44.785",
+      "event": "BLINK_START",
+      "blink_avg": 0.3641
+    },
+    {
+      "t": "2026-07-13T17:28:44.979",
+      "event": "BLINK_END",
+      "blink_avg": 0.2839
+    },
+    {
+      "t": "2026-07-13T17:28:45.063",
+      "event": "BLINK_START",
+      "blink_avg": 0.3706
+    },
+    {
+      "t": "2026-07-13T17:28:45.129",
+      "event": "BLINK_END",
+      "blink_avg": 0.3096
+    },
+    {
+      "t": "2026-07-13T17:28:45.251",
+      "event": "BLINK_START",
+      "blink_avg": 0.4902
+    },
+    {
+      "t": "2026-07-13T17:28:45.310",
+      "event": "BLINK_END",
+      "blink_avg": 0.3471
+    },
+    {
+      "t": "2026-07-13T17:28:45.464",
+      "event": "BLINK_START",
+      "blink_avg": 0.4693
+    },
+    {
+      "t": "2026-07-13T17:28:45.590",
+      "event": "BLINK_END",
+      "blink_avg": 0.317
+    },
+    {
+      "t": "2026-07-13T17:28:45.648",
+      "event": "BLINK_START",
+      "blink_avg": 0.3693
+    },
+    {
+      "t": "2026-07-13T17:28:45.866",
+      "event": "BLINK_END",
+      "blink_avg": 0.3355
+    },
+    {
+      "t": "2026-07-13T17:28:45.866",
+      "event": "SMILE_END",
+      "smile_avg": 0.2781
+    },
+    {
+      "t": "2026-07-13T17:28:46.938",
+      "event": "SMILE_START",
+      "smile_avg": 0.6163
+    },
+    {
+      "t": "2026-07-13T17:28:47.602",
+      "event": "SMILE_END",
+      "smile_avg": 0.267
+    },
+    {
+      "t": "2026-07-13T17:28:48.530",
+      "event": "BLINK_START",
+      "blink_avg": 0.5117
+    },
+    {
+      "t": "2026-07-13T17:28:48.679",
+      "event": "BLINK_END",
+      "blink_avg": 0.2802
+    },
+    {
+      "t": "2026-07-13T17:28:49.351",
+      "event": "BLINK_START",
+      "blink_avg": 0.5148
+    },
+    {
+      "t": "2026-07-13T17:28:50.676",
+      "event": "BLINK_END",
+      "blink_avg": 0.2967
+    },
+    {
+      "t": "2026-07-13T17:28:51.486",
+      "event": "BLINK_START",
+      "blink_avg": 0.3899
+    },
+    {
+      "t": "2026-07-13T17:28:52.381",
+      "event": "BLINK_END",
+      "blink_avg": 0.1662
+    },
+    {
+      "t": "2026-07-13T17:28:52.836",
+      "event": "BLINK_START",
+      "blink_avg": 0.4445
+    },
+    {
+      "t": "2026-07-13T17:28:53.696",
+      "event": "BLINK_END",
+      "blink_avg": 0.1781
+    },
+    {
+      "t": "2026-07-13T17:28:54.705",
+      "event": "BLINK_START",
+      "blink_avg": 0.6928
+    },
+    {
+      "t": "2026-07-13T17:28:55.508",
+      "event": "BLINK_END",
+      "blink_avg": 0.1314
+    },
+    {
+      "t": "2026-07-13T17:28:56.310",
+      "event": "SMILE_START",
+      "smile_avg": 0.6074
+    },
+    {
+      "t": "2026-07-13T17:28:57.252",
+      "event": "SMILE_END",
+      "smile_avg": 0.4253
+    },
+    {
+      "t": "2026-07-13T17:28:57.382",
+      "event": "SMILE_START",
+      "smile_avg": 0.5931
+    },
+    {
+      "t": "2026-07-13T17:28:57.526",
+      "event": "SMILE_END",
+      "smile_avg": 0.3782
+    },
+    {
+      "t": "2026-07-13T17:28:57.622",
+      "event": "SMILE_START",
+      "smile_avg": 0.7144
+    },
+    {
+      "t": "2026-07-13T17:28:57.654",
+      "event": "SMILE_END",
+      "smile_avg": 0.4394
+    },
+    {
+      "t": "2026-07-13T17:28:57.714",
+      "event": "SMILE_START",
+      "smile_avg": 0.7492
+    },
+    {
+      "t": "2026-07-13T17:28:57.780",
+      "event": "BLINK_START",
+      "blink_avg": 0.645
+    },
+    {
+      "t": "2026-07-13T17:28:58.266",
+      "event": "SMILE_END",
+      "smile_avg": 0.4045
+    },
+    {
+      "t": "2026-07-13T17:28:58.352",
+      "event": "BLINK_END",
+      "blink_avg": 0.1893
+    },
+    {
+      "t": "2026-07-13T17:28:58.352",
+      "event": "SMILE_START",
+      "smile_avg": 0.6596
+    },
+    {
+      "t": "2026-07-13T17:28:58.455",
+      "event": "BLINK_START",
+      "blink_avg": 0.7198
+    },
+    {
+      "t": "2026-07-13T17:28:58.683",
+      "event": "SMILE_END",
+      "smile_avg": 0.4239
+    },
+    {
+      "t": "2026-07-13T17:28:58.708",
+      "event": "SMILE_START",
+      "smile_avg": 0.5242
+    },
+    {
+      "t": "2026-07-13T17:28:59.022",
+      "event": "BLINK_END",
+      "blink_avg": 0.245
+    },
+    {
+      "t": "2026-07-13T17:28:59.492",
+      "event": "SMILE_END",
+      "smile_avg": 0.1764
+    },
+    {
+      "t": "2026-07-13T17:29:00.194",
+      "event": "SMILE_START",
+      "smile_avg": 0.4849
+    },
+    {
+      "t": "2026-07-13T17:29:00.869",
+      "event": "SMILE_END",
+      "smile_avg": 0.3992
+    },
+    {
+      "t": "2026-07-13T17:29:01.678",
+      "event": "BLINK_START",
+      "blink_avg": 0.4867
+    },
+    {
+      "t": "2026-07-13T17:29:02.214",
+      "event": "BLINK_END",
+      "blink_avg": 0.1408
+    },
+    {
+      "t": "2026-07-13T17:29:02.827",
+      "event": "BLINK_START",
+      "blink_avg": 0.6178
+    },
+    {
+      "t": "2026-07-13T17:29:03.346",
+      "event": "BLINK_END",
+      "blink_avg": 0.2045
+    },
+    {
+      "t": "2026-07-13T17:29:03.630",
+      "event": "BLINK_START",
+      "blink_avg": 0.4002
+    },
+    {
+      "t": "2026-07-13T17:29:04.084",
+      "event": "BLINK_END",
+      "blink_avg": 0.2597
+    },
+    {
+      "t": "2026-07-13T17:29:04.478",
+      "event": "SMILE_START",
+      "smile_avg": 0.5116
+    },
+    {
+      "t": "2026-07-13T17:29:04.899",
+      "event": "SMILE_END",
+      "smile_avg": 0.1088
+    },
+    {
+      "t": "2026-07-13T17:29:05.298",
+      "event": "BLINK_START",
+      "blink_avg": 0.6575
+    },
+    {
+      "t": "2026-07-13T17:29:05.455",
+      "event": "BLINK_END",
+      "blink_avg": 0.3401
+    },
+    {
+      "t": "2026-07-13T17:29:05.485",
+      "event": "BLINK_START",
+      "blink_avg": 0.4527
+    },
+    {
+      "t": "2026-07-13T17:29:05.507",
+      "event": "BLINK_END",
+      "blink_avg": 0.167
+    },
+    {
+      "t": "2026-07-13T17:29:06.168",
+      "event": "BLINK_START",
+      "blink_avg": 0.3632
+    },
+    {
+      "t": "2026-07-13T17:29:06.229",
+      "event": "BLINK_END",
+      "blink_avg": 0.2145
+    },
+    {
+      "t": "2026-07-13T17:29:06.629",
+      "event": "BLINK_START",
+      "blink_avg": 0.384
+    },
+    {
+      "t": "2026-07-13T17:29:06.963",
+      "event": "BLINK_END",
+      "blink_avg": 0.2912
+    },
+    {
+      "t": "2026-07-13T17:29:07.042",
+      "event": "BLINK_START",
+      "blink_avg": 0.3735
+    },
+    {
+      "t": "2026-07-13T17:29:07.168",
+      "event": "BLINK_END",
+      "blink_avg": 0.3316
+    }
+  ]
+}

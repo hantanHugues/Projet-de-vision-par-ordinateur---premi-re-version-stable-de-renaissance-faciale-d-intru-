@@ -15,21 +15,30 @@ from sources.base import VideoSource
 class WebcamSource(VideoSource):
     """Capture vidéo depuis une webcam locale via OpenCV."""
 
-    def __init__(self, camera_index: int = 0):
+    def __init__(self, camera_index: int = 0, logger=None):
         """
         Args:
             camera_index: Index de la webcam (0 = défaut système).
+            logger: Instance VisualLogger pour les messages (optionnel).
         """
         self._camera_index = camera_index
         self._capture: cv2.VideoCapture | None = None
+        self._logger = logger
+
+    def _log(self, level: str, msg: str):
+        """Achemine les messages vers le logger injecté ou print() en fallback."""
+        if self._logger:
+            getattr(self._logger, level)(msg)
+        else:
+            print(f"[{level.upper()}] {msg}")
 
     def open(self) -> bool:
         """Ouvre la webcam."""
         self._capture = cv2.VideoCapture(self._camera_index)
         if not self._capture.isOpened():
-            print(f"[ERREUR] Impossible d'ouvrir la webcam (index={self._camera_index})")
+            self._log("error", f"Impossible d'ouvrir la webcam (index={self._camera_index})")
             return False
-        print(f"[OK] Webcam ouverte (index={self._camera_index})")
+        self._log("info", f"Webcam ouverte (index={self._camera_index})")
         return True
 
     def read_frame(self) -> tuple[bool, np.ndarray | None]:
@@ -46,7 +55,7 @@ class WebcamSource(VideoSource):
         if self._capture is not None:
             self._capture.release()
             self._capture = None
-            print("[OK] Webcam libérée.")
+            self._log("info", "Webcam libérée.")
 
     def is_opened(self) -> bool:
         """Vérifie si la webcam est ouverte."""

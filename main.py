@@ -1,15 +1,12 @@
 """
-main.py — Point d'entrée du Hub de Décision.
+main.py — Point d'entrée local du Hub de Décision (mode standalone).
 
-Ce script est le chef d'orchestre du système de surveillance IA.
-Il récupère les frames depuis une source vidéo, les fait passer
-à travers le pipeline d'IA, et affiche le résultat.
-
-Phase 3 : YOLO (détection) + MediaPipe (squelette conditionnel).
+Pipeline complet en local : YOLO + CentroidTracker (Color Re-ID) + FaceNet512.
+Alternative à api.py + client_camera.py pour les tests sans réseau.
 
 Usage :
     python main.py
-    
+
 Contrôles :
     q — Quitter le programme
 """
@@ -20,22 +17,24 @@ import cv2
 import config
 from sources.webcam import WebcamSource
 from core.yolo_detector import YoloDetector
-from core.pose_analyzer import PoseAnalyzer
 from core.centroid_tracker import CentroidTracker
+from core.face_recognizer import FaceRecognizer
 from core.logger import VisualLogger
 
 
-def create_video_source():
+def create_video_source(logger=None):
     """
     Factory : crée la source vidéo selon la configuration.
-    
+
+    Args:
+        logger: VisualLogger à injecter dans la source (optionnel).
     Returns:
         Une instance de VideoSource correspondant au type configuré.
     """
     source_type = config.VIDEO_SOURCE_TYPE
 
     if source_type == "webcam":
-        return WebcamSource(camera_index=config.WEBCAM_INDEX)
+        return WebcamSource(camera_index=config.WEBCAM_INDEX, logger=logger)
     # --- Sources futures ---
     # elif source_type == "esp32":
     #     from sources.esp32 import ESP32Source
@@ -61,7 +60,7 @@ def main():
     logger.info("=" * 40)
 
     # 1. Créer et ouvrir la source vidéo
-    source = create_video_source()
+    source = create_video_source(logger)
     logger.info(f"Source initialisée : {source.source_name}")
 
     if not source.open():
@@ -70,11 +69,7 @@ def main():
 
     # 1.5 Initialiser les cerveaux IA
     detector = YoloDetector(logger)
-    pose = PoseAnalyzer(logger) # GARDÉ MAIS DÉSACTIVÉ DANS LA BOUCLE
-    # PHASE 1 : On passe la patience à 60 frames (~2-3 secondes) pour éviter les sauts d'identités si YOLO rate un visage.
     tracker = CentroidTracker(max_disappeared=60)
-
-    from core.face_recognizer import FaceRecognizer
     face_rec = FaceRecognizer(logger)
     
     logger.info("Tracker (CentroidTracker) initialisé (Phase 4).")
@@ -86,9 +81,6 @@ def main():
     # 2. Compteur de FPS pour diagnostic
     frame_count = 0
     start_time = time.time()
-    
-    # State tracking pour éviter le spam
-    is_currently_alerting = False
 
     try:
         while True:
@@ -140,7 +132,8 @@ def main():
             
             # --- PHASE 4: SUIVI D'OBJETS (TRACKING) ---
             rects = [det["box"] for det in detections]
-            objects, bboxes = tracker.update(rects)
+            # frame passé pour activer la Color Re-ID HSV (signature vestimentaire)
+            objects, bboxes = tracker.update(rects, frame)
 
             # --- PHASE 5: RECONNAISSANCE FACIALE AVEC CACHE ---
             face_rec.clear_lost_ids(list(objects.keys()))

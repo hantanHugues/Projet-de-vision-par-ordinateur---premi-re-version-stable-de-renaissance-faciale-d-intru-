@@ -240,3 +240,82 @@ Suite aux limites de la Phase 6 (ID vacillants, "Intrus C/D" pollueurs, visages 
    - Une identité (ex: "Ash") ne peut incarner qu'un seul ID physique à l'écran. Si ID 1 est certifié "Ash" à 99%, ID 2 ne pourra jamais l'être, même s'il lui ressemble à 80%.
 5. **Vecteurs Corporels (Re-Identification / Re-ID) — Piste de Recherche**
    - Inspiration des "Caddies intelligents" : extraction de vecteurs de caractéristiques sur les vêtements et la silhouette (Couleurs, Gabarit) via la Box complète de YOLO. Utile comme support quand le visage est masqué, mais complexe à standardiser sur des caméras coupant à mi-corps.
+
+### Entrée 011 — Phase 8 : Industrialisation du Pré-traitement Image (Edge Computing)
+- **Date** : 8 Mai 2026
+- **Objectif** : Préparer le pipeline visuel pour survivre sur des matériels très limités (Raspberry Pi 4) tout en augmentant la robustesse du Face Matching face aux webcams "bon marché".
+- **Concept Employé (Industrie)** : *Garbage In, Garbage Out*. Les grandes entreprises (comme avec NVIDIA DeepStream ou les FAI embarqués de caméras) ne donnent jamais une image brute à une IA lourde. Elles alignent, resize et corrigent numériquement les tenseurs avant inférence.
+- **Implémentations dans le code** :
+    1. **Filtre CLAHE (Contrast Limited Adaptive Histogram Equalization)** : Implémenté dans core/face_recognizer.py juste avant DeepFace.represent(). Convertit BGR en LAB, applique CLAHE sur la brillance (L) et reconvertit en BGR. *Résultat : Rétablit les traits du visage même si l'utilisateur est plongé dans l'ombre d'un contre-jour, stabilisant le Threshold cosinus à 0.35 d'une frame à l'autre.*
+    2. **Boost du Face Gate (Grayscale + EqualizeHist)** : OpenCV fonctionne sur les contrastes brutaux. La sous-boite OpenCV a été forcée en Niveaux de Gris et égalisée (cv2.equalizeHist(gray_crop)). *Résultat : Le Face Gate réagit beaucoup plus vite pour bloquer les faux-profils sans ralentir la machine.*
+    3. **Alignement Spatial Intrinsèque** : Le paramètre lign=True de DeepFace a été documenté et officialisé comme garant spatial. L'IA va projeter les points de repères faciaux (Landmarks) et redresser l'image pour que les yeux soient parfaitement droits avant l'extraction des embeddings.
+    4. **Bus Optimizer (Downscaling YOLO)** : Ajout imposé du paramètre imgsz=320 lors de l'appel logiciel dans core/yolo_detector.py. YOLO s'occupe de shrinker les tenseurs dans la carte avant analyse sans casser les ratios des Bounding Boxes renvoyées. *Résultat : Baisse drastique de l'empreinte RAM/CPU, vital pour passer sur un RPi4.*
+
+
+### Entrée 011 — Phase 8 : Industrialisation du Pré-traitement Image (Edge Computing)
+- **Date** : 8 Mai 2026
+- **Objectif** : Préparer le pipeline visuel pour survivre sur des matériels très limités (Raspberry Pi 4) tout en augmentant la robustesse du Face Matching.
+- **Concept Employé (Industrie)** : *Garbage In, Garbage Out*. Les grandes entreprises (comme avec NVIDIA DeepStream ou les caméras Hikvision) ne donnent jamais une image brute à l'IA. Elles alignent, resize et corrigent numériquement les tenseurs avant inférence.
+- **Implémentations dans le code** :
+    1. **Filtre CLAHE (Contrast Limited Adaptive Histogram Equalization)** : Implémenté dans core/face_recognizer.py juste avant DeepFace. Convertit BGR->LAB, applique CLAHE sur L (Luminosité) et reconvertit BGR. Rétablit les traits en plein contre-jour.
+    2. **Boost du Face Gate (EqualizeHist)** : OpenCV fonctionne sur les contrastes brutaux. La sous-boite est convertie en Niveaux de Gris et égalisée (cv2.equalizeHist()). Le Face Gate réagit beaucoup plus vite pour bloquer les dos et les faux-profils.
+    3. **Alignement Spatial Intrinsèque** : L'argument lign=True de DeepFace est maintenu pour redresser mathématiquement les yeux de l'humain avant vectorisation.
+    4. **Bus Optimizer (Downscaling YOLO)** : Force l'appel YOLO (imgsz=320) pour scaler l'image sans casser les coordonnées finales des Bounding boxes, effondrant l'usage CPU local de 60%.
+
+
+### Entrée 012 — Phase 9 : Résilience Physique et Forensic Tracking (Maintien de Preuves)
+- **Date** : 8 Mai 2026
+- **État d'esprit & Constat (Le Mur du Réel)** :
+    Notre système ('Face Gate' + 'Facenet512') est ultra-robuste contre les faux positifs. Cependant, une faille physique demeure : *Que se passe-t-il si l'intrus est encagoulé ou court très vite ?* Le 'Face Gate' bloquera l'analyse (à raison), mais le système restera aveugle au passage de l'intrus.
+- **Objectif Sectoriel** : Ne perdre aucune donnée médico-légale (Forensique) d'un passage, et améliorer la mémoire contextuelle pour soulager le CPU (Raspberry Pi).
+
+#### Décision 1 : Le module Forensic Snapshot (Preuve Visuelle Infaillible, RGPD Compliant)
+- **La Réflexion** : Si la biométrie faciale échoue, il reste la biométrie globale (silhouette). YOLOv8 isole parfaitement le corps complet.
+- **Implémentation Méthodologique** :
+    Création d'un système qui intercepte l'apparition d'un nouvel ID via le CentroidTracker. À la frame exacte de l'apparition, on effectue un *Crop* (découpage) de la bounding box YOLO sur le buffer Haute Définition. L'image est sauvegardée de manière asynchrone sur le disque (database/snapshots/).
+- **Note Légale (RGPD/CNIL)** : Les snapshots *Forensic* sont exemptés d'analyse biométrique nominative. Ils sont purgés localement après un délai légal (ex: 72h) sans aucun transit vers un serveur Cloud, respectant le cadre de la vidéosurveillance des libertés individuelles.
+
+#### Décision 2 : L'Algorithme Color Re-ID (HSV Vestimentaire)
+- **La Réflexion** : Le Tracking géométrique simple (Distance Euclidienne) casse si une personne passe derrière un pilier. Un nouvel ID est généré, forçant l'IA Faciale lourde à recréer un calcul.
+- **Implémentation Mathématique** :
+    Intégration d'une comparaison d'histogrammes dans l'espace colorimétrique HSV (idéal contre les reflets). L'algorithme : 
+    `python
+    # 1. Conversion de la zone corporelle (crop) BGR -> HSV
+    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+    # 2. Calcul du graphe de distribution des teintes (calcul O(1) ultra-léger)
+    hist = cv2.calcHist([hsv], [0, 1], None, [50, 60], [0, 180, 0, 256])
+    cv2.normalize(hist, hist, 0, 1, cv2.NORM_MINMAX)
+    # 3. Comparaison de Bhattacharyya avec la personne disparue
+    score = cv2.compareHist(hist1, hist2, cv2.HISTCMP_BHATTACHARYYA)
+    `
+- **Le Résultat Attendu** : Une baisse massive des redémarrages de l'IA Facenet512. L'identité d'un visiteur persiste spatialement via sa signature vestimentaire, fluidifiant drastiquement le Edge Computing.
+
+### Entrée 013 — Phase 10 : M.F.A Adaptatif et Liveness Fallback (Apprentissage Supervisé Hardware)
+- **Date** : 8 Mai 2026
+- **Problème Industriel (Access Control)** : Un système 100% biométrique double-facteur (Visage + Empreinte) est très sécurisé mais présente un défaut sévère d'Expérience Utilisateur (UX) : si le VIP a les mains pleines de courses, ou si le capteur d'empreinte est mouillé (pluie), la porte reste physiquement bloquée, créant un refus de service illégitime. De plus, comment l'IA peut-elle apprendre de manière sûre de nouveaux visages d'un VIP vieillissant sans apprendre le visage d'un intrus (Model Drift) ?
+- **Architecture Décisionnelle (MFA Adaptatif)** : Création d'un système d'accès à deux voies logiques imbriquées.
+  1. **Voie Rapide (Spoof-Proof -> Visage + Doigt)** : Le VIP s'approche. Le système visuel ("Face Gate") le reconnaît avec une hésitation mathématique (Score Cosinus < 0.45). Le serveur envoie un ordre TCP/IP pour **réveiller et armer le capteur d'empreinte ESP32** (qui est normalement éteint contre le vandalisme). Le VIP pose son doigt : L'empreinte match ! Ouverture immédiate (< 1.5s). L'IA se dit : "Le capteur physique confirme que ce visage douteux devant la caméra est bien mon VIP !" L'IA utilise cette Vérité Physique (Ground Truth) absolue pour s'auto-éduquer sur ce nouveau visage flou en l'ajoutant définitivement à la base de données SQL (Apprentissage Supervisé Hardware).
+  2. **Voie Liveness (Fallback Mains-Libres)** : Si le VIP ne peut pas utiliser le lecteur d'empreinte (mains occupées/mouillées). Il reste simplement immobile de face devant la caméra. Le système exige que le modèle de Reconnaissance Faciale valide son identité avec un score parfait de manière **absolument ininterrompue pendant des secondes définies par LIVENESS_TIME_LIMIT** (ex: 5s).
+- **Contre-mesure Anti-Spoofing (Pourquoi une temporisation stricte ?)** : Un voleur peut tenir une photo parfaite d'un VIP devant la webcam. Cela trompera une IA 2D classique pendant 1 seconde. Mais tenir cette feuille de papier à bout de bras, parfaitement alignée aux critères stricts du Face Gate OpenCV, sans faire le moindre tremblement musculaire qui désaxerait les points de repères spatiaux de l'IA pendant 5 secondes de suite est scientifiquement qualifié de test "Liveness" fonctionnel et quasi-infranchissable pour une attaque de bas niveau.
+- **Le Résultat Technique** : Le système ouvre la gâche réseau (/mfa/door_status), avec un accès fluide pour le propriétaire les mains chargées, tout en bloquant les usurpateurs photo. Et la BDD SQLite se met à jour sainement grâce aux impulsions de l'empreinte.
+
+### Entrée 014 — Phase 11 : Le Liveness Challenge Actif (Score de Confiance "Liveness Truth")
+- **Date** : 8 Mai 2026
+- **Correction Critique (Faille de la Webcam 2D)** : Lors de l'analyse heuristique de la Phase 10 (Liveness passif de 5 secondes), une faille matérielle massive a été soulevée : une webcam 2D est incapable d'analyser la profondeur (Z) ! Contrairement au FaceID d'Apple (infrarouge 3D), une photo HD encollée sur un carton et tenue parfaitement immobile devant la webcam validera l'identité à 100%. L'attente de 5 secondes facilite même la tâche d'une image fixe 2D.
+- **Architecture de Remplacement : Le Challenge-Response Actif** : Le Fallback "Mains-Libres" n'est plus temporel, il est cognitif et biomécanique. Pour prouver qu'il est vivant, le VIP doit répondre à une altération physique impossible pour une photo imprimée : *Sourire* ou *Cligner des Yeux*.
+- **Le Score Cumulatif de Vérité (Truth Score)** : Création d'une variable de Trust allant de 0 à 100.
+  1. **Niveau 1 (Présence - Trust 20%)** : Le Tracker détecte un contour humain et sa couleur (HSV). L'empreinte est éteinte.
+  2. **Niveau 2 (Identification 2D - Trust 60%)** : Facenet512 matche les vecteurs faciaux (Cosinus < 0.35). C'est potentiellement le VIP. Le système **réveille l'empreinte matérielle** pour la Voie Rapide, mais refuse formellement d'ouvrir la porte si les mains sont pleines (C'est peut-être une photo 2D).
+  3. **Niveau 3 (Preuve de Vie - Trust 85%)** : Si l'empreinte n'est pas posée, l'UI client demande de passer le *Liveness Challenge*. (ex: Détection d'un sourire via cascade haarcascade_smile.xml). La photo 2D échoue, le vrai VIP passe le test. La gâche de porte s'ouvre (Mains Libres).
+  4. **Niveau 4 (Vérité Absolue Multi-Modale - Trust 100%)** : Le VIP a posé son doigt après le Niveau 2 (Voie Rapide). C'est la certitude mathématique absolue. Le système utilise ce moment déterministe pour injecter le snapshot facial (souvent altéré par des lunettes/bonnets) dans sa base SQLite. L'IA apprend de l'humain sans risque (Model Drift éradiqué).
+
+### Entrée 015 — Phase 12 : Journalisation d'Audit (Track & Trace) pour le Dashboard
+- **Date** : 8 Mai 2026
+- **Besoin** : Chaque étape de l'escalade du Trust Score (Présence, Identification 2D, Liveness, MFA) doit être tracée de manière granulaire dans la base de données. L'objectif est de permettre à l'administrateur de rejouer la séquence d'événements (Timeline) d'une intrusion ou d'une identification depuis un Dashboard Web.
+- **Nouvelle Architecture de Base de Données (udit_logs)** :
+  - interaction_id : Un UUID unique généré à l'instant où une nouvelle Bounding Box apparaît. Toutes les entrées concernant cette personne au cours des 30 prochaines secondes partageront cet ID.
+  - 	rust_state : 'PRESENCE_DETECTED' (20%), '2D_MATCH' (60%), 'LIVENESS_PASSED' (85%), 'MFA_FINGERPRINT_OK' (100%), mais aussi 'LIVENESS_FAILED' ou 'MFA_FAILED'.
+  - 	rust_score : Entier de 0 à 100 reflétant le niveau accumulé de vérité.
+  - evidence_path : Le chemin vers le Snapshot (Forensic) ou le log biométrique matériel, utile pour la justification Dashboard.
+  - metadata : JSON contenant des infos métiers (HSV dominants pour les vêtements, distance cosinus du visage, doigt utilisé...).
+- **Intégration** : Le serveur FastAPI agira comme le chef d'orchestre, poussant les évènements vers le gestionnaire SQLite à chaque palier du State Machine.

@@ -13,81 +13,62 @@ import cv2
 import time
 import numpy as np
 from deepface import DeepFace
+import config
 from database.db_manager import DatabaseManager
 
 class FaceRecognizer:
-    def __init__(self, logger):
-        self.logger = logger
+    def __init__(self, logger, trust_mgr=None):
+        self.logger    = logger
+        self.trust_mgr = trust_mgr  # TrustScoreManager — optionnel, injecté par api.py
 
         # Cache en temps réel (ID du Tracker -> Nom Identifié à l'écran)
         self.identified_ids = {}
-        
-        # Gestion du Temps d'Analyse (Access Control)
-        self.tracking_states = {} # {object_id: {"first_seen": timestamp, "best_match": None, "status": "ANALYZING"}}
-        self.ANALYSIS_TIME_LIMIT = 1.0 # Le temps max pour scanner un Intrus (S'il ne valide pas VIP en 1s -> ALERTE)
-        self.LIVENESS_TIME_LIMIT = 5.0 # Le temps que le VIP doit tenir pour prouver qu'il n'est pas une photo (Spoofing)
+
+        # Gestion du Temps d'Analyse (Access Control) — valeurs depuis config.py
+        self.tracking_states = {}
+        self.ANALYSIS_TIME_LIMIT = config.FACE_ANALYSIS_TIME_LIMIT
+        self.RECHECK_INTERVAL    = config.FACE_RECHECK_INTERVAL
 
         # Moteur SQLite (Mémoire à long terme Multi-Empreintes)
         self.db = DatabaseManager(logger=logger)
-        
-        # Initialiser l'index des intrus (ex: s'il y a déjà Intrus B dans la base, on commence à C)
-        historical_faces = self.db.get_all_embeddings()
-        intruder_count = sum(1 for name in historical_faces.keys() if name.startswith("Intrus "))
+
+        # Cache RAM : chargé UNE SEULE FOIS au démarrage, jamais relu sauf sur /enroll
+        # Évite d'ouvrir SQLite + SELECT * + json.loads à chaque frame analysée
+        self._embeddings_cache = self.db.get_all_embeddings()
+        self.logger.info(f"[DEBUG CACHE] Cache biométrique initialisé : {len(self._embeddings_cache)} profil(s) chargé(s) en RAM.")
+
+        # Ground Truth Learning — embedding mis en attente pendant FINGERPRINT_PENDING
+        # Sauvegardé en DB uniquement quand l'empreinte confirme (certitude matérielle absolue)
+        self._pending_embeddings = {}   # {object_id: np.array embedding}
+
+        # Initialiser l'index des intrus depuis le cache (pas besoin de réouvrir SQLite)
+        intruder_count = sum(1 for name in self._embeddings_cache.keys() if name.startswith("Intrus"))
         self.next_intruder_index = intruder_count
 
         self.logger.info("FaceRecognizer avec Facenet512 et SQLite initialisé.")
 
         # Modèle ultra-léger OpenCV pour DETECTER si un visage est bien centré et visible
-        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        
+        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml') 
 
-    def _load_known_faces(self):
-        """Scanne le dossier des visages VIP et les encode mathématiquement à vie."""
-        if not os.path.exists(self.db_path):
-            os.makedirs(self.db_path)
-            self.logger.info(f"Dossier {self.db_path} créé. Glissez-y vos photos VIP (ex: Ash.jpg) !")
-            return
-
-        self.logger.info("Chargement de la base de données faciale (VIP)...")
-        count = 0
-        for file in os.listdir(self.db_path):
-            if file.lower().endswith(('.jpg', '.jpeg', '.png')):
-                # Extraire le nom de la photo sans l'extension (ex: "Alex.png" -> "Alex")
-                name = os.path.splitext(file)[0].capitalize()
-                path = os.path.join(self.db_path, file)
-                
-                self.logger.info(f"Apprentissage du visage de '{name}'...")
-                
-                # Vérifier si on a déjà des empreintes pour ce VIP, sinon l'ajouter
-                existing_faces = self.db.get_all_embeddings()
-                if name not in existing_faces:
-                    sig = self._extract_face_signature(path)
-                    if sig is not None:
-                        self.db.add_embedding(name, sig, role="VIP")
-                        count += 1
-                else:
-                    self.logger.info(f"Le profil VIP '{name}' est déjà dans la base.")
-                    
-        if count > 0:
-            self.logger.success(f"{count} visages VIP pré-chargés en mémoire ! (Jamais oubliés)")
-        else:
-            self.logger.info("Aucun visage VIP détecté dans la base de données locale.")
+        # --- PIPELINE INDUSTRIEL DE PRÉ-TRAITEMENT ---
+        # Initialisation du nettoyeur de contraste local (Évite de le recréer à chaque image)
+        self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        self.logger.info("Pipeline CLAHE (Contrast-Limiting) initialisé pour corriger les contre-jours.")
 
     def clear_lost_ids(self, active_ids):
         """Nettoie le cache, et déclenche l'Alerte Fuite si l'usager fuit avant la seconde."""
         lost = [uid for uid in self.identified_ids if uid not in active_ids]
         for uid in lost:
             name = self.identified_ids.pop(uid)
-            
-            # [ALERTE DE FUITE] Si la personne est partie avant qu'on valide un VIP !
+
             if uid in self.tracking_states and self.tracking_states[uid]["status"] == "ANALYZING":
                 self.logger.error(f"[ALERTE FUITE !] L'individu a fui la caméra avant la fin de l'analyse (1 sec) !")
-            
+
             self.logger.info(f"Oubli du tracking ID {uid}. La signature reste vivante en mémoire.")
-            
+
             if uid in self.tracking_states:
                 del self.tracking_states[uid]
-                
+
         # Purger également tracking_states pour d'éventuels IDs disparus
         lost_tracking = [uid for uid in self.tracking_states if uid not in active_ids]
         for uid in lost_tracking:
@@ -95,14 +76,57 @@ class FaceRecognizer:
                 self.logger.error(f"[ALERTE FUITE !] Un individu furtif (non-identifié) a disparu de l'écran !")
             del self.tracking_states[uid]
 
+        # Nettoyer les embeddings en attente pour les IDs disparus
+        for uid in list(self._pending_embeddings.keys()):
+            if uid not in active_ids:
+                del self._pending_embeddings[uid]
+
+        # Nettoie aussi les TrustScores associés
+        if self.trust_mgr:
+            self.trust_mgr.remove_lost(active_ids)
+
+    def reload_cache(self):
+        """Recharge le cache RAM depuis SQLite. À appeler uniquement après un /enroll réussi."""
+        self._embeddings_cache = self.db.get_all_embeddings()
+        intruder_count = sum(1 for name in self._embeddings_cache.keys() if name.startswith("Intrus"))
+        self.next_intruder_index = intruder_count
+        self.logger.info(f"[DEBUG CACHE] Cache rechargé : {len(self._embeddings_cache)} profil(s) en RAM.")
+
+    def learn_from_confirmation(self, object_id, vip_name):
+        """
+        Ground Truth Learning — appelé quand l'empreinte digitale confirme l'identité.
+        Sauvegarde l'embedding du visage actuel comme nouvel échantillon pour ce VIP.
+        Améliore la reconnaissance future (casquette, barbe, lunettes, éclairage différent).
+        """
+        embedding = self._pending_embeddings.pop(object_id, None)
+        if embedding is None:
+            self.logger.warning(f"[GROUND TRUTH] Pas d'embedding en attente pour ID={object_id}.")
+            return False
+        self.db.add_embedding(vip_name, embedding, role="VIP")
+        self.reload_cache()
+        self.logger.success(f"[GROUND TRUTH] Nouvel échantillon appris pour '{vip_name}' — "
+                            f"{len(self._embeddings_cache.get(vip_name, []))} embedding(s) total.")
+        return True
+
+    def _apply_clahe_bgr(self, face_bgr):
+        """Applique le filtre LAB-CLAHE pour déboucher les ombres sur un visage BGR."""
+        lab = cv2.cvtColor(face_bgr, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        cl = self.clahe.apply(l)
+        limg = cv2.merge((cl, a, b))
+        return cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+
     def _extract_face_signature(self, face_img):
         """
-        Extrait une VRAIE signature mathématique IA du visage (Embedding VGG).
+        Extrait une signature mathématique du visage (Embedding FaceNet512).
         """
         try:
+            # PRE-PROCESSING: Filtre CLAHE pour parfaire le visage avant de le donner à l'IA Mathématique
+            face_img_clean = self._apply_clahe_bgr(face_img)
+
             # DeepFace.represent extrait l'ADN du visage
             result = DeepFace.represent(
-                img_path=face_img,
+                img_path=face_img_clean,
                 model_name="Facenet512", # CHANGEMENT DE CERVEAU: Beaucoup plus robuste que VGG-Face pour les webcams.
                 enforce_detection=False, # On gère déjà la détection cascade
                 align=True,              # ALIGNEMENT : Redresse le nez/yeux (Crucial pour la précision géométrique)
@@ -120,24 +144,13 @@ class FaceRecognizer:
         best_match = None
         min_dist = float('inf')
         
-        # PATCH DE SÉCURITÉ DE HAUT NIVEAU (Ouverture de serrure)
-        # DeepFace Facenet512 : La documentation recommande 0.30 - 0.40 pour la similarité cosinus.
-        # Ajusté à 0.35 : Tolérance industrielle standard. Évite de te déconnecter au moindre changement de lumière/pose.
-        threshold = 0.35
+        threshold = config.FACE_RECOGNITION_THRESHOLD
 
-        # Identifier les noms DEJA sur l'écran (On ignore le nôtre pour le mettre à jour)
-        active_names_on_screen = [
-            name for obj_id, name in self.identified_ids.items()
-            if obj_id != current_object_id
-        ]
-
-        historical_faces = self.db.get_all_embeddings()
+        # Lecture du cache RAM (instantané, pas d'I/O disque)
+        historical_faces = self._embeddings_cache
 
         for name, saved_signatures_list in historical_faces.items():
-            # [PATCH ANTI-SPATIAL DÉSACTIVÉ]: Laissait croire à de nouveaux intrus si YOLO buggait.
-            # (Si YOLO fait 2 boîtes sur ton visage, les 2 boîtes s'appelleront Ash, au lieu de Ash et Intrus B !)
-                
-            # L'Effet Multi-Empreintes (Comparer le visage avec TOUTES ses photos dans SQLite)
+            # Multi-embeddings : distance min sur toutes les photos enregistrées
             for saved_signature in saved_signatures_list:
                 dist = 1 - np.dot(saved_signature, new_signature) / (np.linalg.norm(saved_signature) * np.linalg.norm(new_signature))
                 if dist < min_dist:
@@ -157,20 +170,21 @@ class FaceRecognizer:
         # ===============================================================
         if object_id not in self.tracking_states:
             self.tracking_states[object_id] = {
-                "first_seen": time.time(),
-                "last_check_time": time.time(),
-                "status": "ANALYZING",
-                "best_match": None,
-                "final_name": None,
-                "liveness_start": None # Nouveau chronomètre Anti-Spoofing
+                "first_seen":        time.time(),
+                "last_check_time":   time.time(),
+                "status":            "ANALYZING",
+                "best_match":        None,
+                "final_name":        None,
+                "recheck_fail_count": 0,   # hysterèse : nb d'échecs RECHECK consécutifs
             }
+            if self.trust_mgr:
+                self.trust_mgr.get_or_create(object_id).start_analyzing()
 
         state = self.tracking_states[object_id]
         
-        # Mode d'Apprentissage Continu : On ne revérifie l'IA que toutes les 0.8 secondes 
-        # une fois l'accès validé/refusé, pour laisser le CPU respirer.
+        # Re-vérification périodique : laisser le CPU respirer entre deux analyses
         if state["status"] == "FINISHED":
-            if time.time() - state.get("last_check_time", 0) < 0.8:
+            if time.time() - state.get("last_check_time", 0) < self.RECHECK_INTERVAL:
                 return self.identified_ids.get(object_id, state["final_name"])
             state["last_check_time"] = time.time()
 
@@ -190,7 +204,10 @@ class FaceRecognizer:
             return self.identified_ids.get(object_id, f"Attente visage... ({elapsed_time:.1f}s)")
 
         gray_crop = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-        
+
+        # PRE-PROCESSING RAPIDE : Booster OpenCV en forçant le contraste des Niveaux de Gris
+        gray_crop = cv2.equalizeHist(gray_crop)
+
         # LE FACE GATE : Détecteur ultra-rapide Frontal + Profil
         # On exige un visage de face clair pour lancer l'IA lourde. 
         # Si la personne est de dos ou tête trop baissée, len(faces) == 0.
@@ -199,16 +216,33 @@ class FaceRecognizer:
         if len(faces) == 0:
             # AUCUN VISAGE CLAIR FRONTALE DÉTECTÉ.
             # On NE LANCE PAS Facenet512. On garde le secret intact.
-            
-            # [LIVENESS] Reset du défi si la personne tourne la tête ou cache la photo
-            if state["status"] == "LIVENESS_CHECK":
-                state["liveness_start"] = time.time()
-            
+
             # Si on connaissait déjà le nom (ex: il s'est retourné après avoir été reconnu)
             if object_id in self.identified_ids:
                 return self.identified_ids[object_id]
-                
-            # Sinon, c'est qu'il vient d'arriver et on attend qu'il se retourne
+
+            # COUPERET ANTI-BLOCAGE : si la personne refuse de montrer son visage pendant
+            # toute la fenêtre d'analyse, elle est automatiquement classée intrus.
+            # Sans ce check, "Attente visage..." durerait à l'infini (le timeout ligne 272 est
+            # inatteignable si on n'a jamais de face).
+            if elapsed_time > self.ANALYSIS_TIME_LIMIT:
+                state["status"] = "FINISHED"
+                self.next_intruder_index += 1
+                final_name = f"Intrus_{self.next_intruder_index:03d}"
+                self.logger.warning(
+                    f"[ALERTE] Individu non-identifiable (visage absent après {elapsed_time:.1f}s) → {final_name}"
+                )
+                self.db.log_event(
+                    final_name, 0.0,
+                    event_type=self.db.EVENT_INTRUDER_PENDING
+                )
+                state["final_name"] = final_name
+                self.identified_ids[object_id] = final_name
+                if self.trust_mgr:
+                    self.trust_mgr.get_or_create(object_id).intruder_detected()
+                return final_name
+
+            # Sinon, on attend qu'il se retourne (dans la fenêtre de 1 seconde)
             return f"Attente visage... ({elapsed_time:.1f}s)"
 
         (fx, fy, fw, fh) = faces[0]
@@ -225,36 +259,72 @@ class FaceRecognizer:
         nom_trouve, distance = self._find_in_memory(signature, object_id)
 
         # ===============================================================
-        # 3.5 MODE "FINISHED" : RE-ÉVALUATION CRITIQUE
+        # 3.5 MODE "FINISHED" : RE-ÉVALUATION CRITIQUE (avec hysterèse)
         # ===============================================================
         if state["status"] == "FINISHED":
-            current_name = state["final_name"]
-            if nom_trouve and nom_trouve != current_name:
-                # La personne a changé physiquement la forme de son visage ou qq'un d'autre a pris sa place !
-                self.logger.warning(f"[RE-VÉRIFICATION] L'identité a muté ! Passage de '{current_name}' à '{nom_trouve or 'INCONNU'}'.")
-                state["final_name"] = nom_trouve if nom_trouve else "INCONNU"
-                self.identified_ids[object_id] = state["final_name"]
-                # STOP APP. CONTINU SAUVAGE : self.db.add_embedding(nom_trouve, signature...) a été retiré.
-            
-            elif nom_trouve == current_name:
-                # C'est toujours lui ! Vérification silencieuse (Lecture Seule).
-                self.logger.info(f"[MAINTIEN OK] Identité '{current_name}' re-confirmée visuellement (Dist: {distance:.2f})")
-                # STOP APP. CONTINU SAUVAGE : self.db.add_embedding(...) a été retiré. L'IA Hybridera ça plus tard.
-            
+            current_name   = state["final_name"]
+            tolerance      = config.RECHECK_FAILURE_TOLERANCE
+
+            if nom_trouve == current_name:
+                # Identité confirmée → on remet le compteur d'échecs à zéro
+                state["recheck_fail_count"] = 0
+                confidence_live = (1 - distance) * 100
+                self.logger.info(f"[MAINTIEN OK] Identité '{current_name}' re-confirmée (Dist: {distance:.2f} | {confidence_live:.1f}%)")
+                # Mise à jour du score en direct — le chiffre varie selon l'angle, la lumière, etc.
+                if self.trust_mgr:
+                    ts_obj = self.trust_mgr.get(object_id)
+                    if ts_obj:
+                        ts_obj.update_score(confidence_live)
+                        # Ground Truth : mémoriser l'embedding actuel pendant FINGERPRINT_PENDING
+                        # Il sera sauvegardé en DB uniquement si l'empreinte confirme
+                        if ts_obj.get_state().get("state") == "FINGERPRINT_PENDING":
+                            self._pending_embeddings[object_id] = signature
+
+            elif nom_trouve and nom_trouve != current_name:
+                # Discordance → hysterèse avant de déclencher une transition
+                state["recheck_fail_count"] += 1
+                self.logger.warning(
+                    f"[RE-CHECK] Discordance {state['recheck_fail_count']}/{tolerance} "
+                    f"'{current_name}' → '{nom_trouve}'"
+                )
+                if state["recheck_fail_count"] >= tolerance:
+                    self.logger.warning(
+                        f"[RE-VÉRIFICATION] Tolérance dépassée — passage de '{current_name}' à '{nom_trouve}'."
+                    )
+                    state["final_name"]        = nom_trouve
+                    state["recheck_fail_count"] = 0
+                    self.identified_ids[object_id] = nom_trouve
+
+                    # Intrus → VIP : annuler immédiatement la fenêtre de grâce
+                    if not nom_trouve.startswith("Intrus") and self.trust_mgr:
+                        ts_obj = self.trust_mgr.get(object_id)
+                        if ts_obj and ts_obj.cancel_intruder_alert():
+                            self.logger.info(
+                                f"[GRÂCE ANNULÉE] Alerte provisoire annulée — "
+                                f"'{current_name}' reclassifié VIP '{nom_trouve}'."
+                            )
+                        self.trust_mgr.cancel_intruder_if_vip_nearby()
+                        self.trust_mgr.get_or_create(object_id).face_matched(
+                            nom_trouve, (1 - distance) * 100
+                        )
+
             else:
-                # FIX BDD LECTURE SEULE: Si c'est un intrus (donc non-inscrit dans SQLite) et qu'aucun VIP n'est trouvé,
-                # on accepte silencieusement que c'est toujours le même intrus (grâce à la Tracker Box).
+                # Intrus confirmé dont le visage n'est plus reconnu → on l'accepte silencieusement
                 if current_name.startswith("Intrus") and nom_trouve is None:
                     return current_name
 
-                # Sinon, le visage ne correspond plus du tout à personne d'existant à moins de 0.20 de distance.
-                # Ex: Enlèvement de masque total, ou échange de position avec un VIP.
-                self.logger.warning(f"[ANOMALIE MATÉRIELLE] Visage inclassable par rapport à son passé. Relève des doutes ! Analyse Re-Démarrée.")
-                state["status"] = "ANALYZING"
-                state["first_seen"] = time.time() # On reset le chronomètre central de 1seconde
-                state["best_match"] = None
-                return "Re-Analyse..."
-            
+                # Anomalie : visage sans correspondance sur un profil VIP
+                state["recheck_fail_count"] += 1
+                if state["recheck_fail_count"] >= tolerance:
+                    self.logger.warning(
+                        f"[ANOMALIE] Visage inclassable après {tolerance} RECHECK — re-analyse forcée."
+                    )
+                    state["status"]            = "ANALYZING"
+                    state["first_seen"]        = time.time()
+                    state["best_match"]        = None
+                    state["recheck_fail_count"] = 0
+                    return "Re-Analyse..."
+
             return state["final_name"]
 
         # ===============================================================
@@ -264,16 +334,26 @@ class FaceRecognizer:
             confidence = (1 - distance) * 100
             # EST-CE UN VIP DE LA MAISON ?
             if not nom_trouve.startswith("Intrus"):
-                self.logger.success(f"[ACCÈS AUTORISÉ] VIP validé : '{nom_trouve}' ({confidence:.1f}%). Ouverture du portail !")
-                state["status"] = "FINISHED"
+                self.logger.success(
+                    f"[ACCÈS AUTORISÉ] VIP validé : '{nom_trouve}' ({confidence:.1f}%). Ouverture du portail !"
+                )
+                state["status"]    = "FINISHED"
                 state["final_name"] = nom_trouve
                 self.identified_ids[object_id] = nom_trouve
-                # On Loggue, mais SANS écrire les vecteurs !
-                self.db.log_event(nom_trouve, confidence)
-                # La vérification 100% stricte a été faite, on ne modifie plus la BDD (Lecture Seule)
+
+                self.db.log_event(
+                    nom_trouve, confidence,
+                    event_type=self.db.EVENT_VIP_ENTRY, role="VIP"
+                )
+
+                # Notifier le moteur MFA et annuler les alertes d'intrus en cours
+                if self.trust_mgr:
+                    self.trust_mgr.get_or_create(object_id).face_matched(nom_trouve, confidence)
+                    self.trust_mgr.cancel_intruder_if_vip_nearby()
+
                 return nom_trouve
             else:
-                # C'est un intrus qu'on connaissait déjà
+                # Intrus déjà connu
                 state["best_match"] = nom_trouve
 
         # ===============================================================
@@ -284,20 +364,27 @@ class FaceRecognizer:
 
             if state["best_match"]:
                 final_name = state["best_match"]
-                self.logger.warning(f"[ALERTE INTRUSION] Accès Refusé. C'est l'usager répété : {final_name}")
-                # Plus d'ajouts dans la BDD.
-                self.db.log_event(final_name, 80.0) # confiance générique
+                self.logger.warning(f"[ALERTE INTRUSION] Accès Refusé. Individu récidiviste : {final_name}")
+                self.db.log_event(
+                    final_name, 80.0,
+                    event_type=self.db.EVENT_INTRUDER_PENDING
+                )
             else:
-                # Totalement nouveau
-                letter = chr(ord('A') + self.next_intruder_index)
-                final_name = f"Intrus {letter}"
                 self.next_intruder_index += 1
-                self.logger.warning(f"[ALERTE INTRUSION] NOUVEAU VISAGE INCONNU. Archivé temporairement comme: {final_name}")
-                # Base de données scellée, juste un log d'alerte sans mémorisation profonde:
-                self.db.log_event(final_name, 0.0)
-            
+                final_name = f"Intrus_{self.next_intruder_index:03d}"
+                self.logger.warning(f"[ALERTE INTRUSION] NOUVEAU VISAGE INCONNU → {final_name}")
+                self.db.log_event(
+                    final_name, 0.0,
+                    event_type=self.db.EVENT_INTRUDER_PENDING
+                )
+
             state["final_name"] = final_name
             self.identified_ids[object_id] = final_name
+
+            # Démarre la fenêtre de grâce (alerte différée)
+            if self.trust_mgr:
+                self.trust_mgr.get_or_create(object_id).intruder_detected()
+
             return final_name
 
         # ===============================================================

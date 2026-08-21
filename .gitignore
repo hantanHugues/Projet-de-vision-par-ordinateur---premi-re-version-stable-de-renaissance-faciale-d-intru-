@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environnements virtuels
+.venv*/
+venv/
+env/
+
+# Base de données SQLite (binaire — ne pas versionner)
+*.db
+*.sqlite3
+
+# Snapshots RGPD (données biométriques — ne pas versionner)
+database/snapshots/
+
+# Modèles IA lourds (téléchargés automatiquement)
+*.pt
+*.onnx
+*.weights
+*.h5
+*.task
+
+# Mémoire LaTeX (compilation)
+Mémoire en latex/
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
