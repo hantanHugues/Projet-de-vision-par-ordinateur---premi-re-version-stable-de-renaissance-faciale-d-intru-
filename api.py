@@ -494,8 +494,9 @@ async def enroll_vip(name: str = Form(...), file: UploadFile = File(...)):
 # ================================================================
 
 @app.get("/config")
-async def get_config():
+async def get_config(authorization: Optional[str] = Header(None)):
     """Retourne la configuration effective (DB en priorité, fallback config.py)."""
+    _check_token(authorization)
     return face_recognizer.db.get_effective_config()
 
 
