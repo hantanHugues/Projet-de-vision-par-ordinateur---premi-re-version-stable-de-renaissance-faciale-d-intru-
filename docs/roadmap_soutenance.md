@@ -66,3 +66,13 @@ Pour faciliter la tâche des modèles IA et accélérer l'inférence, nous prév
 Le Raspberry Pi 4 s'effondrera face à un modèle PyTorch ou Keras en virgule flottante (FP32).
 * **Décision Architecture (Prévue) :** Conversion du réseau de YOLOv8n et de DeepFace en format ONNX ou .tflite (TensorFlow Lite).
 * **Quantization INT8 :** Transformer les poids du réseau de 32-bits (loat) en 8-bits (int). Perte estimée de précision : ~2%, Gain de vitesse estimé : x3 ou x4 grâce aux instructions spécifiques ARM du Raspberry Pi. Cela permettra d'achever la transition vers le "vrai" Edge Computing autonome.
+
+## 6. Mise à jour d'état — 21 août 2026
+
+Le projet a dépassé le stade du POC décrit ci-dessus. État industrialisé actuel :
+
+* **Multi-caméras** : `core/camera_manager.py` généralise le pipeline à N caméras (USB/MJPEG/RTSP), CRUD complet exposé sur `/cameras`.
+* **Dashboard opérationnel** : `biogate-dashboard/` (Electron) remplace les commandes terminal — flux vidéo, logs, gestion VIP, contrôle IoT, config, tout est pilotable depuis une interface.
+* **MFA complet** : Trust Score (`core/trust_score.py`), Liveness actif sourire/clignement (`core/liveness_detector.py`), empreinte (`core/iot_controller.py`) — les trois voies décrites en Phase 10-11 du `lab_journal.md` sont codées et bouclées avec l'API.
+* **Sécurisation de l'API** : authentification par appairage PIN + token Bearer, CORS restreint au dashboard, toutes les routes de config/IoT/caméras/logs protégées (un audit croisé entre deux sessions de développement a détecté et corrigé un trou d'authentification sur 5 routes — voir `docs/lab_journal.md`, Entrée 016).
+* **Ce qui reste réellement en écart avec la Section 5 (Roadmap RGPD/Audit)** : la purge des snapshots existe mais est manuelle (`DELETE /logs/purge`), pas encore automatisée par un scheduler ; la table `audit_logs` dédiée (UUID d'interaction, `trust_state`, métadonnées JSON) n'a pas été créée — l'audit actuel repose sur `event_logs`, plus simple. Les alertes WhatsApp (Section 1.2 de `perspective.md`) restent au stade de variables de config, sans appel API réel.

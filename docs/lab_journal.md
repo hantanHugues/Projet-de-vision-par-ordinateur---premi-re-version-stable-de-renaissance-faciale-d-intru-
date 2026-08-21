@@ -319,3 +319,23 @@ Suite aux limites de la Phase 6 (ID vacillants, "Intrus C/D" pollueurs, visages 
   - evidence_path : Le chemin vers le Snapshot (Forensic) ou le log biométrique matériel, utile pour la justification Dashboard.
   - metadata : JSON contenant des infos métiers (HSV dominants pour les vêtements, distance cosinus du visage, doigt utilisé...).
 - **Intégration** : Le serveur FastAPI agira comme le chef d'orchestre, poussant les évènements vers le gestionnaire SQLite à chaque palier du State Machine.
+
+---
+
+### Entrée 016 — Phase 13 : Multi-caméras, Dashboard Electron et Sécurisation de l'API (v7)
+- **Date** : 2026-08-21
+- **Objectif** : Généraliser le pipeline à plusieurs caméras simultanées, donner à l'utilisateur une interface de supervision réelle (au lieu du terminal), et fermer les trous de sécurité laissés ouverts par l'API tant qu'elle n'était accédée qu'en local.
+
+#### Implémentation
+- `core/camera_manager.py` : classe `CameraManager`, un thread `CameraSource` par caméra active (USB/MJPEG/RTSP), scan USB automatique (`GET /cameras/scan/usb`), CRUD complet (`/cameras`), un `CentroidTracker` distinct par caméra pour ne pas mélanger les identités entre flux.
+- `biogate-dashboard/` (Electron + React) : dashboard desktop consommant l'API — flux vidéo MJPEG, logs d'audit, gestion des profils VIP, contrôle manuel IoT, édition de la configuration.
+- Authentification dashboard : flux d'appairage par PIN (`POST /pair/request` affiche un PIN 6 chiffres dans le terminal serveur, à usage unique, 5 min de validité) échangé contre un token Bearer opaque via `POST /auth/token`. Toutes les routes sensibles vérifient ce token via `_check_token()`.
+- CORS restreint aux origines réelles du dashboard (`localhost:5173/5174`, Electron `file://`) — remplace un `allow_origins=["*"]` initial.
+
+#### Résultat & Correction (audit croisé, deux instances Claude Code)
+Un audit du code puis un agent de test exécutant réellement les ~30 routes de l'API ont révélé deux défauts qui avaient échappé à la revue manuelle :
+1. **Trou d'authentification** : `PUT /config`, `POST /iot/door`, `/iot/fingerprint` et `/iot/light` étaient appelables sans aucun token, contrairement à leurs équivalents protégés (`/iot/door/open`). Corrigé en ajoutant `_check_token()` sur les quatre routes, puis étendu à `GET /config` (lecture de la posture de sécurité, elle aussi sensible).
+2. **Corruption silencieuse de `event_logs`** : `confidence = (1 - distance) * 100` produisait un `numpy.float32`, jamais casté en `float` Python avant l'`INSERT` SQLite. SQLite le stockait alors comme BLOB binaire via le protocole buffer, sans erreur à l'écriture — mais `GET /logs` plantait (500) dès qu'une de ces lignes entrait dans la fenêtre récente. 203 lignes déjà corrompues en base ont été décodées (`struct.unpack`) et réparées in place ; le cast `float()` a été ajouté dans `db_manager.log_event()` pour éviter la récidive.
+
+#### Conclusion
+La couverture d'authentification était incohérente parce que les routes IoT/config avaient été ajoutées à des moments différents du développement, sans revue globale des permissions après coup — un rappel que l'ajout incrémental de routes FastAPI doit systématiquement repasser par une checklist d'auth, pas seulement par la route la plus récente ajoutée en miroir d'une route déjà protégée.
