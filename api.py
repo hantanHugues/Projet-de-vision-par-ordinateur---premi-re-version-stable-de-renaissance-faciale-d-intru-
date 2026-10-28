@@ -22,8 +22,9 @@ from core.logger import VisualLogger
 from core.yolo_detector import YoloDetector
 from core.centroid_tracker import CentroidTracker
 from core.face_recognizer import FaceRecognizer
-from core.trust_score import TrustScoreManager, STATE_LIVENESS_PENDING, STATE_FINGERPRINT_PENDING
+from core.trust_score import TrustScoreManager, STATE_LIVENESS_PENDING, STATE_FINGERPRINT_PENDING, STATE_INTRUDER_PENDING
 from core.iot_controller import IoTController
+from core.notifier import Notifier, NotifierError, mask_secrets, drop_masked
 from core.liveness_detector import LivenessDetector, LIVENESS_SUCCESS, LIVENESS_TIMEOUT, LIVENESS_FAILED
 from core.camera_manager import CameraManager
 from database.db_manager import DatabaseManager
@@ -93,9 +94,13 @@ def _on_intruder_confirmed(object_id, snapshot_path):
         snapshot_path=snapshot_path,
     )
     iot.set_light_alert()
+    # object_id vaut "cam#n" en multi-caméras, un simple entier en mode client.
+    source = str(object_id).split("#", 1)[0] if "#" in str(object_id) else ""
+    notifier.notify_intruder(name, snapshot_path, source)
 
 trust_mgr = TrustScoreManager(on_intruder_confirmed=_on_intruder_confirmed)
 iot        = IoTController(logger=logger)
+notifier   = Notifier(logger=logger)
 
 yolo               = YoloDetector(logger=logger)
 tracker            = CentroidTracker()
@@ -114,6 +119,36 @@ _liveness_sessions: dict = {}
 
 # Dernier frame reçu — servi en MJPEG via GET /stream (compat. rétrograde)
 _latest_frame_jpg: Optional[bytes] = None
+
+SNAPSHOT_DIR = "database/snapshots"
+
+# Mode client (/analyze_frame) : chemin de la silhouette déjà sauvegardée par object_id.
+_push_snap_paths: dict = {}
+
+
+def _attach_intruder_snapshot(ts_obj, frame_bgr, bbox_xyxy, tag, known_path=None):
+    """
+    Associe une photo à un intrus provisoire, pour qu'elle parte avec l'alerte et
+    figure dans le journal (donc dans le périmètre de la purge RGPD). Seul un
+    individu soupçonné est photographié, jamais un VIP.
+    """
+    if ts_obj is None or ts_obj.snapshot_path:
+        return
+    if ts_obj.get_state().get("state") != STATE_INTRUDER_PENDING:
+        return
+    if known_path and os.path.isfile(known_path):
+        ts_obj.set_snapshot(known_path)
+        return
+    x1, y1, x2, y2 = [int(v) for v in bbox_xyxy]
+    h, w = frame_bgr.shape[:2]
+    crop = frame_bgr[max(0, y1):min(h, y2), max(0, x1):min(w, x2)]
+    if crop.size == 0:
+        return
+    safe_tag = re.sub(r"[^A-Za-z0-9_-]", "_", str(tag))
+    path = f"{SNAPSHOT_DIR}/{datetime.now().strftime('%Y-%m-%d_%Hh%Mm%Ss')}_{safe_tag}.jpg"
+    if cv2.imwrite(path, crop):
+        ts_obj.set_snapshot(path)
+        logger.info(f"[FORENSIC] Photo de l'intrus présumé sauvegardée : {path}")
 
 # ── Couleurs BGR par état Trust ───────────────────────────────────────
 _STATE_BGR = {
@@ -242,6 +277,8 @@ def _run_pipeline_and_annotate(frame_bgr: np.ndarray, cam_id: str = "") -> list:
 
                         ts_state = ts_obj.get_state()
                     # ──────────────────────────────────────────────────────────
+
+                    _attach_intruder_snapshot(ts_obj, frame_bgr, bbox_xyxy, f"{cam_id}_ID{oid}")
 
                     if ts_obj.is_access_granted() and oid not in cam_door_set:
                         cam_door_set.add(oid)
@@ -393,6 +430,8 @@ async def analyze_frame(
     # Nettoyage si quelqu'un fuit l'écran
     face_recognizer.clear_lost_ids(active_ids)
     known_snapshot_ids.intersection_update(active_ids)
+    for stale_id in [oid for oid in _push_snap_paths if oid not in active_ids]:
+        del _push_snap_paths[stale_id]
     _door_triggered_ids.intersection_update(active_ids)
     for lost_id in [oid for oid in _liveness_sessions if oid not in active_ids]:
         _liveness_sessions.pop(lost_id).release()
@@ -413,32 +452,30 @@ async def analyze_frame(
                 timestamp = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
                 snap_path = f"database/snapshots/{timestamp}_TrackID_{object_id}.jpg"
                 cv2.imwrite(snap_path, corp_crop)
+                _push_snap_paths[object_id] = snap_path
                 logger.info(f"[FORENSIC] Silhouette sauvegardee: {snap_path}")
         # ------------------------------------------
 
         x1, y1, x2, y2 = bbox_xyxy
         
-        # Visuel : Trouver la tête en temps réel (pour l'UI du client UNIQUEMENT)
-        # Indépendant de la sécurité, c'est juste pour rassurer l'utilisateur en dessinant un encadré !
-        face_box_ui = None
+        # Silhouette recadrée : sert encore au repli liveness côté serveur (plus bas).
         crop = frame[max(0, int(y1)):min(frame.shape[0], int(y2)), max(0, int(x1)):min(frame.shape[1], int(x2))]
-        if crop.size > 0:
-            gray_crop = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-            gray_crop = cv2.equalizeHist(gray_crop)  # Identique au FaceGate sécuritaire
-            # Détection ultra-légère (HaarCascade existant du recognizer)
-            faces = face_recognizer.face_cascade.detectMultiScale(gray_crop, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-            if len(faces) > 0:
-                fx, fy, fw, fh = faces[0]
-                # Re-conversion en coordonnées globales
-                face_box_ui = [int(x1) + int(fx), int(y1) + int(fy), int(fw), int(fh)]
 
-        # Identité et Accès (Facenet512)
+        # Identité et Accès (Facenet512). Le Face Gate (Haar) ne tourne qu'ici, une seule fois.
         identity = face_recognizer.identify(frame, bbox_xyxy, object_id)
+
+        # Encadré du visage pour l'UI du client UNIQUEMENT (indépendant de la sécurité) :
+        # réutilise la détection du Face Gate au lieu d'en relancer une par image.
+        face_box_ui = face_recognizer.get_face_box(object_id, bbox_xyxy)
 
         # Trust Score de cet individu (None si pas encore créé)
         ts_state = None
         ts_obj = trust_mgr.get(object_id)
         if ts_obj:
+            _attach_intruder_snapshot(
+                ts_obj, frame, bbox_xyxy, f"ID{object_id}",
+                known_path=_push_snap_paths.get(object_id),
+            )
             ts_state = ts_obj.get_state()
             current_state = ts_state.get("state", "")
 
@@ -581,7 +618,8 @@ async def enroll_vip(name: str = Form(...), file: UploadFile = File(...)):
 async def get_config(authorization: Optional[str] = Header(None)):
     """Retourne la configuration effective (DB en priorité, fallback config.py)."""
     _check_token(authorization)
-    return face_recognizer.db.get_effective_config()
+    # Les secrets (jeton Telegram, mot de passe SMTP) ne sortent jamais en clair.
+    return mask_secrets(face_recognizer.db.get_effective_config())
 
 
 @app.put("/config")
@@ -589,16 +627,42 @@ async def update_config(updates: dict, authorization: Optional[str] = Header(Non
     """
     Met à jour un ou plusieurs paramètres de configuration.
     Body JSON : {"ALERT_GRACE_PERIOD": 90, "MFA_REQUIRED": true}
-    Les clés inconnues sont ignorées silencieusement.
+    Les clés inconnues sont ignorées silencieusement. Un secret renvoyé tel quel
+    (valeur masquée) est ignoré : il reste inchangé.
     """
     _check_token(authorization)
     allowed = set(face_recognizer.db.get_effective_config().keys())
     applied = {}
-    for key, value in updates.items():
+    for key, value in drop_masked(updates).items():
         if key in allowed:
             face_recognizer.db.set_config(key, value)
             applied[key] = value
-    return {"success": True, "applied": applied}
+    return {"success": True, "applied": mask_secrets(applied)}
+
+
+class AlertTestRequest(BaseModel):
+    channel: str
+
+
+@app.post("/alerts/test")
+async def alerts_test(body: AlertTestRequest, authorization: Optional[str] = Header(None)):
+    """Envoie un message de test sur un canal (telegram | email) avec la configuration enregistrée."""
+    _check_token(authorization)
+    if body.channel not in ("telegram", "email"):
+        return JSONResponse(status_code=400, content={"success": False, "message": "Canal inconnu."})
+    ok, message = await asyncio.to_thread(notifier.send_test, body.channel)
+    return {"success": ok, "message": message}
+
+
+@app.post("/alerts/telegram/detect")
+async def alerts_telegram_detect(authorization: Optional[str] = Header(None)):
+    """Retrouve l'identifiant de conversation Telegram à partir du dernier message reçu par le bot."""
+    _check_token(authorization)
+    try:
+        chat_id, label = await asyncio.to_thread(notifier.discover_telegram_chat)
+    except NotifierError as exc:
+        return {"success": False, "message": str(exc)}
+    return {"success": True, "chat_id": chat_id, "label": label}
 
 
 @app.get("/config/templates")

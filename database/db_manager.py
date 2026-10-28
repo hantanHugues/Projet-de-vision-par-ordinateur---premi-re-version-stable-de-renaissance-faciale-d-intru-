@@ -304,7 +304,8 @@ class DatabaseManager:
         "PORTAIL": {
             "ALERT_GRACE_PERIOD": 120,
             "MFA_REQUIRED": False,
-            "ALERT_WHATSAPP_ENABLED": True,
+            "ALERT_TELEGRAM_ENABLED": True,
+            "ALERT_EMAIL_ENABLED": True,
             "FACE_ANALYSIS_TIME_LIMIT": 1.5,
             "RECHECK_FAILURE_TOLERANCE": 5,
             "RGPD_SNAPSHOT_RETENTION_HOURS": 72,
@@ -314,7 +315,8 @@ class DatabaseManager:
         "DOMICILE": {
             "ALERT_GRACE_PERIOD": 60,
             "MFA_REQUIRED": False,
-            "ALERT_WHATSAPP_ENABLED": True,
+            "ALERT_TELEGRAM_ENABLED": True,
+            "ALERT_EMAIL_ENABLED": True,
             "FACE_ANALYSIS_TIME_LIMIT": 1.0,
             "RECHECK_FAILURE_TOLERANCE": 3,
             "RGPD_SNAPSHOT_RETENTION_HOURS": 72,
@@ -324,7 +326,8 @@ class DatabaseManager:
         "BUREAU": {
             "ALERT_GRACE_PERIOD": 30,
             "MFA_REQUIRED": True,
-            "ALERT_WHATSAPP_ENABLED": False,
+            "ALERT_TELEGRAM_ENABLED": False,
+            "ALERT_EMAIL_ENABLED": False,
             "FACE_ANALYSIS_TIME_LIMIT": 1.0,
             "RECHECK_FAILURE_TOLERANCE": 3,
             "RGPD_SNAPSHOT_RETENTION_HOURS": 24,
@@ -334,7 +337,8 @@ class DatabaseManager:
         "HAUTE_SECURITE": {
             "ALERT_GRACE_PERIOD": 5,
             "MFA_REQUIRED": True,
-            "ALERT_WHATSAPP_ENABLED": True,
+            "ALERT_TELEGRAM_ENABLED": True,
+            "ALERT_EMAIL_ENABLED": True,
             "FACE_ANALYSIS_TIME_LIMIT": 0.8,
             "RECHECK_FAILURE_TOLERANCE": 1,
             "RGPD_SNAPSHOT_RETENTION_HOURS": 12,
@@ -447,8 +451,15 @@ class DatabaseManager:
             "LIVENESS_CHALLENGE_TIMEOUT":     config.LIVENESS_CHALLENGE_TIMEOUT,
             "RECHECK_FAILURE_TOLERANCE":      config.RECHECK_FAILURE_TOLERANCE,
             "ALERT_GRACE_PERIOD":             config.ALERT_GRACE_PERIOD,
-            "ALERT_WHATSAPP_ENABLED":         config.ALERT_WHATSAPP_ENABLED,
-            "WHATSAPP_RECIPIENT":             config.WHATSAPP_RECIPIENT,
+            "ALERT_TELEGRAM_ENABLED":         config.ALERT_TELEGRAM_ENABLED,
+            "TELEGRAM_BOT_TOKEN":             config.TELEGRAM_BOT_TOKEN,
+            "TELEGRAM_CHAT_ID":               config.TELEGRAM_CHAT_ID,
+            "ALERT_EMAIL_ENABLED":            config.ALERT_EMAIL_ENABLED,
+            "SMTP_HOST":                      config.SMTP_HOST,
+            "SMTP_PORT":                      config.SMTP_PORT,
+            "SMTP_USER":                      config.SMTP_USER,
+            "SMTP_PASSWORD":                  config.SMTP_PASSWORD,
+            "ALERT_EMAIL_TO":                 config.ALERT_EMAIL_TO,
             "IOT_ENABLED":                    config.IOT_ENABLED,
             "FINGERPRINT_ESP32_IP":           config.FINGERPRINT_ESP32_IP,
             "DOOR_ESP32_IP":                  config.DOOR_ESP32_IP,
@@ -456,7 +467,9 @@ class DatabaseManager:
             "RGPD_SNAPSHOT_RETENTION_HOURS":  config.RGPD_SNAPSHOT_RETENTION_HOURS,
             "SECURITY_PROFILE_NAME":          config.SECURITY_PROFILE_NAME,
         }
-        return {**defaults, **db_values}
+        # Les clés orphelines d'anciennes versions (ex. ALERT_WHATSAPP_ENABLED) restent
+        # en base mais ne doivent plus apparaître ni être acceptées par PUT /config.
+        return {**defaults, **{k: v for k, v in db_values.items() if k in defaults}}
 
     # ------------------------------------------------------------------ #
     #  CAMÉRAS                                                             #

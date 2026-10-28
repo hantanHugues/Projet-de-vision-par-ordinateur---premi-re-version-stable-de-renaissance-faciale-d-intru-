@@ -9,6 +9,7 @@ Une instance TrustScoreManager est partagée par api.py.
 Elle tient une entrée par object_id actif.
 """
 
+import os
 import time
 import threading
 import config
@@ -153,6 +154,25 @@ class TrustScore:
             self._grace_timer.daemon = True
             self._grace_timer.start()
 
+    def set_snapshot(self, path):
+        """Associe la photo de l'intrus (une seule fois) : elle sera jointe à l'alerte et au journal."""
+        with self._lock:
+            if self.snapshot_path is None:
+                self.snapshot_path = path
+
+    def _discard_snapshot(self):
+        """
+        Supprime la photo d'un intrus provisoire qui ne sera jamais confirmé.
+        Sans ça elle resterait sur le disque sans aucune ligne de journal qui la
+        référence, donc hors de portée de la purge RGPD (verrou déjà pris).
+        """
+        path, self.snapshot_path = self.snapshot_path, None
+        if path:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
     def cancel_intruder_alert(self):
         """
         Annule l'alerte provisoire si un VIP est confirmé dans la fenêtre de grâce.
@@ -163,6 +183,7 @@ class TrustScore:
                 if self._grace_timer:
                     self._grace_timer.cancel()
                     self._grace_timer = None
+                self._discard_snapshot()
                 self.state = STATE_ANALYZING  # repart en analyse propre
                 return True
             return False
@@ -212,6 +233,8 @@ class TrustScore:
             if self._grace_timer:
                 self._grace_timer.cancel()
                 self._grace_timer = None
+            if self.state != STATE_INTRUDER_CONFIRMED:
+                self._discard_snapshot()
 
     # ---------------------------------------------------------------- #
     #  Callback interne — grâce expirée                                 #

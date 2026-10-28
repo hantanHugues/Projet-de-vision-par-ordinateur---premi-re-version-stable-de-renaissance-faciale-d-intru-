@@ -172,6 +172,21 @@ class FaceRecognizer:
             return best_match, min_dist
         return None, min_dist
 
+    def get_face_box(self, object_id, bbox):
+        """
+        Encadré [x, y, w, h] du visage de cet individu, en coordonnées image, ou None
+        si le Face Gate n'en a pas trouvé. Aucune détection n'est relancée : la
+        position relative mémorisée par identify() est replacée sur la silhouette
+        courante, donc l'encadré suit la personne entre deux passages du Face Gate
+        (au plus un toutes les FACE_RECHECK_INTERVAL secondes une fois identifié).
+        """
+        rel = self.tracking_states.get(object_id, {}).get("face_rel")
+        if not rel:
+            return None
+        # Même origine que le crop utilisé par identify() (bbox ramenée dans l'image).
+        origin_x, origin_y = max(0, int(bbox[0])), max(0, int(bbox[1]))
+        return [origin_x + rel[0], origin_y + rel[1], rel[2], rel[3]]
+
     def identify(self, frame, bbox, object_id):
         """
         Protocole Temporisé avec Apprentissage Continu et Tolérance aux Changements d'Identité.
@@ -223,6 +238,10 @@ class FaceRecognizer:
         # On exige un visage de face clair pour lancer l'IA lourde. 
         # Si la personne est de dos ou tête trop baissée, len(faces) == 0.
         faces = self.face_cascade.detectMultiScale(gray_crop, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
+        # Position du visage RELATIVE à la silhouette : api.py la réutilise pour son
+        # encadré (get_face_box) au lieu de relancer Haar à chaque image.
+        state["face_rel"] = tuple(int(v) for v in faces[0]) if len(faces) else None
 
         if len(faces) == 0:
             # AUCUN VISAGE CLAIR FRONTALE DÉTECTÉ.

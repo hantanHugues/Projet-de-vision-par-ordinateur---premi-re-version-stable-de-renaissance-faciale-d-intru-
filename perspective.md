@@ -2,8 +2,8 @@
 
 Ce document centralise les idées architecturales documentées lors de la conception.
 **Mise à jour du 21 août 2026** : la quasi-totalité des briques listées ci-dessous ont
-été implémentées depuis (voir statut ✅/⏳ sur chaque section). Seules les alertes
-WhatsApp et la table `audit_logs` dédiée restent réellement à faire — le reste de ce
+été implémentées depuis (voir statut ✅/⏳ sur chaque section). Seule la table
+`audit_logs` dédiée et le déclenchement automatique de la purge RGPD restent à faire — le reste de ce
 document est désormais un historique de conception plutôt qu'un TODO.
 
 ---
@@ -19,10 +19,13 @@ document est désormais un historique de conception plutôt qu'un TODO.
   - Interface d'enrôlement officiel des VIP (upload de photo ou capture directe).
   - Contrôle manuel des portes.
 
-### 1.2 Alertes à Distance (Intégration WhatsApp) — ⏳ Non implémenté
-*Statut vérifié : `config.py` déclare `ALERT_WHATSAPP_ENABLED`/`WHATSAPP_API_KEY`/
-`WHATSAPP_RECIPIENT` et la config les expose, mais aucun appel API (Twilio/GreenAPI)
-n'existe dans le code — seuls les paramètres existent, pas l'envoi réel.*
+### 1.2 Alertes à Distance (Telegram + e-mail) — ✅ Implémenté (`core/notifier.py`, 2026-10-28)
+*Le canal WhatsApp prévu à l'origine a été remplacé : son API officielle suppose un compte
+professionnel vérifié ou un intermédiaire payant, alors que l'API Bot de Telegram est
+gratuite, officielle et accepte l'envoi de photos ; l'e-mail (SMTP) sert de canal universel
+de secours. Déclenchement : `_on_intruder_confirmed` (api.py), après la fenêtre de grâce,
+photo de l'intrus jointe. Réglages et bouton de test dans l'onglet Alertes du dashboard
+(`POST /alerts/test`) ; jeton et mot de passe jamais renvoyés en clair par `GET /config`.*
 * **Concept :** Être alerté instantanément sur son smartphone lorsqu'une intrusion est avérée, en envoyant le "Forensic Snapshot" de l'intrus.
 * **Paradoxe de confidentialité :** Comment rester "Local-Only" ? L'analyse lourde (YOLO/DeepFace) reste 100% hors-ligne (Edge). L'internet n'est sollicité que comme un tuyau ponctuel pour l'alerte sortante.
 * **Mise en œuvre :** Intégration d'une API (Twilio, GreenAPI, ou CallMeBot) dans FastAPI, déclenchée lors de la classification `INTRUS`.

@@ -339,3 +339,57 @@ Un audit du code puis un agent de test exécutant réellement les ~30 routes de 
 
 #### Conclusion
 La couverture d'authentification était incohérente parce que les routes IoT/config avaient été ajoutées à des moments différents du développement, sans revue globale des permissions après coup — un rappel que l'ajout incrémental de routes FastAPI doit systématiquement repasser par une checklist d'auth, pas seulement par la route la plus récente ajoutée en miroir d'une route déjà protégée.
+
+---
+
+### Entrée 017 — Phase 14 : Alertes à distance Telegram et e-mail
+- **Date** : 2026-10-28
+- **Objectif** : remplacer le canal WhatsApp, prévu mais jamais branché, par des alertes réellement envoyées lors d'une intrusion confirmée, photo jointe, sans remettre en cause le principe « calcul 100 % local » (Internet n'est qu'un tuyau sortant ponctuel).
+- **Hypothèse** : l'API Bot de Telegram (officielle, gratuite, envoi de photos) et l'e-mail SMTP (universel) suffisent là où l'API officielle de WhatsApp suppose un compte professionnel vérifié ou un intermédiaire payant ; et l'envoi peut rester asynchrone sans ralentir le pipeline IA.
+
+#### Implémentation
+- `core/notifier.py` : un thread par canal, échec journalisé jamais propagé, délai minimal de 30 s entre deux alertes (le tracker peut attribuer plusieurs identités à une même personne), messages d'erreur lisibles sans jamais exposer le jeton ni le mot de passe (le texte d'une exception `requests` contient l'URL, donc le jeton : il est volontairement remplacé par un message générique).
+- Branchement dans `_on_intruder_confirmed` (api.py), après la fenêtre de grâce. Routes `POST /alerts/test` (envoi d'un message de test avec la configuration enregistrée) et `POST /alerts/telegram/detect` (retrouve l'identifiant de conversation à partir du dernier message reçu par le bot, ce qui supprime l'étape la plus ingrate de la mise en place).
+- Secrets : `GET /config` renvoie un masque à la place du jeton et du mot de passe ; un `PUT /config` qui renvoie le masque (auto-save de la page Configuration) ne modifie pas le secret. Ils sont stockés dans la table `system_config` de la base locale, hors dépôt Git.
+- Page Alertes du dashboard réécrite : un bloc par canal avec état Actif / Incomplet / Désactivé, validation des saisies, enregistrement puis test en un clic.
+- Hygiène de configuration : les clés orphelines `ALERT_WHATSAPP_ENABLED` ne sont plus exposées ni acceptées ; les 4 profils (Portail, Domicile, Bureau, Haute sécurité) pilotent les nouveaux indicateurs.
+
+#### Défauts découverts en chemin et corrigés
+1. **Alerte sans photo** : `intruder_detected()` était toujours appelé sans chemin de photo, donc l'alerte confirmée et sa ligne de journal n'avaient jamais de snapshot. De plus, le mode multi-caméras du dashboard ne sauvegardait aucune photo. Nouvelle fonction `_attach_intruder_snapshot` : seul un individu soupçonné est photographié, jamais un VIP.
+2. **Photo orpheline (RGPD)** : une photo prise sur un intrus provisoire, puis un VIP reconnu dans la fenêtre de grâce (ou la personne qui s'éloigne), laissait un fichier sans aucune ligne de journal, donc hors de portée de la purge. La photo est désormais supprimée dans ces deux cas.
+3. Marges de la page : une réinitialisation CSS globale non « layered » (`* { margin: 0 }`) écrase les classes `mb-*` / `mt-*` de Tailwind v4 dans ce projet ; les espacements se font en styles en ligne.
+
+#### Résultat
+- 44 tests automatiques (`tests/test_notifier.py` : 27, `tests/test_alerts_api.py` : 17) : envoi Telegram et SMTP simulés, fuite de secrets, délai minimal, cycle de vie des photos, routes protégées par jeton, base SQLite temporaire (la base biométrique réelle n'est pas touchée).
+- 25 vérifications dans un vrai navigateur pilotées par script : validation des saisies, enregistrement avant test, détection de l'identifiant, interrupteurs, état serveur injoignable.
+- **Non réalisé à ce jour** : envoi réel vers Telegram et un serveur SMTP, qui demande les identifiants de l'utilisateur (jeton BotFather, mot de passe d'application).
+
+#### Conclusion
+La partie « intelligence » reste locale ; seule l'alerte sortante dépend d'Internet. Si la connexion tombe, l'alerte distante est perdue (journalisée) mais l'alerte lumineuse et le journal local continuent. Limites assumées : secrets stockés en clair dans la base locale (protection par le système de fichiers uniquement), pas de nouvelle tentative automatique après un échec d'envoi.
+
+---
+
+### Entrée 018 — Phase 15 : Face Gate lancé une seule fois (bug Haar en double)
+- **Date** : 2026-10-28
+- **Objectif** : supprimer le doublon relevé dans `erreur.md` (point 1) : en mode client (`/analyze_frame`), la détection Haar tournait une fois dans `api.py` pour dessiner l'encadré du visage, puis une seconde fois dans `identify()` pour décider si FaceNet512 pouvait s'exécuter.
+- **Hypothèse** : le doublon est bien plus coûteux que `erreur.md` ne le laissait croire. `identify()` ne relance le Face Gate qu'à chaque re-vérification (0,8 s) une fois la personne identifiée, alors que le bloc d'`api.py` s'exécutait à CHAQUE image pour CHAQUE personne.
+
+#### Implémentation
+- `FaceRecognizer.identify()` mémorise la position du visage trouvé, relative à la silhouette ; nouvelle méthode `get_face_box(object_id, bbox)` qui la replace sur la silhouette courante. L'encadré suit donc la personne entre deux passages du Face Gate, sans aucune détection supplémentaire. La signature d'`identify()` ne change pas (pas de rupture pour `main.py` ni pour le client).
+- `api.py` : le bloc Haar (conversion en niveaux de gris, égalisation d'histogramme, détection) est remplacé par `get_face_box`. Le recadrage de la silhouette est conservé : le repli liveness côté serveur s'en sert.
+- Le mode multi-caméras du dashboard n'était pas concerné (pas d'encadré de visage).
+
+#### Résultat
+Banc d'essai `tests/bench_face_gate.py` (vraie route `/analyze_frame`, YOLO et FaceNet remplacés par des doubles de coût nul pour isoler le Face Gate ; rapport dans `tests/rapport_face_gate.md`). Un appel Haar coûte 58 ms sur le PC de test.
+
+| Situation | Personnes | Avant | Après | Gain |
+|---|---|---|---|---|
+| Identification en cours | 1 | 121 ms, 2,00 Haar/image | 63 ms, 1,00 | −48 % |
+| Identification en cours | 3 | 173 ms, 6,00 Haar/image | 87 ms, 3,00 | −49 % |
+| Personne identifiée, 5 images/s | 1 | 79 ms, 1,28 Haar/image | 19 ms, 0,24 | −76 % |
+| Personne identifiée, 5 images/s | 3 | 115 ms, 3,96 Haar/image | 25 ms, 0,72 | −78 % |
+
+8 tests automatiques (`tests/test_face_gate.py`) verrouillent le comportement, dont le comptage réel des appels à Haar dans `/analyze_frame` : le test échouerait sur l'ancien code (2 appels par image au lieu de 1). Les 52 tests du projet passent.
+
+#### Conclusion
+Le gain le plus important n'est pas là où `erreur.md` le plaçait : le doublon ne coûtait pas « un appel sur deux » en régime stable, il coûtait presque tout le Face Gate (1,28 appel par image contre 0,24 après correctif), parce que la détection d'`identify()` est elle-même économisée par son intervalle de re-vérification. Limites : mesure sur un seul processeur et une seule photo, sans l'IA lourde ; le gain absolu dépend de la taille des silhouettes et du nombre de personnes.

@@ -2,21 +2,15 @@
 
 Ce document recense les problèmes de performance causés par des erreurs d'implémentation dans le code généré (hallucinations ou maladresses), ainsi que les approches d'optimisation prévues pour les corriger.
 
-## 1. Redondance des calculs du "Face Gate" (HaarCascade)
+## 1. ~~Redondance des calculs du "Face Gate" (HaarCascade)~~ — ✅ RÉSOLU
 
 **Fichiers concernés :** `api.py` et `core/face_recognizer.py`
 
-**Le problème :**
-Le concept théorique du "Face Gate" (filtrer les visages non-frontaux pour éviter les calculs inutiles) est excellent. Cependant, l'implémentation actuelle exécute l'algorithme `detectMultiScale` (HaarCascade) deux fois de suite sur la même image pour chaque personne détectée :
-1. Une première fois dans `api.py` (ligne 89) uniquement pour isoler la tête et dessiner la boîte cyan (UI) sur le flux client.
-2. Une seconde fois dans `face_recognizer.py` (ligne 215) à l'intérieur de la méthode `identify()` pour valider que Facenet512 peut s'exécuter sur un visage correct.
+**Résolu le :** 2026-10-28
 
-Sur un matériel Edge limitant comme un Raspberry Pi, exécuter la cascade Haar en double divise inutilement les performances par deux.
+Le Face Gate ne tourne plus qu'une fois par personne et par image. `identify()` mémorise la position du visage (relative à la silhouette) et `api.py` la réutilise pour l'encadré affiché par le client, via `FaceRecognizer.get_face_box()` qui la replace sur la silhouette courante : l'encadré suit la personne entre deux passages du Face Gate, sans nouvelle détection.
 
-**Approche d'optimisation :**
-- Exécuter le `Face Gate` **une seule fois** (le plus logique étant à l'intérieur de `face_recognizer.py`).
-- Modifier la signature de `identify()` pour qu'elle renvoie un tuple contenant à la fois l'identité et les coordonnées du visage (s'il est détecté).
-- Dans `api.py`, récupérer ces coordonnées directement depuis la réponse de l'IA et les utiliser pour l'UI, supprimant ainsi la détection HaarCascade redondante.
+Mesuré (`tests/bench_face_gate.py`, rapport `tests/rapport_face_gate.md`) : 2 → 1 détection par image pendant l'identification, 1,28 → 0,24 une fois la personne identifiée, soit de −48 % à −78 % de temps sur la route `/analyze_frame` (YOLO et FaceNet exclus de la mesure). Verrouillé par `tests/test_face_gate.py`. Le mode multi-caméras du dashboard n'était pas concerné : il n'affiche pas d'encadré de visage.
 
 ---
 

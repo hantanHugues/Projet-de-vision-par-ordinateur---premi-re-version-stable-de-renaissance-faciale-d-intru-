@@ -24,6 +24,7 @@ Projet-de-vision-par-ordinateur.../   ← Backend Python (ce dépôt)
 │   ├── liveness_detector.py # Anti-spoofing actif (clignement/sourire, MediaPipe)
 │   ├── trust_score.py       # Machine à états MFA (Trust Score 0→100%)
 │   ├── iot_controller.py    # Pilotage porte / empreinte / éclairage (ESP32, mode mock inclus)
+│   ├── notifier.py          # Alertes d'intrusion à distance (Telegram + e-mail, photo jointe)
 │   ├── camera_manager.py    # Gestion multi-caméras (USB/MJPEG/RTSP), un thread par caméra
 │   └── logger.py            # Visual Logger (console + overlay vidéo)
 ├── database/
@@ -64,7 +65,8 @@ python -m uvicorn api:app --reload --host 0.0.0.0 --port 8000
 Expose ~30 routes : pipeline IA (`/analyze_frame`, `/enroll`), configuration
 (`/config`, `/config/templates`), logs d'audit (`/logs`), gestion multi-caméras
 (`/cameras`), IoT (`/iot/door`, `/iot/fingerprint`, `/iot/light`), liveness/MFA
-(`/request_liveness`, `/liveness_result`, `/fingerprint_result`) et appairage du
+(`/request_liveness`, `/liveness_result`, `/fingerprint_result`), alertes à distance
+(`/alerts/test`, `/alerts/telegram/detect`) et appairage du
 dashboard (`/pair/request`, `/auth/token`).
 
 Toutes les routes qui lisent ou modifient un état sensible (config, IoT, caméras,
@@ -128,7 +130,7 @@ la gestion des caméras et le contrôle manuel des actionneurs IoT.
 | 8 | Contrôle IoT (porte, empreinte, éclairage) | ✅ (mode mock — `IOT_ENABLED=False` par défaut) |
 | 9 | Multi-caméras + dashboard Electron | ✅ |
 | 10 | Auth dashboard (appairage PIN + token Bearer) | ✅ |
-| — | Alertes WhatsApp à distance | ⏳ Prévu, non implémenté |
+| 11 | Alertes à distance Telegram + e-mail (photo jointe), remplace WhatsApp | ✅ (identifiants à saisir dans l'onglet Alertes) |
 | — | Table `audit_logs` dédiée (au-delà de `event_logs`) | ⏳ Prévu, non implémenté |
 
 ## Historique d'Implémentation

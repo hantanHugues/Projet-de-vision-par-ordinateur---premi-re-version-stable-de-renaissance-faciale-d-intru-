@@ -98,7 +98,7 @@ Un seul RECHECK raté = ignoré silencieusement. Seulement après N ratés de su
 Valeur de N à calibrer (proposition : 3).
 
 **Q3 : Logique d'alerte différée — DÉCIDÉE**
-Principe retenu : l'alerte WhatsApp n'est JAMAIS envoyée en temps réel.
+Principe retenu : l'alerte distante (WhatsApp à l'origine, Telegram + e-mail depuis le 2026-10-28) n'est JAMAIS envoyée en temps réel.
 Le système retient l'alerte et attend une "condition d'annulation" :
 
 ```
@@ -112,7 +112,7 @@ CAS 1 : VIP reconnu OU phase empreinte activée dans la fenêtre
 
 CAS 2 : Aucun VIP dans la fenêtre
     → Intrus confirmé
-    → WhatsApp avec photo forensic
+    → Telegram + e-mail avec photo forensic
     → Alerte locale (lumière)
     → Log audit_trail
     → ZÉRO biométrie stockée (RGPD)
@@ -244,7 +244,7 @@ POST /config/apply_template     → charge un template (base de personnalisation
 |---|---|---|---|---|
 | Fenêtre de grâce alerte | 120s | 60s | 30s | 5s |
 | MFA obligatoire | Non | Optionnel | Oui | Oui (toujours) |
-| Alerte si intrus | Locale seulement | WhatsApp + locale | Log silencieux | WhatsApp + locale + verrouillage |
+| Alerte si intrus | Telegram + e-mail + locale | Telegram + e-mail + locale | Log silencieux | Telegram + e-mail + locale + verrouillage |
 | ANALYSIS_TIME_LIMIT | 1.5s | 1.0s | 1.0s | 0.8s |
 | Hysterèse RECHECK | 5 ratés | 3 ratés | 3 ratés | 1 raté |
 | Purge RGPD snapshots | 72h | 72h | 24h | 12h |
@@ -257,11 +257,11 @@ POST /config/apply_template     → charge un template (base de personnalisation
 - [x] `config.py` — constantes MFA, IoT, alertes, RGPD (RECHECK_FAILURE_TOLERANCE, ALERT_GRACE_PERIOD, …)
 - [x] `core/trust_score.py` — machine à états (IDLE→ANALYZING→FACE_MATCHED→FINGERPRINT_PENDING|LIVENESS_PENDING→GRANTED|DENIED) + TrustScoreManager avec callback `on_intruder_confirmed`
 - [x] `core/iot_controller.py` — HTTP vers ESP32 (porte, lecteur, lumière) + mode mock (IOT_ENABLED=False)
-- [x] `core/liveness_detector.py` — **v2 MediaPipe Blendshapes** (2 clignements OU sourire 1.5s via valeurs pré-calculées eyeBlinkLeft/Right et mouthSmileLeft/Right)
+- [x] `core/liveness_detector.py` — **v3 MediaPipe Blendshapes** (valeurs pré-calculées eyeBlinkLeft/Right et mouthSmileLeft/Right) ; challenge ALÉATOIRE par session : un seul geste tiré au sort (sourire OU clignements), 2 à 4 clignements ou 1,0 à 2,0 s de sourire tirés au sort, pour qu'une vidéo préparée ne puisse pas viser des valeurs connues (v2 acceptait indifféremment les deux gestes avec des valeurs fixes)
 - [x] `models/face_landmarker.task` — modèle Google téléchargé (3.6 MB, float16, XNNPACK)
 - [x] Liveness branché dans `api.py` — `_liveness_sessions` dict, analyse frame par frame en LIVENESS_PENDING, `liveness_progress` injecté dans la réponse `/analyze_frame`
 - [x] Hysterèse RECHECK dans `face_recognizer.py` — `recheck_fail_count` accumulé, re-analyse seulement après N=RECHECK_FAILURE_TOLERANCE ratés consécutifs
-- [x] Alerte différée dans `face_recognizer.py` — `ts.intruder_detected()` → `TrustScore._grace_expired()` → callback → WhatsApp + light alert
+- [x] Alerte différée dans `face_recognizer.py` — `ts.intruder_detected()` → `TrustScore._grace_expired()` → callback → Telegram/e-mail + light alert
 - [x] VIP reconnu → `trust_mgr.cancel_intruder_if_vip_nearby()` annule toutes les alertes provisoires
 - [x] Routes : `/fingerprint_result`, `/liveness_result`, `/request_liveness`, `/access_status`, `/iot/door`, `/iot/fingerprint`, `/iot/light`
 - [x] Réponse `/analyze_frame` enrichie : champ `trust` par objet (+ `liveness_progress`) + champ `iot` global
@@ -280,7 +280,7 @@ POST /config/apply_template     → charge un template (base de personnalisation
 - [x] `purge_old_snapshots()` supprime fichiers disque + entrées DB
 
 ### À faire — Blocs suivants
-- [ ] **WhatsApp** (Twilio / GreenAPI) — appel dans `_on_intruder_confirmed` de api.py
+- [x] **Alertes Telegram + e-mail** (photo jointe) — `core/notifier.py`, appelé depuis `_on_intruder_confirmed` de api.py ; remplace WhatsApp (2026-10-28)
 - [ ] **Script RGPD autonome** — purge auto au démarrage du serveur + scheduler
 - [ ] **Dashboard Web** (Bloc 4 frontend) :
   - Vue flux live (MJPEG ou polling /analyze_frame)

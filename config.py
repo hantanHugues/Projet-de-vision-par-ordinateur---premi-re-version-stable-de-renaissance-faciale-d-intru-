@@ -95,10 +95,23 @@ RECHECK_FAILURE_TOLERANCE = 3
 # (Couvre le cas : VIP non encore identifié au moment de la détection)
 ALERT_GRACE_PERIOD = 60
 
-# Activer l'envoi de notification WhatsApp sur intrusion confirmée
-ALERT_WHATSAPP_ENABLED = False
-WHATSAPP_API_KEY       = ""   # Clé API Twilio ou GreenAPI
-WHATSAPP_RECIPIENT     = ""   # Numéro destinataire format international (+22999...)
+# Canaux de notification d'une intrusion confirmée (photo jointe).
+# Les identifiants se saisissent depuis le dashboard (onglet Alertes) : ils sont
+# stockés dans la base locale, hors dépôt Git, et jamais renvoyés en clair par l'API.
+ALERT_TELEGRAM_ENABLED = False
+TELEGRAM_BOT_TOKEN     = ""   # Jeton donné par @BotFather
+TELEGRAM_CHAT_ID       = ""   # Identifiant de la conversation avec le bot
+
+ALERT_EMAIL_ENABLED = False
+SMTP_HOST      = "smtp.gmail.com"
+SMTP_PORT      = 587          # 587 = STARTTLS, 465 = SSL
+SMTP_USER      = ""
+SMTP_PASSWORD  = ""           # Gmail : mot de passe d'application (validation en 2 étapes requise)
+ALERT_EMAIL_TO = ""           # Un ou plusieurs destinataires, séparés par des virgules
+
+# Délai minimal entre deux alertes envoyées (secondes) : évite l'avalanche quand
+# le tracker attribue plusieurs identités à la même personne.
+ALERT_COOLDOWN_SECONDS = 30
 
 # ============================================
 # IOT — Actionneurs ESP32
