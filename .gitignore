@@ -36,3 +36,11 @@ Mémoire en latex/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Claude Code / agents
+.agents/
+.claude/
+skills-lock.json
+
+# Sauvegardes base de données
+*.db.bak*

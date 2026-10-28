@@ -14,7 +14,7 @@ from typing import Optional
 if not os.path.exists("database/snapshots"):
     os.makedirs("database/snapshots")
 from fastapi import FastAPI, File, UploadFile, Form, Query, Header, HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -22,7 +22,7 @@ from core.logger import VisualLogger
 from core.yolo_detector import YoloDetector
 from core.centroid_tracker import CentroidTracker
 from core.face_recognizer import FaceRecognizer
-from core.trust_score import TrustScoreManager, STATE_LIVENESS_PENDING
+from core.trust_score import TrustScoreManager, STATE_LIVENESS_PENDING, STATE_FINGERPRINT_PENDING
 from core.iot_controller import IoTController
 from core.liveness_detector import LivenessDetector, LIVENESS_SUCCESS, LIVENESS_TIMEOUT, LIVENESS_FAILED
 from core.camera_manager import CameraManager
@@ -100,6 +100,10 @@ iot        = IoTController(logger=logger)
 yolo               = YoloDetector(logger=logger)
 tracker            = CentroidTracker()
 known_snapshot_ids = set()
+
+# Applique les réglages déjà sauvegardés AVANT de construire FaceRecognizer :
+# celui-ci met FACE_RECHECK_INTERVAL en cache dans __init__, donc l'ordre compte.
+DatabaseManager(logger=logger).load_persisted_config()
 face_recognizer    = FaceRecognizer(logger=logger, trust_mgr=trust_mgr)
 
 # Set des object_ids dont la porte a déjà été ouverte (évite de rouvrir à chaque frame)
@@ -151,12 +155,21 @@ def _get_cam_tracker(cam_id: str) -> CentroidTracker:
     return _cam_trackers[cam_id]
 
 
-def _run_pipeline_and_annotate(frame_bgr: np.ndarray, cam_id: str = "") -> np.ndarray:
+def _run_pipeline_and_annotate(frame_bgr: np.ndarray, cam_id: str = "") -> list:
     """
-    YOLO → tracker dédié par cam_id → FaceNet512 → TrustScore → annotation.
+    YOLO → tracker dédié par cam_id → FaceNet512 → TrustScore.
+
+    Ne dessine plus rien : retourne juste la liste d'annotations calculées.
+    Le dessin se fait désormais dans CameraSource._loop(), à la vitesse de la
+    caméra (25-30 fps) plutôt qu'à la vitesse de ce pipeline IA (2-5 fps sur
+    CPU) — avant ce changement, le flux vidéo affiché était cadencé sur l'IA
+    et donc saccadé : get_stream_jpg() ne renvoyait une frame fraîche que
+    quand ce pipeline en avait fini une, ce qui pouvait prendre plusieurs
+    centaines de ms. Désormais chaque frame caméra est affichée immédiatement,
+    avec les DERNIÈRES annotations connues dessinées dessus (elles peuvent
+    avoir un léger retard sur un mouvement rapide, mais la vidéo reste fluide).
 
     _inference_lock protège uniquement les appels non thread-safe (yolo, face_recognizer).
-    Le dessin est fait HORS du lock sur une copie locale → contention minimale.
     """
     cam_tracker  = _get_cam_tracker(cam_id)
     cam_door_set = _cam_door_ids.setdefault(cam_id, set())
@@ -172,17 +185,64 @@ def _run_pipeline_and_annotate(frame_bgr: np.ndarray, cam_id: str = "") -> np.nd
             objects, bboxes = cam_tracker.update(rects, frame_bgr)
             active_ids      = list(objects.keys())
             cam_door_set.intersection_update(active_ids)
-            face_recognizer.clear_lost_ids(active_ids)
+
+            # object_id vient d'un CentroidTracker PAR caméra : deux caméras
+            # attribuent chacune leurs propres petits entiers (0, 1, 2...) et
+            # peuvent donc se retrouver avec le même ID pour deux personnes
+            # différentes. On namespace la clé partagée avec le trust_mgr /
+            # face_recognizer / liveness (cam_id#oid) pour que leurs états MFA
+            # ne se mélangent jamais entre caméras — seul l'ID brut reste
+            # utilisé pour l'affichage local (cam_door_set, étiquette "ID#n").
+            cam_prefix        = f"{cam_id}#"
+            scoped_active_ids = [f"{cam_prefix}{oid}" for oid in objects]
+
+            for stale_oid, stale_det in list(_liveness_sessions.items()):
+                if stale_det.expired():
+                    _liveness_sessions.pop(stale_oid).release()
+            face_recognizer.clear_lost_ids(scoped_active_ids, scope_prefix=cam_prefix)
 
             # 3 — Identification + Trust (toujours sous lock car face_recognizer non thread-safe)
             for oid in objects:
+                sid       = f"{cam_prefix}{oid}"   # clé scoppée à cette caméra
                 bbox_xyxy = bboxes[oid]
-                identity  = face_recognizer.identify(frame_bgr, bbox_xyxy, oid)
-                ts_obj    = trust_mgr.get(oid)
+                identity  = face_recognizer.identify(frame_bgr, bbox_xyxy, sid)
+                ts_obj    = trust_mgr.get(sid)
 
                 if ts_obj:
                     ts_obj.check_mfa_timeout()
                     ts_state = ts_obj.get_state()
+                    current_state = ts_state.get("state", "")
+
+                    # ── MFA parallèle : empreinte ET liveness en même temps ──
+                    # Même logique que le mode push (/analyze_frame) : le premier
+                    # facteur qui réussit fait entrer, un timeout du seul canal
+                    # liveness n'entraîne pas de refus (voir check_mfa_timeout).
+                    if current_state in (STATE_FINGERPRINT_PENDING, STATE_LIVENESS_PENDING):
+                        x1_c, y1_c, x2_c, y2_c = [int(v) for v in bbox_xyxy]
+                        face_crop = frame_bgr[max(0, y1_c):y2_c, max(0, x1_c):x2_c]
+
+                        if sid not in _liveness_sessions:
+                            _liveness_sessions[sid] = LivenessDetector()
+                            logger.info(f"[LIVENESS] Challenge démarré pour ID={oid} · cam={cam_id}")
+
+                        det = _liveness_sessions[sid]
+                        liveness_result = det.check(face_crop if face_crop.size > 0 else frame_bgr)
+
+                        if liveness_result == LIVENESS_SUCCESS:
+                            ts_obj.liveness_success()
+                            _liveness_sessions.pop(sid).release()
+                            face_recognizer.db.log_event(
+                                ts_obj.vip_name or "VIP", 85.0,
+                                event_type=DatabaseManager.EVENT_LIVENESS_SUCCESS, role="VIP"
+                            )
+                            logger.info(f"[LIVENESS] ✓ Challenge réussi pour {ts_obj.vip_name} · cam={cam_id}")
+                        elif liveness_result in (LIVENESS_TIMEOUT, LIVENESS_FAILED):
+                            _liveness_sessions.pop(sid).release()
+                            logger.info(f"[LIVENESS] Canal liveness clos (timeout) pour ID={oid} — empreinte encore possible")
+
+                        ts_state = ts_obj.get_state()
+                    # ──────────────────────────────────────────────────────────
+
                     if ts_obj.is_access_granted() and oid not in cam_door_set:
                         cam_door_set.add(oid)
                         iot.open_door()
@@ -195,12 +255,30 @@ def _run_pipeline_and_annotate(frame_bgr: np.ndarray, cam_id: str = "") -> np.nd
                 state = (ts_state or {}).get("state", "ANALYZING")
                 score = (ts_state or {}).get("score", 0) or 0
                 name  = (ts_state or {}).get("vip_name") or identity.get("name", "?")
+
+                # La consigne MFA (geste attendu, progression, seuils) est
+                # affichée dans le dashboard (case dédiée, voir /access_status
+                # + Surveillance.jsx) — pas dans la vidéo. Personne d'autre que
+                # l'opérateur regardant CE dashboard ne voit ce flux annoté, et
+                # il a déjà l'info en mieux juste à côté (texte + barres de
+                # seuil). La dupliquer dans les pixels coûtait du calcul par
+                # frame pour rien. client_camera.py garde son propre overlay :
+                # c'est un outil autonome sans case dédiée où l'afficher ailleurs.
                 annotations.append((oid, x1, y1, x2, y2, name, score, state))
 
     except Exception as exc:
         logger.warning(f"[PIPELINE] {cam_id}: {exc}")
 
-    # ── Dessin hors du lock (cv2 local sur une copie) ─────────────────
+    return annotations
+
+
+def _draw_annotations(frame_bgr: np.ndarray, annotations: list, cam_id: str = "", cam_name: str = "") -> np.ndarray:
+    """
+    Dessine une liste d'annotations (calculées par _run_pipeline_and_annotate,
+    potentiellement quelques frames plus tôt) sur une frame fraîche. Appelée
+    par CameraSource._loop() à la vitesse caméra — c'est ce qui découple la
+    fluidité du flux vidéo de la vitesse d'inférence IA.
+    """
     out = frame_bgr.copy()
     for oid, x1, y1, x2, y2, name, score, state in annotations:
         color = _STATE_BGR.get(state, (250, 165, 96))
@@ -222,9 +300,8 @@ def _run_pipeline_and_annotate(frame_bgr: np.ndarray, cam_id: str = "") -> np.nd
     h, w   = out.shape[:2]
     cv2.putText(out, ts_str, (w-95, 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.52, (0, 200, 150), 1, cv2.LINE_AA)
-    if cam_id:
-        src = cam_mgr.get(cam_id) if "cam_mgr" in dir() else None
-        cv2.putText(out, src.name if src else cam_id, (8, 20),
+    if cam_name or cam_id:
+        cv2.putText(out, cam_name or cam_id, (8, 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.52, (0, 200, 150), 1, cv2.LINE_AA)
     return out
 
@@ -233,12 +310,14 @@ def _pipeline_worker() -> None:
     """
     Thread daemon unique qui consomme la queue frame par frame.
     Un seul consommateur → pas de concurrence sur yolo/face_recognizer.
+    Ne fait plus que mettre à jour les annotations en cache — le dessin et
+    l'encodage JPEG se font désormais côté CameraSource, à la vitesse caméra.
     """
     while True:
         try:
             cam_id, frame = _pipeline_queue.get(timeout=1.0)
-            annotated = _run_pipeline_and_annotate(frame, cam_id)
-            cam_mgr.store_annotated(cam_id, annotated)
+            annotations = _run_pipeline_and_annotate(frame, cam_id)
+            cam_mgr.set_annotations(cam_id, annotations)
         except queue.Empty:
             continue
         except Exception as exc:
@@ -259,7 +338,7 @@ def _cam_on_frame(cam_id: str, frame_bgr: np.ndarray) -> None:
         pass
 
 
-cam_mgr = CameraManager(on_frame=_cam_on_frame)
+cam_mgr = CameraManager(on_frame=_cam_on_frame, draw_fn=_draw_annotations)
 
 # ── Auth dashboard (token opaque, 30 jours) ──────────────────────────
 _dashboard_token:   Optional[str] = None
@@ -370,8 +449,12 @@ async def analyze_frame(
                 current_state = ts_state.get("state", "")
             # ────────────────────────────────────────────────────────────
 
-            # ── LIVENESS : analyse frame par frame ──────────────────────
-            if current_state == STATE_LIVENESS_PENDING:
+            # ── MFA parallèle : empreinte ET liveness tournent en même temps ──
+            # Le premier facteur qui réussit fait entrer (voir trust_score.py,
+            # _is_second_factor_pending). Un timeout sur le seul canal liveness
+            # ne refuse pas l'accès : la personne peut toujours poser le doigt
+            # jusqu'à l'expiration du délai global (check_mfa_timeout ci-dessus).
+            if current_state in (STATE_FINGERPRINT_PENDING, STATE_LIVENESS_PENDING):
                 if object_id not in _liveness_sessions:
                     _liveness_sessions[object_id] = LivenessDetector()
                     logger.info(f"[LIVENESS] Challenge démarré pour ID={object_id}")
@@ -394,9 +477,10 @@ async def analyze_frame(
                     logger.info(f"[LIVENESS] ✓ Challenge réussi pour {ts_obj.vip_name}")
 
                 elif liveness_result in (LIVENESS_TIMEOUT, LIVENESS_FAILED):
-                    ts_obj.liveness_failed()
+                    # Canal liveness épuisé — on l'arrête silencieusement, l'empreinte
+                    # reste possible jusqu'au délai global. Pas de refus ici.
                     _liveness_sessions.pop(object_id).release()
-                    logger.warning(f"[LIVENESS] ✗ Timeout/échec pour ID={object_id}")
+                    logger.info(f"[LIVENESS] Canal liveness clos (timeout) pour ID={object_id} — empreinte encore possible")
 
                 # Enrichir ts_state avec la progression du challenge
                 ts_state = ts_obj.get_state()
@@ -598,19 +682,26 @@ async def access_status():
     Retourne l'état de tous les objets trackés (Trust Score) + actionneurs IoT.
     Utile pour le dashboard et pour l'UI de test clavier.
     """
+    trust_scores = {}
+    for oid, state in trust_mgr.get_all_states().items():
+        # La progression du challenge liveness (geste tiré au sort, valeurs
+        # blendshapes brutes...) vit dans _liveness_sessions, pas dans
+        # TrustScore.get_state() — sans cette fusion, le dashboard ne reçoit
+        # jamais de quoi afficher QUEL geste est attendu ni son avancement.
+        if oid in _liveness_sessions:
+            state = {**state, "liveness_progress": _liveness_sessions[oid].get_progress()}
+        trust_scores[str(oid)] = state
+
     return {
-        "success":    True,
-        "iot":        iot.get_status(),
-        "trust_scores": {
-            str(oid): state
-            for oid, state in trust_mgr.get_all_states().items()
-        },
+        "success":      True,
+        "iot":          iot.get_status(),
+        "trust_scores": trust_scores,
     }
 
 
 @app.post("/fingerprint_result")
 async def fingerprint_result(
-    object_id: int  = Form(...),
+    object_id: str  = Form(...),
     success:   bool = Form(...),
 ):
     """
@@ -650,7 +741,7 @@ async def fingerprint_result(
 
 
 @app.post("/request_liveness")
-async def request_liveness(object_id: int = Form(...)):
+async def request_liveness(object_id: str = Form(...)):
     """
     Bascule un VIP de FINGERPRINT_PENDING vers LIVENESS_PENDING
     (l'utilisateur choisit le challenge sourire/clignement comme alternative).
@@ -668,7 +759,7 @@ async def request_liveness(object_id: int = Form(...)):
 
 @app.post("/liveness_result")
 async def liveness_result(
-    object_id: int  = Form(...),
+    object_id: str  = Form(...),
     success:   bool = Form(...),
 ):
     """
@@ -865,6 +956,21 @@ async def stream(token: str = Query(...)):
     )
 
 
+@app.get("/snapshot")
+async def snapshot(authorization: Optional[str] = Header(None)):
+    """
+    Une seule frame JPEG du flux par défaut — utilisé par l'enrôlement VIP
+    pour capturer une photo depuis la caméra en direct plutôt que d'exiger
+    un fichier déjà présent sur le disque. Volontairement une requête normale
+    (pas de flux) : le dashboard peut la récupérer en blob via axios sans les
+    soucis de canvas/CORS qu'aurait posés une capture depuis le <img> MJPEG.
+    """
+    _check_token(authorization)
+    if not _latest_frame_jpg:
+        raise HTTPException(status_code=503, detail="Aucune frame disponible pour l'instant.")
+    return Response(content=_latest_frame_jpg, media_type="image/jpeg")
+
+
 # ── IoT raccourcis dashboard ──────────────────────────────────────────
 
 @app.post("/iot/door/open")
@@ -1010,3 +1116,16 @@ async def stream_camera(cam_id: str, token: str = Query(...)):
         _mjpeg_cam_generator(cam_id),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
+
+
+@app.get("/snapshot/{cam_id}")
+async def snapshot_camera(cam_id: str, authorization: Optional[str] = Header(None)):
+    """Une seule frame JPEG d'une caméra identifiée par cam_id — voir /snapshot."""
+    _check_token(authorization)
+    src = cam_mgr.get(cam_id)
+    if src is None:
+        raise HTTPException(status_code=404, detail=f"Caméra '{cam_id}' non active")
+    jpg = src.get_stream_jpg()
+    if not jpg:
+        raise HTTPException(status_code=503, detail="Aucune frame disponible pour l'instant.")
+    return Response(content=jpg, media_type="image/jpeg")

@@ -514,9 +514,13 @@ def start_client():
         h_frame, w_frame = frame.shape[:2]
         data = latest_data.copy()
 
-        # Auto-activation MediaPipe liveness local (30fps) quand LIVENESS_PENDING
+        # Auto-activation MediaPipe liveness local (30fps) dès que le second
+        # facteur MFA est en attente. Empreinte et liveness tournent maintenant
+        # en parallèle (le premier qui réussit fait entrer) : l'état reste
+        # FINGERPRINT_PENDING tout du long, il ne bascule plus automatiquement
+        # vers LIVENESS_PENDING (qui reste un mode explicite "mains occupées").
         any_liveness = any(
-            (obj.get("trust") or {}).get("state") == "LIVENESS_PENDING"
+            (obj.get("trust") or {}).get("state") in ("FINGERPRINT_PENDING", "LIVENESS_PENDING")
             for obj in data.get("detections", [])
         )
         if any_liveness and not _live["active"]:
@@ -561,33 +565,42 @@ def start_client():
                 if ts_text:
                     cv2.putText(frame, ts_text, (x, y - 6), FONT, 0.48, ts_color, 1)
 
-                # Challenge Liveness — affichage guidé par blendshapes
-                if trust and trust.get("state") == "LIVENESS_PENDING":
+                # Consigne MFA — empreinte et liveness tournent en parallèle dès
+                # que l'état passe en attente (voir any_liveness plus haut) :
+                # sans ce texte, rien n'indique à l'écran que poser le doigt ou
+                # sourire est effectif MAINTENANT.
+                if trust and trust.get("state") in ("FINGERPRINT_PENDING", "LIVENESS_PENDING"):
                     prog = trust.get("liveness_progress") or {}
-                    blinks    = prog.get("blinks", 0)
+                    challenge  = prog.get("challenge")            # "blink" ou "smile" — tiré au sort une fois
+                    label      = prog.get("challenge_label", "SOURIEZ / CLIGNEZ")
+                    blinks     = prog.get("blinks", 0)
                     blinks_req = prog.get("blinks_required", 2)
-                    smiling   = prog.get("smiling", False)
-                    remaining = prog.get("remaining", 0)
+                    smiling    = prog.get("smiling", False)
+                    remaining  = prog.get("remaining", 0)
 
                     # Fond semi-transparent sur la boîte
                     overlay = frame.copy()
                     cv2.rectangle(overlay, (x, y), (x + w, y + h), (0, 80, 160), -1)
                     frame = cv2.addWeighted(overlay, 0.25, frame, 0.75, 0)
 
-                    cy = y + h // 2 - 25
-                    cv2.putText(frame, "-- VERIFICATION --", (x + 4, cy),
+                    cy = y + h // 2 - 34
+                    cv2.putText(frame, f"POSEZ LE DOIGT  OU  {label}", (x + 4, cy),
                                 FONT, 0.45, CYAN, 1)
                     cy += 20
-                    blink_txt = f"Clignements : {blinks}/{blinks_req}"
-                    blink_clr = GREEN if blinks >= blinks_req else ORANGE
-                    cv2.putText(frame, blink_txt, (x + 4, cy), FONT, 0.44, blink_clr, 1)
+                    # Seul le geste réellement tiré au sort est affiché — l'autre
+                    # ne compte pas pour ce challenge, pas la peine de l'afficher.
+                    if challenge == "blink":
+                        blink_txt = f"Clignements : {blinks}/{blinks_req}"
+                        blink_clr = GREEN if blinks >= blinks_req else ORANGE
+                        cv2.putText(frame, blink_txt, (x + 4, cy), FONT, 0.44, blink_clr, 1)
+                    elif challenge == "smile":
+                        smile_txt = "Sourire detecte !" if smiling else "Souriez 1.2s..."
+                        smile_clr = GREEN if smiling else GREY
+                        cv2.putText(frame, smile_txt, (x + 4, cy), FONT, 0.44, smile_clr, 1)
                     cy += 18
-                    smile_txt  = "Sourire detecte !" if smiling else "Souriez 1.5s..."
-                    smile_clr  = GREEN if smiling else GREY
-                    cv2.putText(frame, smile_txt, (x + 4, cy), FONT, 0.44, smile_clr, 1)
-                    cy += 18
-                    cv2.putText(frame, f"Temps: {remaining:.1f}s", (x + 4, cy),
-                                FONT, 0.42, YELLOW, 1)
+                    if remaining:
+                        cv2.putText(frame, f"Temps: {remaining:.1f}s", (x + 4, cy),
+                                    FONT, 0.42, YELLOW, 1)
 
             # Infos réseau
             cv2.putText(

@@ -353,7 +353,17 @@ class DatabaseManager:
         return json.loads(row["value"]) if row else None
 
     def set_config(self, key, value):
-        """Persiste ou met à jour une clé de configuration."""
+        """
+        Persiste ou met à jour une clé de configuration, ET l'applique
+        immédiatement au module `config` en mémoire.
+
+        Avant ce correctif, PUT /config n'écrivait qu'en base : le dashboard
+        affichait bien la nouvelle valeur (get_effective_config relit la DB),
+        mais tout le reste du code (trust_score.py, face_recognizer.py...) lit
+        directement l'attribut `config.XXX` du module, jamais la DB — la
+        modification n'avait donc strictement aucun effet tant que le process
+        tournait, quel que soit le paramètre changé (MFA, seuils, etc.).
+        """
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
@@ -363,6 +373,20 @@ class DatabaseManager:
         ''', (key, json.dumps(value)))
         conn.commit()
         conn.close()
+
+        if hasattr(config, key):
+            setattr(config, key, value)
+
+    def load_persisted_config(self):
+        """
+        À appeler une fois au démarrage du serveur : applique au module
+        `config` toutes les valeurs déjà sauvegardées en base, pour qu'un
+        redémarrage ne réinitialise pas silencieusement les réglages faits
+        depuis le dashboard (sans ça, seul config.py comptait après un reboot).
+        """
+        for key, value in self.get_all_config().items():
+            if hasattr(config, key):
+                setattr(config, key, value)
 
     def get_all_config(self):
         """Retourne toutes les clés persistées sous forme de dict {key: value}."""

@@ -22,7 +22,7 @@ from typing import Optional, Dict, Callable, List
 class CameraSource:
     """Thread de capture pour une source vidéo unique."""
 
-    def __init__(self, cam_id: str, cfg: dict, on_frame: Callable):
+    def __init__(self, cam_id: str, cfg: dict, on_frame: Callable, draw_fn: Optional[Callable] = None):
         self.cam_id    = cam_id
         self.name      = cfg.get("name", cam_id)
         self.cam_type  = cfg.get("type", "usb")
@@ -30,13 +30,19 @@ class CameraSource:
         self.usb_index = int(cfg.get("usb_index", 0))
         self.zone      = cfg.get("zone", "")
 
-        self._on_frame   = on_frame
+        self._on_frame = on_frame
+        # draw_fn(frame_bgr, annotations, cam_id, cam_name) -> frame_bgr annoté.
+        # Appelé à CHAQUE frame capturée (vitesse caméra), avec les dernières
+        # annotations connues — voir set_annotations(). Le pipeline IA tourne
+        # bien plus lentement (2-5 fps sur CPU) dans un thread séparé ; sans ce
+        # découplage, le flux affiché n'avance qu'au rythme de l'IA et saccade.
+        self._draw_fn    = draw_fn
+        self._annotations: list = []
         self._running    = False
         self._thread: Optional[threading.Thread] = None
         self._cap:    Optional[cv2.VideoCapture]  = None
         self._lock       = threading.Lock()
-        self._last_jpg:  Optional[bytes] = None   # frame brute JPEG
-        self._annot_jpg: Optional[bytes] = None   # frame annotée post-IA
+        self._last_jpg:  Optional[bytes] = None   # dernière frame affichée (brute + annotations en cache)
 
         self.connected  = False
         self.fps_actual = 0.0
@@ -105,8 +111,18 @@ class CameraSource:
                 self._fps_ctr   = 0
                 self._fps_ts    = now
 
-            # Stockage du frame brut (affiché tel quel jusqu'au prochain frame annoté)
-            ok, jpg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+            # Dessine les DERNIÈRES annotations connues sur cette frame fraîche
+            # (elle-même capturée à la vitesse caméra, pas à celle de l'IA).
+            display_frame = frame
+            if self._draw_fn:
+                with self._lock:
+                    annotations = self._annotations
+                try:
+                    display_frame = self._draw_fn(frame, annotations, self.cam_id, self.name)
+                except Exception:
+                    display_frame = frame
+
+            ok, jpg = cv2.imencode(".jpg", display_frame, [cv2.IMWRITE_JPEG_QUALITY, 78])
             if ok:
                 with self._lock:
                     self._last_jpg = jpg.tobytes()
@@ -122,17 +138,19 @@ class CameraSource:
 
     # ── Accès aux frames ──────────────────────────────────────────────
 
-    def store_annotated(self, frame_bgr):
-        """Appelé après le pipeline IA pour stocker le frame annoté."""
-        ok, jpg = cv2.imencode(".jpg", frame_bgr, [cv2.IMWRITE_JPEG_QUALITY, 78])
-        if ok:
-            with self._lock:
-                self._annot_jpg = jpg.tobytes()
+    def set_annotations(self, annotations: list):
+        """
+        Appelé par le pipeline IA (thread séparé, 2-5 fps) pour mettre à jour
+        les dernières boîtes/scores connus. Ne dessine ni n'encode rien ici —
+        juste un cache lu par _loop() à la prochaine frame capturée.
+        """
+        with self._lock:
+            self._annotations = annotations
 
     def get_stream_jpg(self) -> Optional[bytes]:
-        """Retourne le frame annoté si dispo, sinon le brut."""
+        """Retourne la dernière frame affichée (brute + annotations en cache)."""
         with self._lock:
-            return self._annot_jpg or self._last_jpg
+            return self._last_jpg
 
     def info(self) -> dict:
         return {
@@ -150,12 +168,17 @@ class CameraSource:
 class CameraManager:
     """Gestionnaire de toutes les sources vidéo actives du système."""
 
-    def __init__(self, on_frame: Callable):
+    def __init__(self, on_frame: Callable, draw_fn: Optional[Callable] = None):
         """
         on_frame(cam_id: str, frame_bgr: np.ndarray)
         Appelé à chaque frame capturé pour déclencher le pipeline IA.
+
+        draw_fn(frame_bgr, annotations, cam_id, cam_name) -> frame_bgr
+        Optionnel : dessine les dernières annotations connues sur la frame
+        affichée. Transmis à chaque CameraSource — voir set_annotations().
         """
         self._on_frame = on_frame
+        self._draw_fn  = draw_fn
         self._sources: Dict[str, CameraSource] = {}
         self._lock     = threading.Lock()
 
@@ -166,7 +189,7 @@ class CameraManager:
         with self._lock:
             if cam_id in self._sources:
                 self._sources[cam_id].stop()
-            src = CameraSource(cam_id, cfg, self._on_frame)
+            src = CameraSource(cam_id, cfg, self._on_frame, draw_fn=self._draw_fn)
             self._sources[cam_id] = src
         if start:
             src.start()
@@ -186,10 +209,10 @@ class CameraManager:
         with self._lock:
             return [src.info() for src in self._sources.values()]
 
-    def store_annotated(self, cam_id: str, frame_bgr):
+    def set_annotations(self, cam_id: str, annotations: list):
         src = self._sources.get(cam_id)
         if src:
-            src.store_annotated(frame_bgr)
+            src.set_annotations(annotations)
 
     def stop_all(self):
         with self._lock:

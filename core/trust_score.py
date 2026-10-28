@@ -82,7 +82,13 @@ class TrustScore:
                 self.score = round(float(confidence_pct), 1)
 
     def request_liveness(self):
-        """Bascule de FINGERPRINT_PENDING vers LIVENESS_PENDING (mains occupées)."""
+        """
+        Bascule explicitement vers LIVENESS_PENDING (mode "mains occupées" —
+        conservé pour compat avec le raccourci manuel de client_camera.py).
+        Depuis la fusion empreinte/liveness, ce n'est plus nécessaire pour que
+        le challenge se déclenche : il tourne déjà en parallèle dès
+        FINGERPRINT_PENDING (voir _is_second_factor_pending).
+        """
         with self._lock:
             if self.state == STATE_FINGERPRINT_PENDING:
                 if not self._cfg("LIVENESS_ENABLED"):
@@ -90,31 +96,43 @@ class TrustScore:
                 self.state = STATE_LIVENESS_PENDING
                 self._state_entered_at = time.time()
 
+    def _is_second_factor_pending(self):
+        """
+        Empreinte et liveness sont deux voies concurrentes vers le même palier
+        MFA : le premier facteur qui réussit fait entrer, un délai sur l'un des
+        deux canaux ne doit pas invalider l'autre. Les deux transitions
+        acceptent donc indifféremment FINGERPRINT_PENDING ou LIVENESS_PENDING.
+        """
+        return self.state in (STATE_FINGERPRINT_PENDING, STATE_LIVENESS_PENDING)
+
     def fingerprint_confirmed(self):
         """L'ESP32 confirme que l'empreinte correspond → accès 100%."""
         with self._lock:
-            if self.state == STATE_FINGERPRINT_PENDING:
+            if self._is_second_factor_pending():
                 self.state = STATE_GRANTED
                 self.score = self._cfg("TRUST_FINGERPRINT_THRESHOLD")
 
     def fingerprint_failed(self):
         """L'empreinte ne correspond pas → accès refusé."""
         with self._lock:
-            if self.state == STATE_FINGERPRINT_PENDING:
+            if self._is_second_factor_pending():
                 self.state = STATE_DENIED
                 self.score = 0
 
     def liveness_success(self):
         """Challenge sourire/clignement réussi → accès 85%."""
         with self._lock:
-            if self.state == STATE_LIVENESS_PENDING:
+            if self._is_second_factor_pending():
                 self.state = STATE_GRANTED
                 self.score = self._cfg("TRUST_LIVENESS_THRESHOLD")
 
     def liveness_failed(self):
-        """Challenge échoué ou timeout → accès refusé."""
+        """
+        Échec dur du challenge (pas un simple timeout de canal — voir
+        check_mfa_timeout pour le délai global qui, lui, refuse vraiment).
+        """
         with self._lock:
-            if self.state == STATE_LIVENESS_PENDING:
+            if self._is_second_factor_pending():
                 self.state = STATE_DENIED
                 self.score = 0
 
@@ -241,10 +259,22 @@ class TrustScoreManager:
             if ts:
                 ts.cleanup()
 
-    def remove_lost(self, active_ids):
-        """Nettoie les entrées dont l'objet a disparu de l'écran."""
+    def remove_lost(self, active_ids, scope_prefix=None):
+        """
+        Nettoie les entrées dont l'objet a disparu de l'écran.
+
+        scope_prefix : si fourni, seules les clés commençant par ce préfixe
+        sont candidates à la suppression — nécessaire car object_id est
+        partagé entre caméras (chacune ayant son propre CentroidTracker) ;
+        sans ce filtre, le passage d'une caméra purgerait les entrées des
+        autres caméras dont les IDs ne figurent pas dans SES active_ids.
+        """
         with self._lock:
-            lost = [oid for oid in self._scores if oid not in active_ids]
+            if scope_prefix is None:
+                lost = [oid for oid in self._scores if oid not in active_ids]
+            else:
+                lost = [oid for oid in self._scores
+                        if str(oid).startswith(scope_prefix) and oid not in active_ids]
         for oid in lost:
             self.remove(oid)
 

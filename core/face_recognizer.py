@@ -55,9 +55,20 @@ class FaceRecognizer:
         self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         self.logger.info("Pipeline CLAHE (Contrast-Limiting) initialisé pour corriger les contre-jours.")
 
-    def clear_lost_ids(self, active_ids):
-        """Nettoie le cache, et déclenche l'Alerte Fuite si l'usager fuit avant la seconde."""
-        lost = [uid for uid in self.identified_ids if uid not in active_ids]
+    def clear_lost_ids(self, active_ids, scope_prefix=None):
+        """
+        Nettoie le cache, et déclenche l'Alerte Fuite si l'usager fuit avant la seconde.
+
+        scope_prefix : si fourni (mode multi-caméras), seuls les IDs de CETTE
+        caméra sont candidats au nettoyage — object_id est un CentroidTracker
+        par caméra, donc les petits entiers (0, 1, 2...) se répètent d'une
+        caméra à l'autre. Sans ce filtre, purger sur les active_ids d'une
+        caméra effacerait à tort le suivi des autres caméras à chaque appel.
+        """
+        def _in_scope(uid):
+            return scope_prefix is None or str(uid).startswith(scope_prefix)
+
+        lost = [uid for uid in self.identified_ids if _in_scope(uid) and uid not in active_ids]
         for uid in lost:
             name = self.identified_ids.pop(uid)
 
@@ -70,7 +81,7 @@ class FaceRecognizer:
                 del self.tracking_states[uid]
 
         # Purger également tracking_states pour d'éventuels IDs disparus
-        lost_tracking = [uid for uid in self.tracking_states if uid not in active_ids]
+        lost_tracking = [uid for uid in self.tracking_states if _in_scope(uid) and uid not in active_ids]
         for uid in lost_tracking:
             if self.tracking_states[uid]["status"] == "ANALYZING":
                 self.logger.error(f"[ALERTE FUITE !] Un individu furtif (non-identifié) a disparu de l'écran !")
@@ -78,12 +89,12 @@ class FaceRecognizer:
 
         # Nettoyer les embeddings en attente pour les IDs disparus
         for uid in list(self._pending_embeddings.keys()):
-            if uid not in active_ids:
+            if _in_scope(uid) and uid not in active_ids:
                 del self._pending_embeddings[uid]
 
         # Nettoie aussi les TrustScores associés
         if self.trust_mgr:
-            self.trust_mgr.remove_lost(active_ids)
+            self.trust_mgr.remove_lost(active_ids, scope_prefix=scope_prefix)
 
     def reload_cache(self):
         """Recharge le cache RAM depuis SQLite. À appeler uniquement après un /enroll réussi."""
