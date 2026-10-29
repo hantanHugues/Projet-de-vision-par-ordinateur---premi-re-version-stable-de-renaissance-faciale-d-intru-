@@ -3,7 +3,7 @@
 Ce document centralise les idées architecturales documentées lors de la conception.
 **Mise à jour du 21 août 2026** : la quasi-totalité des briques listées ci-dessous ont
 été implémentées depuis (voir statut ✅/⏳ sur chaque section). Seule la table
-`audit_logs` dédiée et le déclenchement automatique de la purge RGPD restent à faire — le reste de ce
+`audit_logs` dédiée reste à faire — le reste de ce
 document est désormais un historique de conception plutôt qu'un TODO.
 
 ---
@@ -80,11 +80,12 @@ ci-dessous n'existe pas — c'est le seul écart structurel restant avec cette i
 * **Concept :** Transformer l'historique basique actuel en une véritable "Boîte Noire" médico-légale.
 * **Mise en œuvre :** Création d'une nouvelle table SQLite `audit_logs` contenant : un UUID unique pour l'interaction, l'évolution précise du Trust Score, des métadonnées JSON, et le chemin relatif vers le fichier photo du "Forensic Snapshot".
 
-### 5.2 La Purge Automatique RGPD — ⏳ Partiellement implémenté
-*Statut vérifié : `DELETE /logs/purge` (api.py) + `db_manager.purge_old_snapshots()`
-existent et fonctionnent selon `RGPD_SNAPSHOT_RETENTION_HOURS`. Ce qui manque encore :
-un déclenchement **automatique** (cron/scheduler) — aujourd'hui la purge doit être
-appelée manuellement ou depuis le dashboard.*
+### 5.2 La Purge Automatique RGPD — ✅ Implémenté (2026-10-28)
+*La purge des photos tourne au démarrage du serveur puis toutes les heures
+(`_rgpd_purge_loop`, api.py), selon `RGPD_SNAPSHOT_RETENTION_HOURS`. Elle supprime les
+photos expirées et les photos orphelines, mais conserve les lignes du journal (historique et
+statistiques). Le bouton « Purge RGPD » du Journal reste une purge manuelle plus radicale
+(événements + photos). Statut visible dans Configuration (`GET /rgpd/status`).*
 * **Concept :** Ne pas conserver les snapshots des intrus indéfiniment pour respecter les lois sur la vie privée et éviter l'engorgement du disque.
 * **Mise en œuvre :** Un script asynchrone ou une tâche cron qui supprime automatiquement les clichés vieux de plus de 72 heures.
 

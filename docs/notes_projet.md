@@ -40,7 +40,8 @@ Frame reçue
 | NMS post-YOLO (maison) | 0.30 | Cas "tête + corps" adjacents non couverts par YOLO |
 | FaceNet512 threshold | 0.35 | Équilibre Faux Positifs / Faux Négatifs (0.20 = trop strict, 0.60 = trop laxiste) |
 | Color Re-ID similarity | 0.85 | Vêtement quasi-identique = même personne post-occlusion |
-| ANALYSIS_TIME_LIMIT | 1.0s | Fenêtre d'identification (VIP doit se montrer dans cette fenêtre) |
+| ANALYSIS_TIME_LIMIT | 1.0s | Fenêtre d'identification (VIP doit se montrer dans cette fenêtre) ; démarre à l'apparition du visage (depuis le 2026-10-29) |
+| FACE_ABSENT_LIMIT | 0 (= jamais) | Un intrus est un visage inconnu : une silhouette sans visage de face (main, torse trop près, dos) n'est jamais classée intrus. > 0 : délai en secondes avant de la classer intrus provisoire (profil Haute sécurité : 5 s). Ajouté le 2026-10-29 après des faux intrus sur une main et un torse |
 | RECHECK_INTERVAL | 0.8s | Fréquence de re-vérification après identification (anti-masque) |
 | max_disappeared | 60 frames | ~2s à 30fps avant d'oublier définitivement un ID |
 | max_distance | 150px | Anti-téléportation (trop loin = nouvelle personne) |
@@ -275,13 +276,13 @@ POST /config/apply_template     → charge un template (base de personnalisation
 
 ### Bloc 5 — Logs & RGPD — TERMINÉ ✅
 - [x] Table `event_logs` enrichie : `event_type` + `snapshot_path` (migration automatique via PRAGMA)
-- [x] 9 types d'événements constants : VIP_ENTRY, INTRUDER_PENDING, INTRUDER_CONFIRMED, FINGERPRINT_OK, FINGERPRINT_FAIL, LIVENESS_SUCCESS, ACCESS_DENIED, FLIGHT_ALERT, DETECTION
+- [x] 10 types d'événements constants : VIP_ENTRY, INTRUDER_PENDING, INTRUDER_CONFIRMED, FINGERPRINT_OK, FINGERPRINT_FAIL, LIVENESS_SUCCESS, ACCESS_DENIED, FLIGHT_ALERT, FACELESS_PASSAGE, DETECTION. Depuis le 2026-10-29, FLIGHT_ALERT (visage vu, individu parti avant le verdict) et FACELESS_PASSAGE (silhouette restée ≥ 3 s sans jamais montrer de visage, trace d'audit sans photo ni alerte) sont réellement écrits ; ACCESS_DENIED et DETECTION restent déclarés mais jamais produits
 - [x] Routes : `GET /logs`, `GET /logs/stats`, `DELETE /logs/{id}`, `DELETE /logs/purge`
 - [x] `purge_old_snapshots()` supprime fichiers disque + entrées DB
 
 ### À faire — Blocs suivants
 - [x] **Alertes Telegram + e-mail** (photo jointe) — `core/notifier.py`, appelé depuis `_on_intruder_confirmed` de api.py ; remplace WhatsApp (2026-10-28)
-- [ ] **Script RGPD autonome** — purge auto au démarrage du serveur + scheduler
+- [x] **Purge RGPD automatique** — au démarrage du serveur puis toutes les heures (`_rgpd_purge_loop`, api.py) ; supprime les photos (expirées et orphelines), conserve le journal (2026-10-28)
 - [ ] **Dashboard Web** (Bloc 4 frontend) :
   - Vue flux live (MJPEG ou polling /analyze_frame)
   - Tableau event_logs (utilise GET /logs)

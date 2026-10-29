@@ -55,6 +55,32 @@ class FaceRecognizer:
         self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         self.logger.info("Pipeline CLAHE (Contrast-Limiting) initialisé pour corriger les contre-jours.")
 
+    UNKNOWN_NAME = "Inconnu"   # nom affiché au journal pour un individu jamais identifié
+
+    def _record_disappearance(self, uid):
+        """
+        Journalise la disparition d'une silhouette qui n'a jamais reçu de verdict
+        (statut ANALYZING). Deux cas, volontairement distincts :
+          - un VISAGE avait été vu : alerte de fuite (événement FLIGHT_ALERT), l'individu est
+            parti avant d'être identifié ;
+          - aucun visage jamais vu (main, torse trop près, passant de dos) : trace d'audit
+            discrète « passage sans visage » (ni photo ni alerte), seulement si la présence a
+            duré FACELESS_PASSAGE_MIN_SECONDS, pour ne pas journaliser chaque clignotement de
+            YOLO. La durée inclut la mémoire du tracker (quelques dixièmes de seconde).
+        """
+        state = self.tracking_states.get(uid)
+        if not state or state["status"] != "ANALYZING":
+            return
+        if state.get("face_seen_at") is not None:
+            self.logger.error("[ALERTE FUITE !] Un individu a disparu avant la fin de l'analyse de son visage !")
+            self.db.log_event(self.UNKNOWN_NAME, 0.0, event_type=self.db.EVENT_FLIGHT_ALERT)
+            return
+        minimum = config.FACELESS_PASSAGE_MIN_SECONDS
+        present_for = time.time() - state["first_seen"]
+        if minimum > 0 and present_for >= minimum:
+            self.logger.info(f"[PASSAGE] Silhouette sans visage restée {present_for:.1f}s puis disparue.")
+            self.db.log_event(self.UNKNOWN_NAME, 0.0, event_type=self.db.EVENT_FACELESS_PASSAGE)
+
     def clear_lost_ids(self, active_ids, scope_prefix=None):
         """
         Nettoie le cache, et déclenche l'Alerte Fuite si l'usager fuit avant la seconde.
@@ -72,8 +98,7 @@ class FaceRecognizer:
         for uid in lost:
             name = self.identified_ids.pop(uid)
 
-            if uid in self.tracking_states and self.tracking_states[uid]["status"] == "ANALYZING":
-                self.logger.error(f"[ALERTE FUITE !] L'individu a fui la caméra avant la fin de l'analyse (1 sec) !")
+            self._record_disappearance(uid)
 
             self.logger.info(f"Oubli du tracking ID {uid}. La signature reste vivante en mémoire.")
 
@@ -83,8 +108,7 @@ class FaceRecognizer:
         # Purger également tracking_states pour d'éventuels IDs disparus
         lost_tracking = [uid for uid in self.tracking_states if _in_scope(uid) and uid not in active_ids]
         for uid in lost_tracking:
-            if self.tracking_states[uid]["status"] == "ANALYZING":
-                self.logger.error(f"[ALERTE FUITE !] Un individu furtif (non-identifié) a disparu de l'écran !")
+            self._record_disappearance(uid)
             del self.tracking_states[uid]
 
         # Nettoyer les embeddings en attente pour les IDs disparus
@@ -202,6 +226,7 @@ class FaceRecognizer:
                 "best_match":        None,
                 "final_name":        None,
                 "recheck_fail_count": 0,   # hysterèse : nb d'échecs RECHECK consécutifs
+                "face_seen_at":      None, # instant où un visage de face apparaît pour la 1re fois
             }
             if self.trust_mgr:
                 self.trust_mgr.get_or_create(object_id).start_analyzing()
@@ -251,11 +276,15 @@ class FaceRecognizer:
             if object_id in self.identified_ids:
                 return self.identified_ids[object_id]
 
-            # COUPERET ANTI-BLOCAGE : si la personne refuse de montrer son visage pendant
-            # toute la fenêtre d'analyse, elle est automatiquement classée intrus.
-            # Sans ce check, "Attente visage..." durerait à l'infini (le timeout ligne 272 est
-            # inatteignable si on n'a jamais de face).
-            if elapsed_time > self.ANALYSIS_TIME_LIMIT:
+            # Un « intrus » est un VISAGE inconnu, pas une silhouette sans visage. YOLO prend
+            # parfois une main pour une personne (84 % mesuré), et un torse trop près ou un
+            # passant de dos n'ont pas de visage de face : sans visage on ne juge pas, la
+            # silhouette reste en « Attente visage ».
+            # Exception, désactivée par défaut (FACE_ABSENT_LIMIT = 0) : au-delà de ce délai,
+            # une silhouette qui cache durablement son visage est classée intrus provisoire
+            # (profil Haute sécurité), pour qu'un masque ou une capuche ne passe pas inaperçu.
+            absent_limit = config.FACE_ABSENT_LIMIT
+            if absent_limit > 0 and elapsed_time > max(absent_limit, self.ANALYSIS_TIME_LIMIT):
                 state["status"] = "FINISHED"
                 self.next_intruder_index += 1
                 final_name = f"Intrus_{self.next_intruder_index:03d}"
@@ -272,11 +301,18 @@ class FaceRecognizer:
                     self.trust_mgr.get_or_create(object_id).intruder_detected()
                 return final_name
 
-            # Sinon, on attend qu'il se retourne (dans la fenêtre de 1 seconde)
-            return f"Attente visage... ({elapsed_time:.1f}s)"
+            # Sinon, on attend qu'un visage apparaisse (sans compteur : l'attente peut durer).
+            return "Attente visage..."
 
         (fx, fy, fw, fh) = faces[0]
         face_roi = crop[fy:fy+fh, fx:fx+fw]
+
+        # La fenêtre d'analyse (ANALYSIS_TIME_LIMIT) démarre à l'apparition du visage, pas à
+        # l'arrivée de la silhouette : sinon quelqu'un qui arrive la tête baissée est classé
+        # intrus dès la première image où son visage apparaît, avant d'avoir pu être reconnu.
+        if state.get("face_seen_at") is None:
+            state["face_seen_at"] = time.time()
+        analysis_elapsed = time.time() - state["face_seen_at"]
 
         # Calculer une photo IA
         signature = self._extract_face_signature(face_roi)
@@ -351,6 +387,7 @@ class FaceRecognizer:
                     )
                     state["status"]            = "ANALYZING"
                     state["first_seen"]        = time.time()
+                    state["face_seen_at"]      = None
                     state["best_match"]        = None
                     state["recheck_fail_count"] = 0
                     return "Re-Analyse..."
@@ -389,7 +426,7 @@ class FaceRecognizer:
         # ===============================================================
         # 5. COUPERET DU TEMPS (1 SECONDE ÉCOULÉE SANS VOIR DE VIP)
         # ===============================================================
-        if elapsed_time > self.ANALYSIS_TIME_LIMIT:
+        if analysis_elapsed > self.ANALYSIS_TIME_LIMIT:
             state["status"] = "FINISHED"
 
             if state["best_match"]:
@@ -420,6 +457,6 @@ class FaceRecognizer:
         # ===============================================================
         # 6. RETOUR CONTINU TANT QUE LA SECONDE N'EST PAS FINIE
         # ===============================================================
-        msg = f"Analyse... ({elapsed_time:.1f}s)"
+        msg = f"Analyse... ({analysis_elapsed:.1f}s)"
         self.identified_ids[object_id] = msg
         return msg

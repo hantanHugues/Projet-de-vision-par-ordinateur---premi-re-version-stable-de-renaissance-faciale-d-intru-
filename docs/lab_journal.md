@@ -393,3 +393,69 @@ Banc d'essai `tests/bench_face_gate.py` (vraie route `/analyze_frame`, YOLO et F
 
 #### Conclusion
 Le gain le plus important n'est pas là où `erreur.md` le plaçait : le doublon ne coûtait pas « un appel sur deux » en régime stable, il coûtait presque tout le Face Gate (1,28 appel par image contre 0,24 après correctif), parce que la détection d'`identify()` est elle-même économisée par son intervalle de re-vérification. Limites : mesure sur un seul processeur et une seule photo, sans l'IA lourde ; le gain absolu dépend de la taille des silhouettes et du nombre de personnes.
+
+---
+
+### Entrée 019 — Phase 16 : Purge RGPD automatique des photos d'intrus
+- **Date** : 2026-10-28
+- **Objectif** : tenir réellement la promesse du cahier des charges (« purge automatique après 72 h ») : jusqu'ici la purge n'existait qu'en bouton manuel, donc rien ne se passait tant que personne ne cliquait.
+- **Hypothèse** : une tâche de fond lancée au démarrage du serveur puis toutes les heures suffit, et le démarrage rattrape les arrêts prolongés (coupures SBEE comprises) ; la purge automatique ne doit supprimer que les photos, pas l'historique du journal.
+
+#### Constat de départ
+- 41 photos d'intrus étaient stockées sur le disque, de 107 à 128 jours d'âge : la rétention de 72 h n'avait jamais été appliquée. Ces photos n'étaient référencées par aucune ligne du journal (mode client `/analyze_frame`), donc même le bouton manuel ne pouvait pas les atteindre.
+- La purge manuelle supprimait toutes les lignes du journal plus vieilles que la rétention, alors que le réglage du dashboard s'appelle « Rétention snapshots » : rendue automatique telle quelle, elle aurait vidé les statistiques et les alertes sur 30 jours au bout de 3 jours.
+- La coupure était calculée avec l'heure locale de Python alors que SQLite horodate en UTC : un événement tout neuf pouvait être purgé dès que le décalage horaire dépassait la rétention (UTC+1 au Bénin).
+- Les routes du journal (`GET /logs`, `/logs/stats`, `DELETE /logs/purge`, `DELETE /logs/{id}`) n'exigeaient aucun jeton, contrairement à ce que laissait entendre l'entrée 016.
+
+#### Implémentation
+- `DatabaseManager.purge_expired_snapshots` (automatique) : supprime les fichiers des événements plus vieux que la rétention et efface seulement le chemin de la photo (la ligne du journal reste), puis supprime les photos orphelines. Une orpheline n'est supprimée que si elle a plus que la rétention et au moins une heure, pour ne jamais effacer la photo d'une intrusion encore en cours de confirmation. La coupure est calculée par SQLite (`datetime('now', '-N hours')`).
+- `purge_old_snapshots` (manuelle, bouton « Purge RGPD ») : même coupure corrigée, balaie aussi les orphelines ; la boîte de dialogue du Journal explique maintenant sa portée.
+- `api.py` : tâche `_rgpd_purge_loop` lancée au démarrage (`lifespan`), puis toutes les `RGPD_PURGE_INTERVAL_MINUTES` (60) ; une purge qui échoue est journalisée et n'arrête jamais la boucle. Nouvelle route `GET /rgpd/status` (dernière purge, photos stockées, âge de la plus ancienne). `SNAPSHOT_DIR` et l'intervalle passent dans `config.py`.
+- Jeton exigé sur les quatre routes du journal.
+- Dashboard : la ligne « Purge automatique » de la page Configuration, qui affichait « Manuelle », montre le statut réel (intervalle, dernière purge, photos supprimées, photos stockées, âge de la plus ancienne, avec un avertissement si la purge est en retard).
+
+#### Résultat
+- 25 tests (`tests/test_rgpd_purge.py`) : photo expirée supprimée et ligne conservée, rétention respectée, orphelines, événement tout neuf épargné quel que soit le fuseau, boucle (statut, intervalle, panne absorbée), démarrage et arrêt du serveur, routes protégées. 77 tests au total, tous réussis. Le dossier de photos et la base sont temporaires dans les tests : les 41 vraies photos sont restées intactes.
+- Affichage vérifié dans un vrai navigateur (6 vérifications) : Configuration et boîte de dialogue du Journal.
+- **Non vérifié sur le serveur réel** : il a été démarré avant ce correctif. Au prochain démarrage, la purge supprimera les 41 photos de plus de 72 h.
+
+#### Conclusion
+Limites : le jeton reste absent de plusieurs routes appelées par le client OpenCV et les ESP32 sans authentification (`/analyze_frame`, `/enroll`, `/fingerprint_result`, `/request_liveness`, `/liveness_result`, `/access_status`, `/config/apply_template`, `/config/templates`) : à traiter avec une authentification d'équipement. La purge automatique ne couvre pas les lignes du journal (noms et horodatages) : leur durée de conservation reste un choix à documenter.
+
+---
+
+### Entrée 020 — Phase 17 : Les personnes non reconnues n'avaient aucun cadre (défaut découvert en test réel)
+- **Date** : 2026-10-29
+- **Contexte** : premier test à la webcam du dashboard avec le serveur relancé. L'utilisateur voyait son cadre sur la vidéo ; un intrus n'en avait aucun.
+- **Diagnostic** : le journal du serveur contenait 996 avertissements `[PIPELINE] … 'str' object has no attribute 'get'` en deux minutes. `identify()` renvoie un texte, mais `_run_pipeline_and_annotate` appelait `identity.get("name", "?")` dessus : l'exception, avalée par le `try` englobant, faisait perdre toutes les annotations de l'image pour toute personne sans nom de VIP, et interrompait le traitement des personnes suivantes. L'intrusion elle-même (Trust Score, photo, alerte) restait détectée puisqu'elle s'exécute avant la ligne fautive : le défaut ne touchait que l'affichage.
+- **Correctif** : `or str(identity)`, donc le cadre d'une personne non reconnue porte son état (`Intrus_001`, `Analyse… (0.4s)`).
+- **Résultat** : test de non-régression `PipelineAnnotationsTest` (deux personnes inconnues → deux annotations et aucun avertissement ; un VIP → son nom). Sur l'ancien code il échoue (0 annotation au lieu de 2), avec le correctif il passe.
+- **Leçon pour le mémoire** : aucun des 77 tests existants ne l'avait vu, parce qu'aucun n'exécutait le pipeline multi-caméras avec une personne inconnue ; il a fallu un test réel et la lecture du journal. Le journal du serveur est devenu un outil de validation à part entière.
+- **Observation sur les données, non corrigée** : deux profils VIP (`Ash` et `Fuck`) portent visiblement le même visage ; l'identité alterne entre les deux à chaque re-vérification (`Discordance 3/3 'Fuck' → 'Ash'`). Le doublon est à supprimer dans la page VIP.
+
+---
+
+### Entrée 021 — Phase 18 : « Pas de visage » ne vaut plus « intrus » au bout d'une seconde
+- **Date** : 2026-10-29
+- **Contexte** : une fois les cadres revenus (entrée 020), le test à la webcam a montré des cadres « Intrus_012 » sur un torse en boubou sans la tête, et « Intrus_014 » sur une main.
+- **Mesures YOLO** (`yolov8n`, classe personne, rejouées sur les captures, à 320 / 480 / 640 px) : photo d'une personne sur un téléphone, **0,80 / 0,85 / 0,86** ; main près de l'objectif, **0,84 / 0,89 / 0,71**. Augmenter la résolution ne supprime donc pas la fausse détection de la main, et aucun seuil de confiance ne sépare la photo (0,80) d'une vraie silhouette partielle (0,37). Un détecteur d'images 2D détecte des représentations de personnes, pas des humains vivants : c'est le rôle du liveness.
+- **Cause du ressenti** : dans `identify()`, une silhouette dont aucun visage de face n'apparaissait pendant `FACE_ANALYSIS_TIME_LIMIT` (1 s) était classée « Intrus_NNN » : événement au journal, photo prise, alerte armée. De plus ces 1,0 s étaient comptées depuis l'arrivée de la silhouette et non depuis l'apparition du visage : quelqu'un arrivant la tête baissée était condamné dès la première image où son visage apparaissait, avant toute reconnaissance (explique les « Intrus_003 → Ash » observés en test).
+- **Correctif** : (1) règle inversée : un intrus est un **visage inconnu**, pas une silhouette sans visage (un simple délai ne faisait que repousser le problème : une main tenue plus longtemps devenait intrus quand même). Nouveau paramètre `FACE_ABSENT_LIMIT`, **0 par défaut = jamais** (profils Portail, Domicile et Bureau : 0 ; Haute sécurité : 5 s) ; curseur « Intrus sans visage après (0 = jamais) » dans Configuration, applicable sans redémarrage. Une silhouette sans visage reste en « Attente visage… » : ni photo, ni événement au journal, ni alerte. Avec un délai supérieur à 0, elle devient intrus provisoire au bout de ce délai ; (2) la fenêtre d'analyse démarre à l'apparition du visage (`face_seen_at`), remise à zéro à la ré-analyse.
+- **Ce qui ne change pas** : un visage visible mais inconnu reste jugé 1 s après son apparition. **Arbitrage assumé** : avec le réglage par défaut, une personne qui cache durablement son visage (masque, capuche) n'est plus signalée comme intrus ; le profil Haute sécurité, ou le curseur, rétablit ce comportement après un délai. L'alerte de fuite (journal) n'est plus déclenchée que si un visage avait été vu avant la disparition, pour que chaque faux positif de YOLO ne remplisse pas le journal d'alertes de fuite.
+- **Ce que le journal contient pour un intrus** (pour mémoire) : un visage inconnu est jugé 1 s après son apparition ; l'événement `INTRUDER_PENDING` et un profil `Intrus_NNN` (nom seulement) sont alors écrits en base, et sa photo est prise (rattachée au journal seulement à la confirmation). L'événement `INTRUDER_CONFIRMED`, l'alerte Telegram/e-mail et la lumière rouge n'arrivent qu'après `ALERT_GRACE_PERIOD` (60 s par défaut ; Portail 120 s, Domicile 60 s, Bureau 30 s, Haute sécurité 5 s), si l'individu est toujours là et qu'aucun VIP n'a été reconnu entre-temps. S'il part avant, il n'y a ni confirmation ni alerte, la photo est supprimée et seule la ligne `INTRUDER_PENDING` reste. Les vecteurs de visage des intrus ne sont jamais stockés, seuls ceux des VIP le sont.
+- **Résultat** : 12 tests (`FaceAbsentTest`, horloge simulée). Contre-épreuve : en rétablissant l'ancienne logique (délai supprimé, puis fenêtre comptée depuis la silhouette), les tests échouent (3 puis 1 échec) avant la bascule sur « jamais » ; ils passent avec le code actuel. 91 tests au total.
+- **Défaut voisin non corrigé** : `FaceRecognizer` copie `FACE_ANALYSIS_TIME_LIMIT` et `FACE_RECHECK_INTERVAL` à son démarrage, donc les curseurs « Limite d'analyse » et « Intervalle recheck » de la page Configuration n'ont aucun effet avant un redémarrage du serveur (le nouveau curseur, lui, agit immédiatement).
+
+---
+
+### Entrée 022 — Phase 19 : Que devient une personne qui passe sans montrer son visage ?
+- **Date** : 2026-10-29
+- **Question posée** : après l'entrée 021, une personne qui traverse le champ sans montrer son visage ne laisse plus aucune trace. Existe-t-il un cas d'usage prévu ?
+- **Constat** : le cahier des charges (scénario 5.3) ne couvre que la personne qui « stationne » ; la feuille de route décrit « l'intrus furtif » (disparaître avant la fin de la première seconde d'analyse = alerte de fuite). Cette alerte de fuite n'était qu'une ligne dans la console : le type d'événement `FLIGHT_ALERT`, son étiquette « FUITE » et le compteur `flight_alerts_today` de `GET /logs/stats` existaient, mais rien n'écrivait jamais l'événement en base. Le compteur restait donc à zéro (et la page Statistiques du dashboard calcule ses chiffres à partir de `GET /logs` sans l'afficher).
+- **Implémentation** : à la disparition d'une silhouette qui n'a jamais reçu de verdict (`FaceRecognizer._record_disappearance`), deux cas distincts :
+  1. un **visage avait été vu** : événement `FLIGHT_ALERT` écrit au journal (la fonctionnalité d'origine est enfin complète) ;
+  2. **aucun visage jamais vu** et présence d'au moins `FACELESS_PASSAGE_MIN_SECONDS` (3 s, 0 = désactivé) : nouvel événement `FACELESS_PASSAGE`, trace d'audit discrète, sans photo ni alerte à distance. Les détections plus brèves (clignotements de YOLO) sont ignorées. La durée inclut la mémoire du tracker (quelques dixièmes de seconde).
+  Les deux événements portent le nom « Inconnu » (un pseudo-profil sans vecteur de visage, absent de la page VIP). Un VIP reconnu ou un intrus déjà jugé qui s'en va ne produit aucun de ces deux événements.
+- **Dashboard** : étiquettes « FUITE » et « PASSAGE » dans le Journal, deux options dans le filtre des types d'événements, compteur `faceless_passages_today` côté API.
+- **Résultat** : 6 tests supplémentaires (horloge simulée) ; contre-épreuve : sans l'enregistrement des disparitions, 3 tests échouent. 97 tests au total. Journal vérifié dans un vrai navigateur (étiquettes et filtre).
+- **Limites** : un passant sans visage ne déclenche jamais d'alerte à distance (choix de conception : seule une trace d'audit) ; la page Statistiques n'affiche pas encore ces deux compteurs.

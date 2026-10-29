@@ -3,6 +3,7 @@ import json
 import numpy as np
 from datetime import datetime, timedelta
 import os
+import time
 import config
 
 
@@ -179,7 +180,8 @@ class DatabaseManager:
     EVENT_LIVENESS_SUCCESS     = "LIVENESS_SUCCESS"
     EVENT_FINGERPRINT_OK       = "FINGERPRINT_OK"
     EVENT_FINGERPRINT_FAIL     = "FINGERPRINT_FAIL"
-    EVENT_FLIGHT_ALERT         = "FLIGHT_ALERT"
+    EVENT_FLIGHT_ALERT         = "FLIGHT_ALERT"       # visage vu, individu disparu avant le verdict
+    EVENT_FACELESS_PASSAGE     = "FACELESS_PASSAGE"   # silhouette restée sans jamais montrer de visage
     EVENT_DETECTION            = "DETECTION"
 
     def log_event(self, name, confidence, event_type="DETECTION", snapshot_path=None, role="INTRUS"):
@@ -253,6 +255,12 @@ class DatabaseManager:
         )
         stats["flight_alerts_today"] = cursor.fetchone()[0]
 
+        cursor.execute(
+            "SELECT COUNT(*) FROM event_logs WHERE event_type=? AND timestamp >= ?",
+            (self.EVENT_FACELESS_PASSAGE, today)
+        )
+        stats["faceless_passages_today"] = cursor.fetchone()[0]
+
         cursor.execute("SELECT timestamp FROM event_logs ORDER BY timestamp DESC LIMIT 1")
         row = cursor.fetchone()
         stats["last_event"] = row[0] if row else None
@@ -272,28 +280,104 @@ class DatabaseManager:
         conn.commit()
         conn.close()
 
-    def purge_old_snapshots(self, retention_hours=None):
+    @staticmethod
+    def _retention_modifier(hours):
         """
-        Supprime les snapshots et logs antérieurs à retention_hours.
-        Retourne le nombre d'entrées supprimées.
+        Modificateur SQLite « -N hours ». La coupure est calculée PAR SQLite : il horodate
+        CURRENT_TIMESTAMP en UTC, alors que l'heure locale de Python est décalée (UTC+1 au
+        Bénin) — l'ancienne version purgeait donc une heure trop tôt.
+        """
+        return f"-{float(hours)} hours"
+
+    @staticmethod
+    def _remove_file(path):
+        """Supprime un fichier ; retourne True s'il a réellement été supprimé."""
+        try:
+            os.remove(path)
+            return True
+        except OSError:
+            return False
+
+    def purge_old_snapshots(self, retention_hours=None, snapshot_dir=None):
+        """
+        Purge MANUELLE (bouton « Purge RGPD ») : supprime les événements antérieurs à la
+        rétention AINSI QUE leurs photos, puis les photos orphelines. Retourne le nombre
+        d'événements supprimés.
         """
         hours = retention_hours or config.RGPD_SNAPSHOT_RETENTION_HOURS
-        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, snapshot_path FROM event_logs WHERE timestamp < ?", (cutoff,)
+            "SELECT id, snapshot_path FROM event_logs WHERE timestamp < datetime('now', ?)",
+            (self._retention_modifier(hours),),
         )
         old_rows = cursor.fetchall()
         deleted = 0
         for row in old_rows:
-            if row["snapshot_path"] and os.path.exists(row["snapshot_path"]):
-                os.remove(row["snapshot_path"])
+            if row["snapshot_path"]:
+                self._remove_file(row["snapshot_path"])
             cursor.execute("DELETE FROM event_logs WHERE id=?", (row["id"],))
             deleted += 1
         conn.commit()
         conn.close()
+        self._sweep_orphan_snapshots(hours, snapshot_dir)
         return deleted
+
+    def purge_expired_snapshots(self, retention_hours=None, snapshot_dir=None):
+        """
+        Purge AUTOMATIQUE RGPD : supprime les PHOTOS plus vieilles que la rétention, y
+        compris les photos orphelines, mais conserve les lignes du journal (historique,
+        statistiques) : seul le chemin de la photo est effacé. Appelée au démarrage puis
+        périodiquement par api.py. Retourne {"photos": n, "orphans": m}.
+        """
+        hours = retention_hours or config.RGPD_SNAPSHOT_RETENTION_HOURS
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, snapshot_path FROM event_logs "
+            "WHERE snapshot_path IS NOT NULL AND timestamp < datetime('now', ?)",
+            (self._retention_modifier(hours),),
+        )
+        expired = cursor.fetchall()
+        for row in expired:
+            self._remove_file(row["snapshot_path"])
+            cursor.execute("UPDATE event_logs SET snapshot_path = NULL WHERE id = ?", (row["id"],))
+        conn.commit()
+        conn.close()
+        return {"photos": len(expired), "orphans": self._sweep_orphan_snapshots(hours, snapshot_dir)}
+
+    def _sweep_orphan_snapshots(self, retention_hours, snapshot_dir=None):
+        """
+        Supprime les photos que plus aucune ligne du journal ne référence (mode client
+        /analyze_frame, ligne supprimée à la main, arrêt brutal…) : sans ça elles échappent
+        à la purge pour toujours. Seules celles plus vieilles que la rétention (au moins 1 h)
+        sont touchées, pour ne jamais effacer la photo d'une intrusion encore en cours de
+        confirmation. Retourne le nombre de fichiers supprimés.
+        """
+        directory = snapshot_dir or config.SNAPSHOT_DIR
+        if not os.path.isdir(directory):
+            return 0
+
+        def norm(p):
+            return os.path.normcase(os.path.abspath(p))
+
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT snapshot_path FROM event_logs WHERE snapshot_path IS NOT NULL")
+        referenced = {norm(row[0]) for row in cursor.fetchall()}
+        conn.close()
+
+        min_age = max(float(retention_hours), 1.0) * 3600
+        now = time.time()
+        removed = 0
+        for entry in os.scandir(directory):
+            if not entry.is_file() or os.path.splitext(entry.name)[1].lower() not in (".jpg", ".jpeg", ".png"):
+                continue
+            if norm(entry.path) in referenced or now - entry.stat().st_mtime < min_age:
+                continue
+            if self._remove_file(entry.path):
+                removed += 1
+        return removed
 
     # ------------------------------------------------------------------ #
     #  CONFIGURATION SYSTÈME                                               #
@@ -307,6 +391,7 @@ class DatabaseManager:
             "ALERT_TELEGRAM_ENABLED": True,
             "ALERT_EMAIL_ENABLED": True,
             "FACE_ANALYSIS_TIME_LIMIT": 1.5,
+            "FACE_ABSENT_LIMIT": 0.0,
             "RECHECK_FAILURE_TOLERANCE": 5,
             "RGPD_SNAPSHOT_RETENTION_HOURS": 72,
             "FINGERPRINT_TIMEOUT": 20.0,
@@ -318,6 +403,7 @@ class DatabaseManager:
             "ALERT_TELEGRAM_ENABLED": True,
             "ALERT_EMAIL_ENABLED": True,
             "FACE_ANALYSIS_TIME_LIMIT": 1.0,
+            "FACE_ABSENT_LIMIT": 0.0,
             "RECHECK_FAILURE_TOLERANCE": 3,
             "RGPD_SNAPSHOT_RETENTION_HOURS": 72,
             "FINGERPRINT_TIMEOUT": 15.0,
@@ -329,6 +415,7 @@ class DatabaseManager:
             "ALERT_TELEGRAM_ENABLED": False,
             "ALERT_EMAIL_ENABLED": False,
             "FACE_ANALYSIS_TIME_LIMIT": 1.0,
+            "FACE_ABSENT_LIMIT": 0.0,
             "RECHECK_FAILURE_TOLERANCE": 3,
             "RGPD_SNAPSHOT_RETENTION_HOURS": 24,
             "FINGERPRINT_TIMEOUT": 15.0,
@@ -340,6 +427,7 @@ class DatabaseManager:
             "ALERT_TELEGRAM_ENABLED": True,
             "ALERT_EMAIL_ENABLED": True,
             "FACE_ANALYSIS_TIME_LIMIT": 0.8,
+            "FACE_ABSENT_LIMIT": 5.0,
             "RECHECK_FAILURE_TOLERANCE": 1,
             "RGPD_SNAPSHOT_RETENTION_HOURS": 12,
             "FINGERPRINT_TIMEOUT": 10.0,
@@ -440,6 +528,7 @@ class DatabaseManager:
             "FACE_RECOGNITION_THRESHOLD":     config.FACE_RECOGNITION_THRESHOLD,
             "FACE_RECHECK_INTERVAL":          config.FACE_RECHECK_INTERVAL,
             "FACE_ANALYSIS_TIME_LIMIT":       config.FACE_ANALYSIS_TIME_LIMIT,
+            "FACE_ABSENT_LIMIT":              config.FACE_ABSENT_LIMIT,
             "YOLO_CONFIDENCE_THRESHOLD":      config.YOLO_CONFIDENCE_THRESHOLD,
             "YOLO_IMAGE_SIZE":                config.YOLO_IMAGE_SIZE,
             "MFA_REQUIRED":                   config.MFA_REQUIRED,

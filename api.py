@@ -11,8 +11,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
 
-if not os.path.exists("database/snapshots"):
-    os.makedirs("database/snapshots")
+import config
+
+os.makedirs(config.SNAPSHOT_DIR, exist_ok=True)
 from fastapi import FastAPI, File, UploadFile, Form, Query, Header, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,9 +55,14 @@ async def lifespan(app: FastAPI):
         f"[STARTUP] Worker pipeline démarré · {len(rows)} caméra(s) chargée(s)."
     )
 
+    # Purge RGPD automatique des photos : une fois maintenant, puis périodiquement
+    global _rgpd_task
+    _rgpd_task = asyncio.create_task(_rgpd_purge_loop())
+
     yield  # ← application tourne ici
 
     # ── SHUTDOWN ─────────────────────────────────────────────────────
+    _rgpd_task.cancel()
     cam_mgr.stop_all()
     logger.info("[SHUTDOWN] Sources vidéo arrêtées proprement.")
 
@@ -120,7 +126,7 @@ _liveness_sessions: dict = {}
 # Dernier frame reçu — servi en MJPEG via GET /stream (compat. rétrograde)
 _latest_frame_jpg: Optional[bytes] = None
 
-SNAPSHOT_DIR = "database/snapshots"
+SNAPSHOT_DIR = config.SNAPSHOT_DIR
 
 # Mode client (/analyze_frame) : chemin de la silhouette déjà sauvegardée par object_id.
 _push_snap_paths: dict = {}
@@ -149,6 +155,49 @@ def _attach_intruder_snapshot(ts_obj, frame_bgr, bbox_xyxy, tag, known_path=None
     if cv2.imwrite(path, crop):
         ts_obj.set_snapshot(path)
         logger.info(f"[FORENSIC] Photo de l'intrus présumé sauvegardée : {path}")
+
+
+# ── Purge RGPD automatique des photos d'intrus ────────────────────────
+_rgpd_status = {"last_run": None, "photos": 0, "orphans": 0, "error": None}
+_rgpd_task = None
+
+
+async def _rgpd_purge_loop():
+    """
+    Supprime les photos plus vieilles que la rétention : une fois au démarrage (rattrape
+    un arrêt prolongé, coupure de courant incluse), puis toutes les
+    RGPD_PURGE_INTERVAL_MINUTES. Ne touche qu'aux photos, jamais aux lignes du journal.
+    """
+    while True:
+        try:
+            result = await asyncio.to_thread(
+                face_recognizer.db.purge_expired_snapshots, None, SNAPSHOT_DIR
+            )
+            _rgpd_status.update(
+                last_run=datetime.now().isoformat(timespec="seconds"),
+                photos=result["photos"], orphans=result["orphans"], error=None,
+            )
+            if result["photos"] or result["orphans"]:
+                logger.info(
+                    f"[RGPD] Purge automatique : {result['photos']} photo(s) expirée(s), "
+                    f"{result['orphans']} orpheline(s) supprimée(s)."
+                )
+        except Exception as exc:
+            _rgpd_status["error"] = exc.__class__.__name__
+            logger.warning(f"[RGPD] Purge automatique échouée : {exc}")
+        await asyncio.sleep(max(1, config.RGPD_PURGE_INTERVAL_MINUTES) * 60)
+
+
+def _snapshot_inventory():
+    """Nombre de photos stockées et âge, en heures, de la plus ancienne (None s'il n'y en a pas)."""
+    count, oldest = 0, None
+    if os.path.isdir(SNAPSHOT_DIR):
+        for entry in os.scandir(SNAPSHOT_DIR):
+            if entry.is_file():
+                count += 1
+                mtime = entry.stat().st_mtime
+                oldest = mtime if oldest is None else min(oldest, mtime)
+    return count, (round((time.time() - oldest) / 3600, 1) if oldest is not None else None)
 
 # ── Couleurs BGR par état Trust ───────────────────────────────────────
 _STATE_BGR = {
@@ -291,7 +340,8 @@ def _run_pipeline_and_annotate(frame_bgr: np.ndarray, cam_id: str = "") -> list:
                 x1, y1, x2, y2 = [int(v) for v in bbox_xyxy]
                 state = (ts_state or {}).get("state", "ANALYZING")
                 score = (ts_state or {}).get("score", 0) or 0
-                name  = (ts_state or {}).get("vip_name") or identity.get("name", "?")
+                # identify() renvoie un TEXTE (nom, « Intrus_001 », « Analyse… »), pas un dict.
+                name  = (ts_state or {}).get("vip_name") or str(identity)
 
                 # La consigne MFA (geste attendu, progression, seuils) est
                 # affichée dans le dashboard (case dédiée, voir /access_status
@@ -450,7 +500,7 @@ async def analyze_frame(
             corp_crop = frame[max(0, sy1):min(frame.shape[0], sy2), max(0, sx1):min(frame.shape[1], sx2)]
             if corp_crop.size > 0:
                 timestamp = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-                snap_path = f"database/snapshots/{timestamp}_TrackID_{object_id}.jpg"
+                snap_path = f"{SNAPSHOT_DIR}/{timestamp}_TrackID_{object_id}.jpg"
                 cv2.imwrite(snap_path, corp_crop)
                 _push_snap_paths[object_id] = snap_path
                 logger.info(f"[FORENSIC] Silhouette sauvegardee: {snap_path}")
@@ -699,11 +749,13 @@ async def get_logs(
     name:       Optional[str]  = Query(None),
     date_from:  Optional[str]  = Query(None),
     date_to:    Optional[str]  = Query(None),
+    authorization: Optional[str] = Header(None),
 ):
     """
     Retourne les logs paginés et filtrés.
     Paramètres optionnels : event_type, name, date_from (ISO), date_to (ISO).
     """
+    _check_token(authorization)
     logs = face_recognizer.db.get_logs(
         limit=limit, offset=offset,
         event_type=event_type, name=name,
@@ -713,25 +765,46 @@ async def get_logs(
 
 
 @app.get("/logs/stats")
-async def get_log_stats():
+async def get_log_stats(authorization: Optional[str] = Header(None)):
     """Résumé statistique pour le dashboard (entrées VIP, intrus, alertes du jour)."""
+    _check_token(authorization)
     return {"success": True, "stats": face_recognizer.db.get_log_stats()}
 
 
 @app.delete("/logs/purge")
-async def purge_logs(retention_hours: Optional[int] = Query(None)):
+async def purge_logs(retention_hours: Optional[int] = Query(None), authorization: Optional[str] = Header(None)):
     """
-    Purge les logs et snapshots antérieurs à retention_hours.
+    Purge MANUELLE : supprime les événements antérieurs à retention_hours ET leurs photos.
     Si non précisé, utilise RGPD_SNAPSHOT_RETENTION_HOURS depuis la config.
+    (La purge automatique, elle, ne supprime que les photos : voir _rgpd_purge_loop.)
     IMPORTANT : doit être déclaré AVANT /logs/{log_id} sinon FastAPI parse "purge" comme int → 422.
     """
-    deleted = face_recognizer.db.purge_old_snapshots(retention_hours)
+    _check_token(authorization)
+    deleted = face_recognizer.db.purge_old_snapshots(retention_hours, SNAPSHOT_DIR)
     return {"success": True, "deleted": deleted}
 
 
+@app.get("/rgpd/status")
+async def rgpd_status(authorization: Optional[str] = Header(None)):
+    """État de la purge automatique des photos, pour le dashboard (preuve que la rétention est tenue)."""
+    _check_token(authorization)
+    count, oldest_hours = _snapshot_inventory()
+    return {
+        "retention_hours":       config.RGPD_SNAPSHOT_RETENTION_HOURS,
+        "interval_minutes":      config.RGPD_PURGE_INTERVAL_MINUTES,
+        "last_run":              _rgpd_status["last_run"],
+        "last_photos_purged":    _rgpd_status["photos"],
+        "last_orphans_purged":   _rgpd_status["orphans"],
+        "error":                 _rgpd_status["error"],
+        "snapshots_on_disk":     count,
+        "oldest_snapshot_hours": oldest_hours,
+    }
+
+
 @app.delete("/logs/{log_id}")
-async def delete_log(log_id: int):
+async def delete_log(log_id: int, authorization: Optional[str] = Header(None)):
     """Supprime un log individuel et son snapshot associé (droit à l'oubli RGPD)."""
+    _check_token(authorization)
     face_recognizer.db.delete_log(log_id)
     return {"success": True, "message": f"Log #{log_id} supprimé."}
 

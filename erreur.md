@@ -31,3 +31,15 @@ Mesuré (`tests/bench_face_gate.py`, rapport `tests/rapport_face_gate.md`) : 2 �
 **Résolu le :** 2026-08-10
 
 Variables `LIVENESS_TIME_LIMIT`, `POSE_MIN_DETECTION_CONFIDENCE`, `POSE_MIN_TRACKING_CONFIDENCE` supprimées. Import `PoseAnalyzer` et instanciation retirés de `main.py`. Variable morte `active_names_on_screen` retirée de `face_recognizer.py`.
+
+---
+
+## 4. ~~Aucun cadre sur les personnes non reconnues (dashboard)~~ — ✅ RÉSOLU
+
+**Fichiers concernés :** `api.py` (`_run_pipeline_and_annotate`)
+
+**Résolu le :** 2026-10-29 (découvert en lisant le journal du serveur pendant un test à la webcam)
+
+`identify()` renvoie un texte (le nom, `Intrus_001`, `Analyse… (0.4s)`), mais le pipeline multi-caméras appelait `identity.get("name", "?")` dessus. Pour toute personne sans nom de VIP (inconnu, intrus, analyse en cours), cela levait `AttributeError`, avalée par le `try` englobant : toutes les annotations de l'image étaient perdues. Résultat visible : l'utilisateur avait son cadre, l'intrus n'en avait aucun, et les personnes suivantes de l'image n'étaient même pas traitées. Le journal se remplissait de `[PIPELINE] … 'str' object has no attribute 'get'` (996 fois en deux minutes de test). La détection d'intrusion elle-même (Trust Score, photo, alerte) fonctionnait, car elle s'exécute avant la ligne fautive.
+
+Corrigé en `or str(identity)`. Verrouillé par `tests/test_face_gate.py::PipelineAnnotationsTest`, qui obtient 0 annotation au lieu de 2 sur l'ancien code.

@@ -66,7 +66,7 @@ Expose ~30 routes : pipeline IA (`/analyze_frame`, `/enroll`), configuration
 (`/config`, `/config/templates`), logs d'audit (`/logs`), gestion multi-caméras
 (`/cameras`), IoT (`/iot/door`, `/iot/fingerprint`, `/iot/light`), liveness/MFA
 (`/request_liveness`, `/liveness_result`, `/fingerprint_result`), alertes à distance
-(`/alerts/test`, `/alerts/telegram/detect`) et appairage du
+(`/alerts/test`, `/alerts/telegram/detect`), état de la purge RGPD (`/rgpd/status`) et appairage du
 dashboard (`/pair/request`, `/auth/token`).
 
 Toutes les routes qui lisent ou modifient un état sensible (config, IoT, caméras,
@@ -131,6 +131,7 @@ la gestion des caméras et le contrôle manuel des actionneurs IoT.
 | 9 | Multi-caméras + dashboard Electron | ✅ |
 | 10 | Auth dashboard (appairage PIN + token Bearer) | ✅ |
 | 11 | Alertes à distance Telegram + e-mail (photo jointe), remplace WhatsApp | ✅ (identifiants à saisir dans l'onglet Alertes) |
+| 12 | Purge RGPD automatique des photos d'intrus (au démarrage puis toutes les heures) | ✅ |
 | — | Table `audit_logs` dédiée (au-delà de `event_logs`) | ⏳ Prévu, non implémenté |
 
 ## Historique d'Implémentation

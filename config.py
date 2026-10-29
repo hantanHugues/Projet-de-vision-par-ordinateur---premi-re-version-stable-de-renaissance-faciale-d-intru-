@@ -47,8 +47,23 @@ FACE_RECOGNITION_THRESHOLD = 0.35
 # Délai de re-vérification pour les identités déjà validées (secondes)
 FACE_RECHECK_INTERVAL = 0.8
 
-# Temps maximum pour identifier un inconnu avant de le classer Intrus (secondes)
+# Temps maximum pour identifier un inconnu avant de le classer Intrus (secondes).
+# Il démarre à l'apparition du visage de face, pas à l'arrivée de la silhouette.
 FACE_ANALYSIS_TIME_LIMIT = 1.0
+
+# Un « intrus » est un visage inconnu, pas une silhouette sans visage : YOLO prend parfois une
+# main pour une personne (84 % mesuré), et un torse trop près ou un passant de dos n'ont pas de
+# visage de face. 0 (défaut) = une silhouette sans visage n'est JAMAIS classée intrus, elle reste
+# en « Attente visage » (pas de photo, pas d'événement, pas d'alerte).
+# > 0 = au bout de ce nombre de secondes sans visage, elle devient intrus provisoire (photo
+# prise, alerte armée) : pour qu'un masque ou une capuche ne passe pas inaperçu.
+FACE_ABSENT_LIMIT = 0.0
+
+# Une silhouette qui n'a JAMAIS montré de visage et qui disparaît après avoir été présente au
+# moins ce nombre de secondes laisse une trace discrète au journal (événement « passage sans
+# visage » : ni photo, ni alerte à distance). Les détections plus brèves, typiques des
+# clignotements de YOLO, sont ignorées. 0 = désactivé.
+FACELESS_PASSAGE_MIN_SECONDS = 3.0
 
 # ============================================
 # BASE DE DONNÉES SQLite (Phase 5)
@@ -127,8 +142,17 @@ LIGHT_ESP32_IP       = "192.168.1.103"   # Module éclairage d'accueil
 # ============================================
 # RGPD — Rétention des données
 # ============================================
-# Les photos forensiques (snapshots/) sont purgées automatiquement après ce délai
+# Les photos forensiques (snapshots/) sont purgées automatiquement après ce délai.
+# La purge automatique ne supprime que les PHOTOS : les lignes du journal restent
+# (historique et statistiques), seul le chemin de la photo est effacé.
 RGPD_SNAPSHOT_RETENTION_HOURS = 72
+
+# Dossier des photos forensiques d'intrus
+SNAPSHOT_DIR = "database/snapshots"
+
+# Fréquence de la purge automatique (minutes). Elle tourne aussi une fois au démarrage
+# du serveur, ce qui rattrape les coupures de courant et les arrêts prolongés.
+RGPD_PURGE_INTERVAL_MINUTES = 60
 
 # ============================================
 # PROFIL DE SÉCURITÉ
