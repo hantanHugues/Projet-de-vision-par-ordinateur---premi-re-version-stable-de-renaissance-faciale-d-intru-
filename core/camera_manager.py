@@ -18,6 +18,16 @@ import time
 import platform
 from typing import Optional, Dict, Callable, List
 
+import config
+
+
+def mirror_annotations(annotations: list, frame_width: int) -> list:
+    """Annotations (oid, x1, y1, x2, y2, nom, score, état) pour une image retournée à l'horizontale."""
+    return [
+        (oid, frame_width - x2, y1, frame_width - x1, y2, *rest)
+        for oid, x1, y1, x2, y2, *rest in annotations
+    ]
+
 
 class CameraSource:
     """Thread de capture pour une source vidéo unique."""
@@ -111,16 +121,7 @@ class CameraSource:
                 self._fps_ctr   = 0
                 self._fps_ts    = now
 
-            # Dessine les DERNIÈRES annotations connues sur cette frame fraîche
-            # (elle-même capturée à la vitesse caméra, pas à celle de l'IA).
-            display_frame = frame
-            if self._draw_fn:
-                with self._lock:
-                    annotations = self._annotations
-                try:
-                    display_frame = self._draw_fn(frame, annotations, self.cam_id, self.name)
-                except Exception:
-                    display_frame = frame
+            display_frame = self._render(frame)
 
             ok, jpg = cv2.imencode(".jpg", display_frame, [cv2.IMWRITE_JPEG_QUALITY, 78])
             if ok:
@@ -135,6 +136,30 @@ class CameraSource:
                     self._on_frame(self.cam_id, frame)
                 except Exception:
                     pass
+
+    def _render(self, frame):
+        """
+        Image affichée au dashboard : dernières annotations connues dessinées sur la frame
+        fraîche (capturée à la vitesse caméra, pas à celle de l'IA).
+
+        Une webcam locale renvoie souvent l'image en miroir (la main droite apparaît à droite,
+        comme dans un selfie). On la remet à l'endroit ICI, à l'affichage seulement : l'image
+        envoyée au pipeline IA reste celle de la caméra, donc la reconnaissance, les distances
+        mesurées et les photos d'intrus ne changent pas. Les cadres sont retournés avec l'image,
+        le texte est dessiné après le retournement et reste lisible.
+        """
+        flip = self.cam_type == "usb" and config.DISPLAY_FLIP_HORIZONTAL_USB
+        display_frame = cv2.flip(frame, 1) if flip else frame
+        if self._draw_fn:
+            with self._lock:
+                annotations = self._annotations
+            if flip:
+                annotations = mirror_annotations(annotations, frame.shape[1])
+            try:
+                display_frame = self._draw_fn(display_frame, annotations, self.cam_id, self.name)
+            except Exception:
+                pass
+        return display_frame
 
     # ── Accès aux frames ──────────────────────────────────────────────
 

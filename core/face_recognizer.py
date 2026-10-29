@@ -11,6 +11,7 @@ C'est indispensable pour ne pas surcharger le Raspberry Pi.
 import os
 import cv2
 import time
+import threading
 import numpy as np
 from deepface import DeepFace
 import config
@@ -48,7 +49,13 @@ class FaceRecognizer:
         self.logger.info("FaceRecognizer avec Facenet512 et SQLite initialisé.")
 
         # Modèle ultra-léger OpenCV pour DETECTER si un visage est bien centré et visible
-        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml') 
+        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+        # Second avis sur le visage trouvé par Haar (voir _confirm_face) : chargé à la première
+        # utilisation, partagé entre les caméras donc protégé par un verrou.
+        self._landmarker      = None
+        self._landmarker_lock = threading.Lock()
+        self._landmarker_tried = False
 
         # --- PIPELINE INDUSTRIEL DE PRÉ-TRAITEMENT ---
         # Initialisation du nettoyeur de contraste local (Évite de le recréer à chaque image)
@@ -124,7 +131,10 @@ class FaceRecognizer:
         """Recharge le cache RAM depuis SQLite. À appeler uniquement après un /enroll réussi."""
         self._embeddings_cache = self.db.get_all_embeddings()
         intruder_count = sum(1 for name in self._embeddings_cache.keys() if name.startswith("Intrus"))
-        self.next_intruder_index = intruder_count
+        # Jamais en arrière : le cache ne contient pas les intrus de la session, le recharger
+        # (après chaque apprentissage par empreinte) remettait le compteur à 0 et donnait le
+        # même nom « Intrus_001 » à des individus différents.
+        self.next_intruder_index = max(self.next_intruder_index, intruder_count)
         self.logger.info(f"[DEBUG CACHE] Cache rechargé : {len(self._embeddings_cache)} profil(s) en RAM.")
 
     def learn_from_confirmation(self, object_id, vip_name):
@@ -196,6 +206,63 @@ class FaceRecognizer:
             return best_match, min_dist
         return None, min_dist
 
+    def _get_landmarker(self):
+        """FaceLandmarker MediaPipe (déjà utilisé par le liveness), ou None s'il est indisponible."""
+        if self._landmarker_tried:
+            return self._landmarker
+        with self._landmarker_lock:
+            if self._landmarker_tried:
+                return self._landmarker
+            self._landmarker_tried = True
+            model = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models", "face_landmarker.task")
+            try:
+                import mediapipe as mp
+                from mediapipe.tasks import python as mp_python
+                from mediapipe.tasks.python import vision as mp_vision
+                options = mp_vision.FaceLandmarkerOptions(
+                    base_options=mp_python.BaseOptions(model_asset_path=os.path.normpath(model)),
+                    num_faces=1,
+                    min_face_detection_confidence=0.5,
+                    min_face_presence_confidence=0.5,
+                )
+                self._landmarker = mp_vision.FaceLandmarker.create_from_options(options)
+                self._mp = mp
+            except Exception as e:
+                self.logger.warning(f"[FACE GATE] Second avis MediaPipe indisponible ({e}) : "
+                                    f"le détecteur Haar décide seul.")
+        return self._landmarker
+
+    def _confirm_face(self, crop_bgr, rect):
+        """
+        Le détecteur Haar prend parfois un pli de vêtement ou un bouton pour un visage (mesuré :
+        un « visage » de 67 px sur la chemise d'un intrus, photo Telegram du 29/10). Un visage
+        inconnu étant ce qui fait un intrus, ce faux visage déclenchait une vraie alerte.
+        Second avis : MediaPipe FaceLandmarker regarde TOUTE la silhouette, et le visage n'est
+        accepté que si son centre tombe dans le rectangle trouvé par Haar. En cas de doute le
+        résultat est « pas de visage », donc jamais un intrus. Sans modèle disponible, ou si
+        FACE_VALIDATION_ENABLED est faux, on garde le seul verdict de Haar.
+        """
+        if not config.FACE_VALIDATION_ENABLED:
+            return True
+        landmarker = self._get_landmarker()
+        if landmarker is None:
+            return True
+        try:
+            rgb = np.ascontiguousarray(cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB))
+            with self._landmarker_lock:
+                result = landmarker.detect(self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=rgb))
+            if not result.face_landmarks:
+                return False
+            h, w = crop_bgr.shape[:2]
+            points = result.face_landmarks[0]
+            cx = float(np.mean([p.x for p in points])) * w
+            cy = float(np.mean([p.y for p in points])) * h
+            x, y, fw, fh = (int(v) for v in rect)
+            return x <= cx <= x + fw and y <= cy <= y + fh
+        except Exception as e:
+            self.logger.warning(f"[FACE GATE] Second avis MediaPipe en échec ({e}) : Haar décide seul.")
+            return True
+
     def get_face_box(self, object_id, bbox):
         """
         Encadré [x, y, w, h] du visage de cet individu, en coordonnées image, ou None
@@ -263,6 +330,8 @@ class FaceRecognizer:
         # On exige un visage de face clair pour lancer l'IA lourde. 
         # Si la personne est de dos ou tête trop baissée, len(faces) == 0.
         faces = self.face_cascade.detectMultiScale(gray_crop, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+        if len(faces) and not self._confirm_face(crop, faces[0]):
+            faces = ()   # faux visage (vêtement, bouton) : on fait comme s'il n'y en avait pas
 
         # Position du visage RELATIVE à la silhouette : api.py la réutilise pour son
         # encadré (get_face_box) au lieu de relancer Haar à chaque image.
@@ -353,9 +422,18 @@ class FaceRecognizer:
                     f"[RE-CHECK] Discordance {state['recheck_fail_count']}/{tolerance} "
                     f"'{current_name}' → '{nom_trouve}'"
                 )
-                if state["recheck_fail_count"] >= tolerance:
+                # Un intrus provisoire reconnu d'un seul coup comme un VIP, nettement sous le seuil,
+                # n'a pas à attendre trois résultats concordants : la grâce court pendant ce temps
+                # (mesuré : 2 à 31 s pour revenir, une alerte Telegram sur le VIP lui-même).
+                strong = (
+                    current_name.startswith("Intrus")
+                    and not nom_trouve.startswith("Intrus")
+                    and distance < config.FACE_STRONG_MATCH_DISTANCE
+                )
+                if state["recheck_fail_count"] >= tolerance or strong:
                     self.logger.warning(
-                        f"[RE-VÉRIFICATION] Tolérance dépassée — passage de '{current_name}' à '{nom_trouve}'."
+                        f"[RE-VÉRIFICATION] {'Correspondance forte' if strong else 'Tolérance dépassée'}"
+                        f" — passage de '{current_name}' à '{nom_trouve}'."
                     )
                     state["final_name"]        = nom_trouve
                     state["recheck_fail_count"] = 0
@@ -390,6 +468,9 @@ class FaceRecognizer:
                     state["face_seen_at"]      = None
                     state["best_match"]        = None
                     state["recheck_fail_count"] = 0
+                    # Ce visage était un VIP reconnu : on lui laisse plus de temps qu'à un
+                    # inconnu avant de le soupçonner (une image de travers ne fait pas un intrus).
+                    state["analysis_limit"]    = max(config.REANALYSIS_TIME_LIMIT, self.ANALYSIS_TIME_LIMIT)
                     return "Re-Analyse..."
 
             return state["final_name"]
@@ -406,6 +487,7 @@ class FaceRecognizer:
                 )
                 state["status"]    = "FINISHED"
                 state["final_name"] = nom_trouve
+                state.pop("analysis_limit", None)
                 self.identified_ids[object_id] = nom_trouve
 
                 self.db.log_event(
@@ -426,8 +508,9 @@ class FaceRecognizer:
         # ===============================================================
         # 5. COUPERET DU TEMPS (1 SECONDE ÉCOULÉE SANS VOIR DE VIP)
         # ===============================================================
-        if analysis_elapsed > self.ANALYSIS_TIME_LIMIT:
+        if analysis_elapsed > state.get("analysis_limit", self.ANALYSIS_TIME_LIMIT):
             state["status"] = "FINISHED"
+            state.pop("analysis_limit", None)
 
             if state["best_match"]:
                 final_name = state["best_match"]

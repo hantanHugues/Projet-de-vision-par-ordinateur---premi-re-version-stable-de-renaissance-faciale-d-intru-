@@ -44,3 +44,7 @@ skills-lock.json
 
 # Sauvegardes base de données
 *.db.bak*
+
+# Firmware caméra : clé du flux et identifiants Wi-Fi
+firmware/**/secrets.h
+firmware/**/cle_flux.txt

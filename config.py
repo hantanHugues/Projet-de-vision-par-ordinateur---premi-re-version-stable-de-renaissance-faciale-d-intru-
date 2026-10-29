@@ -51,6 +51,23 @@ FACE_RECHECK_INTERVAL = 0.8
 # Il démarre à l'apparition du visage de face, pas à l'arrivée de la silhouette.
 FACE_ANALYSIS_TIME_LIMIT = 1.0
 
+# Même fenêtre quand un VIP déjà reconnu retombe en analyse (ANOMALIE après RECHECK ratés) :
+# plus patiente, pour qu'une image de travers ne le classe pas intrus (secondes).
+REANALYSIS_TIME_LIMIT = 5.0
+
+# Un intrus provisoire reconnu comme un VIP à une distance inférieure à ceci est reclassé
+# VIP tout de suite, sans attendre RECHECK_FAILURE_TOLERANCE résultats concordants.
+FACE_STRONG_MATCH_DISTANCE = 0.25
+
+# Image du dashboard remise à l'endroit pour les webcams locales (type usb), qui renvoient
+# souvent un miroir. Affichage seulement : le pipeline IA reçoit l'image de la caméra, sans
+# retournement. Les caméras IP (mjpeg, rtsp) ne sont jamais retournées.
+DISPLAY_FLIP_HORIZONTAL_USB = True
+
+# Second avis sur le visage trouvé par Haar (MediaPipe) : écarte les faux visages sur les
+# vêtements. Faux = le détecteur Haar décide seul.
+FACE_VALIDATION_ENABLED = True
+
 # Un « intrus » est un visage inconnu, pas une silhouette sans visage : YOLO prend parfois une
 # main pour une personne (84 % mesuré), et un torse trop près ou un passant de dos n'ont pas de
 # visage de face. 0 (défaut) = une silhouette sans visage n'est JAMAIS classée intrus, elle reste

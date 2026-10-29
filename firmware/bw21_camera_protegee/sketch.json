@@ -1,0 +1,10 @@
+{
+  "cpu": {
+    "name": "AMB82-MINI",
+    "fqbn": "realtek:AmebaPro2:Ameba_AMB82-MINI"
+  },
+  "port": {
+    "address": "COM5",
+    "protocol": "serial"
+  }
+}
