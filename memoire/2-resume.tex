@@ -2,11 +2,10 @@
 \selectlanguage{french}
 \vspace*{-6cm}
 \begin{abstract}
-\aredigerr
-% Un paragraphe : contexte, problème, objectif, démarche, résultats (à rédiger une fois les chapitres validés).
+Les systèmes de contrôle d'accès par reconnaissance faciale destinés aux particuliers confient souvent les images à un service en ligne, se prêtent à la présentation d'une photographie et supportent mal les changements d'apparence de leurs utilisateurs. Ce mémoire présente BioGate, un prototype de contrôle d'accès qui traite les données en local, vérifie la présence réelle de la personne par un geste tiré au sort et adapte les profils à l'évolution du visage. Le système détecte et suit les personnes avec YOLOv8, calcule un vecteur de 512 nombres avec FaceNet512 et le compare aux profils enrôlés. Un score de confiance, un second facteur, une purge automatique des photos et une alerte par Telegram complètent la chaîne, avec un tableau de bord pour la supervision. Les essais, exploratoires, montrent qu'une seule confirmation d'identité suffit à faire reconnaître un sujet dont l'apparence a changé, la distance passant de 0,4722 à 0,224 pour un seuil de 0,35. Le lecteur d'empreinte et les actionneurs sont simulés, et l'efficacité du test de vivacité contre des attaques reste à mesurer.
 
 \paragraph{}
-\textbf{Mots clés}: \adonner{4 à 5 mots clés à fournir}
+\textbf{Mots clés}: reconnaissance faciale, contrôle d'accès, test de vivacité, edge computing, protection des données personnelles
 \end{abstract}
 
 \newpage
@@ -14,9 +13,8 @@
 \selectlanguage{english}
 \addcontentsline{toc}{chapter}{Abstract}
 \begin{abstract}
-
-\textcolor{gray}{\emph{To be written.}}
+Face recognition access control systems aimed at individuals often send images to an online service, can be fooled by a photograph and cope poorly with changes in their users' appearance. This thesis presents BioGate, an access control prototype that processes data locally, checks that the person is physically present through a randomly chosen gesture, and adapts user profiles as the face changes over time. The system detects and tracks people with YOLOv8, computes a 512-number vector with FaceNet512 and compares it with the enrolled profiles. A confidence score, a second factor, automatic deletion of photos and a Telegram alert complete the pipeline, with a dashboard for supervision. The exploratory tests show that a single identity confirmation is enough for the system to recognise a subject whose appearance has changed, the distance dropping from 0.4722 to 0.224 for a threshold of 0.35. The fingerprint reader and the actuators are simulated, and the effectiveness of the liveness test against attacks remains to be measured.
 
 \paragraph{}
-\textbf{Key words}: \textcolor{red}{\textbf{[to be provided]}}
+\textbf{Key words}: face recognition, access control, liveness detection, edge computing, personal data protection
 \end{abstract}

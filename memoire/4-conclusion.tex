@@ -1,4 +1,15 @@
 \conclusion
-% Rappel de la problématique, de l'objectif, de la solution, des résultats, des limites,
-% puis trois perspectives en liste.
-\aredigerr
+Ce travail a porté sur la conception et la réalisation de BioGate, un prototype de contrôle d'accès par reconnaissance faciale qui traite les données en local, vérifie la présence réelle de la personne et s'adapte à l'évolution de son visage. Les solutions existantes réunissent rarement ces trois propriétés : les caméras reliées à un service en ligne confient les images à un tiers et reposent sur un abonnement, tandis que la solution qui les réunit, Face ID, est propriétaire et propre aux appareils d'un seul fabricant. L'objectif était de les rassembler dans une architecture modulaire, utilisable sans abonnement ni connexion Internet pour son fonctionnement de base.
+
+Le prototype réalisé détecte et suit les personnes devant la caméra, filtre les visages de face, calcule pour chacun un vecteur de 512 nombres et le compare aux profils enrôlés. Un score de confiance et un second facteur, l'empreinte ou un geste tiré au sort, encadrent l'accès. Les photos des individus soupçonnés sont purgées automatiquement et le propriétaire est alerté par Telegram. Un tableau de bord permet de superviser le système et de régler son comportement. Les essais montrent qu'une seule confirmation d'identité suffit à faire reconnaître un sujet dont l'apparence a changé : la distance mesurée passe de 0,4722 à 0,224, sous le seuil de reconnaissance de 0,35. Ils montrent aussi que le traitement reste assez rapide pour un usage domestique sur un simple processeur.
+
+Certaines limites subsistent néanmoins. L'évaluation est exploratoire, le lecteur d'empreinte et les actionneurs sont simulés, l'efficacité du test de vivacité contre des attaques n'a pas été mesurée, et la sécurité des échanges et des données doit être renforcée avant tout déploiement. Ces limites constituent des axes d'amélioration pour les versions futures.
+
+Les perspectives d'évolution de BioGate s'articulent autour des axes suivants :
+\begin{itemize}
+  \item sécuriser les échanges et chiffrer les données biométriques, afin de répondre aux exigences de protection des données personnelles ;
+  \item compléter le matériel avec un lecteur d'empreinte, une gâche et un capteur de profondeur, puis mesurer la résistance du test de vivacité aux attaques par photographie, vidéo et masque ;
+  \item évaluer le système sur un plus grand nombre de personnes et le porter sur un micro-ordinateur monocarte.
+\end{itemize}
+
+En définitive, BioGate montre qu'il est possible de réunir traitement local, vérification de la présence et adaptation du visage dans un même prototype, tout en précisant ce qu'il reste à établir par des mesures à plus grande échelle.

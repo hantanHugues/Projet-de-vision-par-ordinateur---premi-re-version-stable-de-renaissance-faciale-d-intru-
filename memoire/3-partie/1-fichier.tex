@@ -1,27 +1,308 @@
 \addcontentsline{toc}{section}{Introduction}
 \section*{Introduction}
-\aredigerr
+
+Ce chapitre présente la réalisation de BioGate, les essais menés et les enseignements qu'ils apportent. Il décrit d'abord l'implémentation de la caméra, du serveur et du tableau de bord. Il expose ensuite l'évaluation expérimentale : le protocole, les tests automatiques, les performances mesurées, les essais d'adaptation et de vivacité, ainsi que la purge des photos. Une discussion critique dresse enfin le bilan, les défauts découverts puis corrigés et les limites du prototype. Les perspectives concluent le chapitre.
 
 \section{Implémentation}
-\subsection{Serveur central et pipeline d'analyse}\aredigerr
-\subsection{Client caméra}\aredigerr
-\subsection{Tableau de bord d'administration}\aredigerr
-\subsection{Pilotage des actionneurs et alertes à distance}\aredigerr
+
+\subsection{Organisation du code et environnement}
+
+Le prototype est écrit en Python 3.11, version retenue parce que la version 3.13 posait des incompatibilités entre les bibliothèques de calcul et de vision. Les essais décrits dans ce chapitre ont été menés avec OpenCV 4.11.0. Les versions des autres bibliothèques sont : \adonner{FastAPI, Ultralytics, DeepFace et MediaPipe : versions à relever avec la commande pip}. Le code est organisé en modules, chacun chargé d'une fonction précise :
+\begin{itemize}
+  \item \textbf{Serveur} (\texttt{api.py}) : application FastAPI qui regroupe les routes, le pipeline d'analyse et les tâches de fond ;
+  \item \textbf{Détection} (\texttt{core/yolo\_detector.py}) : repérage des personnes avec YOLOv8 ;
+  \item \textbf{Suivi} (\texttt{core/centroid\_tracker.py}) : attribution d'un identifiant stable à chaque individu ;
+  \item \textbf{Reconnaissance} (\texttt{core/face\_recognizer.py}) : filtre de visage, calcul du vecteur, comparaison et décisions d'identité ;
+  \item \textbf{Score de confiance} (\texttt{core/trust\_score.py}) : machine à états et authentification multifacteur ;
+  \item \textbf{Vivacité} (\texttt{core/liveness\_detector.py}) : défi du geste tiré au sort ;
+  \item \textbf{Caméras} (\texttt{core/camera\_manager.py}) : ouverture et reconnexion des sources vidéo ;
+  \item \textbf{Alertes} (\texttt{core/notifier.py}) : envois vers Telegram et par courrier électronique ;
+  \item \textbf{Actionneurs} (\texttt{core/iot\_controller.py}) : porte, lumière et lecteur d'empreinte, simulés dans le prototype ;
+  \item \textbf{Base de données} (\texttt{database/db\_manager.py}) : profils, vecteurs, journal, configuration et purge ;
+  \item \textbf{Micrologiciel} (\texttt{firmware/bw21\_camera\_protegee}) : programme de la caméra ;
+  \item \textbf{Tests} (\texttt{tests/}) : tests automatiques et rapports de mesure.
+\end{itemize}
+
+\subsection{Réalisation de la caméra}
+
+Le micrologiciel de la caméra BW21-CBV est écrit pour l'environnement Arduino. Il reprend le programme d'exemple qui diffuse un flux MJPEG, auquel s'ajoute le contrôle d'accès qui lui manquait : avant, n'importe quelle personne présente sur le réseau pouvait voir l'image. L'identifiant et la clé de 192 bits sont produits par un script (\texttt{generer\_secrets.py}) et placés dans un fichier exclu du dépôt de code. Le flux est diffusé en 640 par 480 pixels, taille analysée par le serveur et plus légère pour le Wi-Fi qu'une image de 1024 par 576.
+
+La caméra a été testée avec le serveur : son flux est reçu et analysé, il s'affiche dans le tableau de bord et la caméra se reconnecte d'elle-même après une coupure du réseau. Un écran LCD, destiné à afficher les consignes du test de vivacité, est prévu mais n'est pas réalisé.
+
+\subsection{Réalisation du serveur}
+
+Le serveur démarre avec uvicorn. À son lancement, il charge les réglages enregistrés en base avant de construire le module de reconnaissance, car ce dernier copie certains réglages à sa création et l'ordre de ces deux opérations compte. Il lance ensuite le fil d'analyse, recharge les caméras enregistrées et démarre la tâche de purge des photos. Les appels aux modèles de détection et de reconnaissance ne supportent pas l'exécution simultanée : un verrou les protège, et un seul fil consomme la file d'images. Les origines autorisées à appeler le serveur sont limitées à celles du tableau de bord, et le couplage se fait par un code à six chiffres affiché dans le terminal du serveur.
+
+\subsection{Réalisation du tableau de bord}
+
+Le tableau de bord est une application de bureau Electron et React. Il comporte sept pages, présentées ci-après.
+
+\subsubsection{Page de surveillance}
+
+La page de surveillance (figure~\ref{fig:dashboard}) constitue l'écran principal. Elle affiche le flux de la caméra, annoté d'un cadre pour chaque individu, de son identité et de son score de confiance. Pour chaque individu, elle indique l'état courant : analyse, accès accordé, second facteur en attente, intrus provisoire. Lorsque le second facteur est exigé, elle présente la consigne (doigt ou geste tiré au sort) et la progression du test de vivacité, avec des barres qui montrent le coefficient mesuré face à son seuil.
+
+\subsubsection{Page du journal}
+
+La page du journal d'accès (figure~\ref{fig:dashjournal}) liste les événements enregistrés. Elle permet de les filtrer par type, de les exporter et de supprimer des événements avec leur photo. Les étiquettes distinguent notamment les entrées de résidents, les intrus, les alertes de fuite et les passages sans visage. Un bouton lance la purge des photos, et une boîte de dialogue en explique la portée.
+
+\imageouplace{dashboard_journal.png}{0.85\textwidth}{Page du journal d'accès}{fig:dashjournal}
+
+\subsubsection{Page des profils}
+
+La page des profils (figure~\ref{fig:dashprofils}) permet d'enrôler un résident, soit à partir d'une photo, soit par une capture de la caméra, et de supprimer un profil. L'enrôlement est la seule voie, avec la confirmation par empreinte, pour ajouter un vecteur de visage à la base.
+
+\imageouplace{dashboard_profils.png}{0.85\textwidth}{Page des profils de résidents}{fig:dashprofils}
+
+\subsubsection{Page des statistiques}
+
+La page des statistiques présente quatre indicateurs de la journée : le nombre d'accès accordés, d'accès refusés et d'intrus confirmés, ainsi que le score moyen de confiance. Elle n'affiche pas encore les compteurs d'alertes de fuite et de passages sans visage, que le serveur calcule déjà.
+
+\subsubsection{Page de configuration}
+
+La page de configuration (figure~\ref{fig:dashconfig}) regroupe les sources vidéo, le choix du profil de sécurité et les réglages décrits au chapitre~\ref{chap:2} : curseurs du seuil de reconnaissance, de l'intervalle de revérification, de la durée d'analyse, du délai de l'empreinte, de la fenêtre de grâce et de la conservation des photos, ainsi que les interrupteurs de l'authentification multifacteur et de la vivacité. Elle montre aussi l'état de la purge automatique : intervalle, dernière exécution, nombre de photos supprimées et stockées, âge de la plus ancienne.
+
+\imageouplace{dashboard_config.png}{0.85\textwidth}{Page de configuration}{fig:dashconfig}
+
+\subsubsection{Page des alertes}
+
+La page des alertes (figure~\ref{fig:dashalertes}) sert à régler le canal Telegram : saisie du jeton du robot, détection de l'identifiant de la conversation et envoi d'un message de test. Les identifiants ne sont jamais renvoyés en clair par l'interface.
+
+\imageouplace{dashboard_alertes.png}{0.85\textwidth}{Page des alertes}{fig:dashalertes}
+
+\subsubsection{Page de couplage}
+
+La page de couplage (figure~\ref{fig:dashpairing}) demande le code à six chiffres affiché par le serveur. Une fois le code validé, l'application conserve le jeton reçu, chiffré par le système d'exploitation. Le tableau de bord affiche en outre une notification native du système lorsqu'une intrusion est confirmée.
+
+\imageouplace{dashboard_couplage.png}{0.85\textwidth}{Page de couplage}{fig:dashpairing}
+
+\subsection{Éléments simulés}
+
+Le lecteur d'empreinte, la gâche de la porte et la lumière d'accueil n'existent pas dans le prototype. Un réglage les place en mode simulé : chaque commande est alors seulement journalisée, sans requête réseau. La validation d'une empreinte est envoyée à la route prévue pour le futur lecteur, soit par la touche correspondante du programme client de développement, soit par une requête directe. Ce choix permet de tester toute la logique du second facteur, y compris l'enrichissement des profils, sans le matériel. Il a une conséquence sur la portée des résultats : le comportement du lecteur réel, ses délais et ses erreurs n'ont pas été éprouvés.
 
 \section{Évaluation expérimentale}
-\subsection{Protocole de test}\aredigerr
-\subsection{Résultats}
-% Tableau « Métrique / Objectif / Résultat obtenu / Commentaires ».
-% Les chiffres viennent uniquement des rapports de tests du projet (dossier tests/).
-\aredigerr
+
+\subsection{Protocole et environnement de test}
+
+Les essais ont été menés sur un ordinateur personnel équipé d'un processeur AMD64 (famille 25, modèle 124) sous Windows 10, avec Python 3.11.15 et OpenCV 4.11.0. Les modèles de détection et de reconnaissance s'exécutent sur le processeur seul. Cinq types d'essais ont été réalisés :
+\begin{itemize}
+  \item \textbf{Tests automatiques} : vérification du comportement de chaque module, avec une base de données temporaire et une horloge simulée ;
+  \item \textbf{Mesures de temps} : banc d'essai qui rejoue la route d'analyse avec une photo de test ;
+  \item \textbf{Essai d'adaptation} : reconnaissance d'un sujet avant et après un apprentissage, sur des photographies publiques ;
+  \item \textbf{Enregistrements de vivacité} : deux séances au cours desquelles les coefficients d'expression ont été enregistrés image par image ;
+  \item \textbf{Recettes à la webcam} : essais en conditions réelles avec le tableau de bord, dont la recette du 29 octobre 2026.
+\end{itemize}
+Cette évaluation est exploratoire. Elle porte sur peu de personnes et sur des photographies de test. Elle ne comprend pas de campagne de mesure des taux de fausse acceptation et de faux rejet sur une population, ni d'essai d'attaque contre le test de vivacité.
+
+\subsection{Tests automatiques}
+
+Les fichiers de test comptent 137 cas, répartis comme l'indique le tableau~\ref{tab:tests}. À la recette du 29 octobre 2026, la suite comptait 117 tests, tous réussis. Les 12 tests d'affichage des caméras et les 8 tests du réglage de vivacité ont été ajoutés depuis. \adonner{Résultat de la suite complète à relancer et à confirmer sur le poste de développement.}
+
+\begin{table}[H]
+\centering
+\caption{Tests automatiques par domaine}\label{tab:tests}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.7cm}c>{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Domaine} & \textbf{Cas} & \textbf{Ce qui est vérifié} \\
+\midrule
+Alertes à distance & 44 & Envoi, délai minimal entre deux alertes, erreurs, masquage des identifiants, routes d'essai \\
+Filtre de visage & 28 & Détection du visage de face, second avis, position de l'encadré \\
+Purge des photos & 25 & Suppression des photos expirées, conservation du journal, photos orphelines, fuseau horaire, boucle de fond \\
+Logique des intrus & 20 & Faux visage, réanalyse d'un résident, correspondance forte, compteur d'intrus, silhouette sans visage \\
+Affichage des caméras & 12 & Annotations dessinées et image renvoyée au tableau de bord \\
+Réglage de vivacité & 8 & Activation du défi selon le réglage, effet sans redémarrage, accès par l'empreinte seule \\
+\midrule
+\textbf{Total} & \textbf{137} & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Chaque correctif important a été accompagné d'une contre-épreuve : en cassant volontairement le correctif, au moins un test échoue. Cette vérification garantit que les tests détectent réellement le défaut qu'ils visent.
+
+\subsection{Performances mesurées}
+
+Le modèle YOLOv8 nano traite environ 15,2 images par seconde sur le processeur, mesure faite sur 1\,800 images en 118 secondes. Le pipeline complet est plus lent, de l'ordre de deux à cinq images par seconde, car la reconnaissance du visage est le calcul le plus coûteux.
+
+Un banc d'essai a mesuré le coût du filtre de visage de face. Un appel du détecteur de Haar coûte 58 ms sur ce matériel. Avant correction, la route d'analyse relançait ce détecteur une seconde fois pour dessiner l'encadré du visage. Le doublon supprimé a produit les gains du tableau~\ref{tab:facegate}. La mesure porte sur une seule photo et un seul processeur, et le modèle de détection et celui de reconnaissance sont remplacés par des doubles de coût nul : elle isole le filtre de visage et non l'intelligence artificielle lourde.
+
+\begin{table}[H]
+\centering
+\caption{Gain de temps après suppression de la détection de Haar en double}\label{tab:facegate}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}Xcccc@{}}
+\toprule
+\textbf{Situation} & \textbf{Personnes} & \textbf{Avant (ms)} & \textbf{Après (ms)} & \textbf{Gain} \\
+\midrule
+Identification en cours & 1 & 121,2 & 63,4 & 48~\% \\
+Identification en cours & 3 & 172,8 & 87,4 & 49~\% \\
+Personne identifiée (5 images par seconde) & 1 & 79,2 & 19,1 & 76~\% \\
+Personne identifiée (5 images par seconde) & 3 & 114,7 & 25,3 & 78~\% \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Qualité de la détection}
+
+Des mesures sur des captures ont montré les limites d'un détecteur de personnes appliqué à des images en deux dimensions. À 320, 480 et 640 pixels, YOLOv8 nano attribue à une photographie de personne affichée sur un téléphone des confiances de 0,80, 0,85 et 0,86, et à une main placée près de l'objectif des confiances de 0,84, 0,89 et 0,71. Augmenter la résolution ne supprime donc pas la fausse détection, et aucun seuil de confiance ne sépare la photographie, à 0,80, d'une vraie silhouette partielle, à 0,37. Cette mesure a conduit à la règle selon laquelle un intrus est un visage inconnu, et non une silhouette sans visage.
+
+Le détecteur de Haar a lui aussi produit une fausse détection : un pli de vêtement au niveau du col et d'un bouton d'une chemise a été pris pour un visage de 67 pixels, et une alerte avec la photo d'un torse a été envoyée par Telegram. Le second avis de MediaPipe rejette ce faux visage. Sur les images d'essai, la chemise est rejetée et les trois portraits de test sont acceptés. Cette validation repose sur une seule photographie de chemise et trois portraits, et non sur des visages de webcam sous des angles variés.
+
+Avant les correctifs de la recette, le retour d'un individu classé intrus provisoire à l'état de résident prenait de 2 à 31 secondes, avec une médiane d'environ 15 secondes, sur 7 cas. Ce délai n'a pas été remesuré après la réanalyse patiente et la correspondance forte.
+
+\subsection{Adaptation à l'évolution du visage}
+
+L'essai d'adaptation suit un protocole en quatre étapes, sur une base de données isolée qui ne touche pas les profils réels :
+\begin{enumerate}
+  \item enrôlement d'un profil de référence avec une photographie \og avant \fg{} ;
+  \item tentative de reconnaissance d'une photographie \og après \fg{}, avant tout apprentissage, pour établir que le problème existe ;
+  \item simulation de l'apprentissage continu : le visage \og après \fg{} est ajouté au profil, comme le ferait une confirmation par empreinte ;
+  \item nouvelle tentative sur une seconde photographie \og après \fg{}, différente de la première, pour vérifier que le système généralise.
+\end{enumerate}
+
+Le sujet est un acteur dont les photographies publiques, sous licence libre, couvrent onze ans et montrent à la fois le vieillissement et le passage d'un visage rasé à une barbe pleine (figure~\ref{fig:evans}). Ces images ne servent qu'à mesurer la distance entre deux vecteurs ; l'essai ne vise pas la personne photographiée.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.30\textwidth]{images/evans_2013_Chris_Evans_rase.jpg}\hfill
+\includegraphics[width=0.30\textwidth]{images/evans_2019_Chris_Evans_barbe.jpg}\hfill
+\includegraphics[width=0.30\textwidth]{images/evans_2024_Chris_Evans_barbe.jpg}
+\caption{Photographies de l'essai d'adaptation, de gauche à droite : 2013 (référence), 2019 (apprentissage) et 2024 (validation). Auteurs : Gage Skidmore, licence CC BY-SA~3.0~\cite{commons_evans_2013} ; Bureau du représentant Don Young, domaine public~\cite{commons_evans_2019} ; Amy Martin Photography, licence CC BY-SA~4.0~\cite{commons_evans_2024}. Source : Wikimedia Commons.}\label{fig:evans}
+\end{figure}
+
+Le tableau~\ref{tab:evans} donne les résultats, avec le seuil de reconnaissance de 0,35.
+
+\begin{table}[H]
+\centering
+\caption{Résultat de l'essai d'adaptation}\label{tab:evans}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}Xcc@{}}
+\toprule
+\textbf{Étape} & \textbf{Distance cosinus} & \textbf{Résultat} \\
+\midrule
+Avant apprentissage (photo de 2019 contre le profil de 2013) & 0,4722 & non reconnu \\
+Après un apprentissage (photo de 2019 ajoutée), validation avec la photo de 2024 & 0,224 & reconnu \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Le système échoue donc à reconnaître le sujet après le changement d'apparence tant qu'aucun apprentissage n'a eu lieu, et le reconnaît après une seule confirmation d'identité. La photographie de validation est différente de celle de l'apprentissage, ce qui écarte un simple rappel de l'image apprise. L'essai a toutefois une portée limitée : un seul sujet, un seul apprentissage, et une confirmation par empreinte simulée.
+
+Un second relevé a été effectué sur le profil de l'auteur lors de la recette du 29 octobre 2026. Quatre validations d'empreinte, simulées par la route prévue, ont fait passer la distance moyenne mesurée de 0,269 (189 mesures) à 0,106 (45 mesures), le profil comptant alors de 2 à 5 vecteurs. Cette baisse montre que les vecteurs ajoutés rapprochent le profil des visages présentés, sans prouver à elle seule une meilleure reconnaissance en conditions réelles.
+
+\subsection{Test de vivacité}
+
+Deux séances de la webcam ont été enregistrées le 13 juillet 2026 afin de calibrer les seuils du test de vivacité. La première compte 1\,606 images, avec 25 clignements et 14 sourires détectés, la seconde 3\,367 images, avec 25 clignements et 80 sourires. Les pics du coefficient de sourire atteignent de 0,60 à 0,75, ce qui a conduit à abaisser le seuil du sourire de 0,45 à 0,40 en conservant une marge. Le seuil du clignement est de 0,35.
+
+Ces enregistrements servent au réglage des seuils. Ils ne mesurent pas la résistance du test à une attaque : aucune photographie, vidéo rejouée ou masque n'a été présentée au système, et l'efficacité de la protection reste à établir.
+
+\subsection{Purge des photos}
+
+La durée de conservation de 72 heures prévue au cahier des charges n'était pas appliquée. Au moment de la vérification, 41 photos d'intrus de 107 à 128 jours d'âge se trouvaient sur le disque, et même la purge manuelle ne pouvait pas les atteindre, car elles n'étaient rattachées à aucune ligne du journal. La purge est devenue automatique : elle s'exécute au démarrage du serveur, ce qui rattrape un arrêt prolongé, puis toutes les heures. Elle supprime les photos expirées et orphelines, et conserve les lignes du journal. L'heure de coupure est calculée par SQLite en temps universel, car un calcul en heure locale pouvait supprimer un événement tout neuf. Vingt-cinq tests vérifient ce comportement. La suppression des 41 photos n'a pas été constatée sur le serveur réel, qui avait été démarré avant la correction.
+
+\subsection{Résilience}
+
+La résilience a été éprouvée sur deux points. La caméra se reconnecte d'elle-même au réseau après une coupure, et le serveur rouvre une source vidéo perdue. L'envoi d'une alerte par Telegram a été testé en conditions réelles : un message accompagné de la photo de l'individu a été reçu sur le téléphone. En revanche, l'envoi par courrier électronique n'a été vérifié qu'avec un serveur simulé, et le comportement face à une coupure d'électricité n'a pas été éprouvé.
+
+\subsection{Synthèse des résultats}
+
+Le tableau~\ref{tab:synthese} résume les mesures et leur portée.
+
+\begin{table}[H]
+\centering
+\caption{Synthèse des résultats}\label{tab:synthese}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{4.3cm}@{}}
+\toprule
+\textbf{Domaine} & \textbf{Résultat} & \textbf{Portée} \\
+\midrule
+Détection & 15,2 images par seconde (YOLOv8 nano, processeur seul) & Un ordinateur, 1\,800 images \\
+Filtre de visage & Gain de 48 à 78~\% sur la route d'analyse & Une photo, un processeur \\
+Adaptation & Distance de 0,4722 à 0,224 après un apprentissage & Un sujet, empreinte simulée \\
+Adaptation (profil de l'auteur) & Distance moyenne de 0,269 à 0,106 & Quatre validations simulées \\
+Vivacité & Seuils calibrés sur 2 séances (4\,973 images) & Pas d'essai d'attaque \\
+Purge des photos & Automatique, 25 tests & Non constatée sur le serveur réel \\
+Alertes & Telegram reçu avec photo & Courrier non éprouvé en réel \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \section{Discussion critique}
-\subsection{Bilan}\aredigerr
-\subsection{Limites observées}\aredigerr
+
+\subsection{Bilan}
+
+L'objectif du travail était de réaliser un prototype de contrôle d'accès par reconnaissance faciale qui garde les données en local, résiste à la présentation d'une photographie et reste fiable malgré les changements d'apparence de ses utilisateurs. Le prototype réunit ces trois propriétés dans une même architecture, avec des réserves qu'il convient d'énoncer.
+
+Premièrement, le traitement est local. L'analyse des images, le calcul des vecteurs, la base et la purge s'exécutent sur le serveur, et le fonctionnement de base n'appelle aucun service extérieur : seuls les envois d'alerte sortent du système, et ils sont désactivés tant que le propriétaire ne les active pas. La photographie de l'intrus transite toutefois par Telegram, et sa suppression chez le fournisseur n'est pas encore automatisée.
+
+Deuxièmement, un test de vivacité actif est en place. Il tire au sort un geste à chaque tentative et il a été calibré sur des enregistrements réels. Son efficacité contre des attaques n'a pas été mesurée, et le prototype ne dispose que d'une caméra à deux dimensions.
+
+Troisièmement, l'adaptation aux changements d'apparence fonctionne selon l'essai mené : un apprentissage confirmé par un second facteur suffit à faire reconnaître un sujet dont l'apparence a changé. L'essai porte cependant sur un sujet et une confirmation simulée, et l'adaptation n'a lieu que si le second facteur est exigé.
+
+Par ailleurs, le travail a permis de mettre au jour des défauts qu'aucun test existant ne détectait, ce qui montre l'intérêt de la recette en conditions réelles.
+
+\subsection{Défauts découverts et corrigés}
+
+Le tableau~\ref{tab:defauts} recense les défauts relevés au fil du développement, leur cause et leur correction.
+
+\begin{table}[H]
+\centering
+\caption{Défauts découverts et corrigés}\label{tab:defauts}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Défaut} & \textbf{Cause} & \textbf{Correction} \\
+\midrule
+Journal illisible (erreur du serveur) & Scores stockés au format binaire de la bibliothèque numérique ; 203 lignes corrompues & Conversion en nombre simple, lignes réparées \\
+Alertes sans photo & La photo n'était jamais rattachée à l'intrus & Rattachement à l'intrus provisoire, jamais à un résident \\
+Photos hors de portée de la purge & Fichier sans ligne de journal quand le résident revient ou que la personne s'éloigne & Suppression dans ces deux cas \\
+Purge jamais appliquée & Purge seulement manuelle ; 41 photos de 107 à 128 jours & Purge automatique au démarrage puis toutes les heures \\
+Inconnus sans cadre à l'écran & Erreur avalée, 996 avertissements en deux minutes & Correction et test de non-régression \\
+Faux intrus sur une main ou un torse & Détecteur de personnes trompé par des images partielles & Un intrus est un visage inconnu \\
+Faux visage sur une chemise & Détecteur de Haar sur un col et un bouton & Second avis de MediaPipe \\
+Noms d'intrus dupliqués & Compteur remis à zéro au rechargement des vecteurs & Compteur qui ne recule jamais \\
+Détection de Haar en double & Seconde détection pour dessiner l'encadré & Réutilisation de la position mémorisée \\
+Routes sans jeton (configuration, actionneurs) & Oubli de la vérification & Jeton exigé sur ces routes \\
+Réglage de vivacité sans effet & Les deux pipelines ne lisaient pas le réglage & Règle commune et 8 tests \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Un enseignement général s'en dégage : aucun des tests existants n'avait vu le défaut des inconnus sans cadre, parce qu'aucun n'exécutait le pipeline multi-caméras avec une personne inconnue. Il a fallu un essai réel et la lecture du journal du serveur, qui est devenu un outil de validation à part entière.
+
+\subsection{Limites observées}
+
+Les limites du prototype sont les suivantes :
+\begin{itemize}
+  \item \textbf{Périmètre de validation} : l'évaluation est exploratoire, sur peu de personnes et de photographies, sans mesure des taux de fausse acceptation et de faux rejet sur une population ;
+  \item \textbf{Efficacité anti-usurpation} : aucune attaque par photographie, vidéo rejouée ou masque n'a été présentée, et la caméra ne mesure pas la profondeur ;
+  \item \textbf{Matériel simulé} : le lecteur d'empreinte, la gâche et la lumière sont simulés, et l'écran LCD des consignes n'est pas réalisé ;
+  \item \textbf{Portage} : l'exécution sur un micro-ordinateur monocarte de type Raspberry Pi est visée mais n'a pas été essayée, et la quantification des modèles n'est pas faite ;
+  \item \textbf{Visages proches} : deux membres d'une même famille, dont les visages se ressemblent, se situent à des distances de 0,23 à 0,35 autour du seuil de 0,35, et le système peut les confondre ; cette situation n'a pas été testée devant la caméra ;
+  \item \textbf{Sécurité des échanges} : pas de HTTPS, onze routes sans jeton dont celles utilisées par l'outil de développement, et aucun audit de sécurité externe ;
+  \item \textbf{Protection des données} : les vecteurs ne sont pas chiffrés dans la base, les identifiants des canaux d'alerte y sont enregistrés en clair, et la table d'audit prévue n'est pas implémentée ;
+  \item \textbf{Journal} : les lignes du journal ne sont pas purgées, seules les photos le sont ;
+  \item \textbf{Alertes} : un envoi qui échoue n'est pas renvoyé, un intrus qui quitte le champ avant la fin de la fenêtre de grâce n'est pas signalé, et un passant sans visage ne déclenche aucune alerte à distance ;
+  \item \textbf{Réglages} : la durée d'analyse et l'intervalle de revérification ne prennent effet qu'au redémarrage du serveur ;
+  \item \textbf{Alimentation} : une coupure d'électricité arrête le serveur et fait perdre les états en mémoire, dont le jeton du tableau de bord.
+\end{itemize}
+Ces limites ne remettent pas en cause l'intérêt de l'approche. Elles précisent ce qu'il reste à faire pour passer du prototype à un produit.
 
 \section{Perspectives}
-\aredigerr
+
+Les suites du travail s'articulent autour des axes suivants :
+\begin{itemize}
+  \item \textbf{Sécuriser les échanges} : étendre le jeton à toutes les routes, ajouter une authentification des équipements, passer en HTTPS et faire réaliser un audit externe ;
+  \item \textbf{Protéger les données} : chiffrer les vecteurs et les identifiants dans la base, et ne conserver que des gabarits chiffrés, comme l'impose, sur les lieux de travail, le règlement type de la CNIL pris ici comme référence~\cite{cnil2019reglementtype} ;
+  \item \textbf{Compléter le matériel} : relier un lecteur d'empreinte et une gâche réels, réaliser l'écran LCD des consignes, et ajouter des modules d'autonomie pour supporter les coupures de courant ;
+  \item \textbf{Renforcer l'anti-usurpation} : ajouter un capteur de profondeur et mesurer la résistance du test de vivacité selon la norme ISO/IEC 30107-3~\cite{iso30107} ;
+  \item \textbf{Évaluer à plus grande échelle} : mesurer les taux de fausse acceptation et de faux rejet sur un plus grand nombre de personnes, dont des visages proches ;
+  \item \textbf{Réduire la sortie de données} : supprimer automatiquement, trois jours après l'envoi, les photos transmises par Telegram, avant la soutenance ;
+  \item \textbf{Élargir les alertes} : valider l'envoi par courrier électronique avec un vrai serveur, et envisager WhatsApp malgré son coût par message ;
+  \item \textbf{Alléger le calcul} : quantifier les modèles et porter le système sur un micro-ordinateur monocarte ;
+  \item \textbf{Respecter le cadre légal} : accomplir les formalités auprès de l'Autorité de protection des données à caractère personnel et recueillir le consentement explicite des personnes enrôlées, comme l'exige le Code du numérique béninois.
+\end{itemize}
 
 \addcontentsline{toc}{section}{Conclusion}
 \section*{Conclusion}
-\aredigerr
+
+Ce chapitre a présenté l'implémentation de BioGate, les essais menés et leurs enseignements. Le prototype fonctionne de bout en bout : la caméra alimente le serveur, qui détecte, suit et reconnaît les personnes, demande un second facteur si nécessaire et envoie une alerte par Telegram en cas d'intrusion. Les essais montrent que l'adaptation du profil à un changement d'apparence est possible, que la détection est assez rapide pour un usage domestique sur un simple processeur et que la purge des photos est automatisée. Ils montrent aussi les limites du travail : une évaluation exploratoire, un matériel en partie simulé et une sécurité à renforcer avant tout déploiement. Ces limites constituent les axes de poursuite présentés dans les perspectives.
