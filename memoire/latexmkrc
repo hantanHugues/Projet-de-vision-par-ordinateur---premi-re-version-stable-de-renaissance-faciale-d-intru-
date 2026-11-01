@@ -8,6 +8,9 @@ add_cus_dep('acn', 'acr', 0, 'makeglossaries');
 add_cus_dep('glo', 'gls', 0, 'makeglossaries');
 sub makeglossaries {
   my ($base_name, $path) = @_;
-  return system("makeglossaries", "-d", ($path eq "" ? "." : $path), $base_name);
+  my $b = $base_name;
+  $b =~ s{.*/}{};                       # nom sans dossier
+  my $d = (defined $path && $path ne "") ? $path : "build";
+  return system("makeglossaries", "-d", $d, $b);
 }
 $clean_ext .= ' acr acn alg glo gls glg ptc mtc mtc0 maf nlo nls ilg loa';

@@ -7,29 +7,29 @@ Ce chapitre situe le projet par rapport aux travaux et aux solutions existantes.
 
 \subsection{Contrôle d'accès biométrique}
 
-Un système de contrôle d'accès biométrique autorise ou refuse le passage en comparant une caractéristique physique d'une personne, comme le visage ou l'empreinte digitale, à des gabarits enregistrés au préalable. Contrairement à une clé ou à un badge, la caractéristique mesurée est propre à l'individu et ne peut pas être prêtée. Deux taux permettent d'évaluer un tel système : le taux de fausse acceptation (FAR), qui est la proportion de personnes non autorisées acceptées à tort, et le taux de faux rejet (FRR), qui est la proportion de personnes autorisées refusées à tort. Le seuil de décision fait varier l'un au détriment de l'autre : un seuil strict réduit les fausses acceptations mais augmente les refus injustifiés.
+Un système de contrôle d'accès biométrique autorise ou refuse le passage en comparant une caractéristique physique d'une personne, comme le visage ou l'empreinte digitale, à des gabarits enregistrés au préalable. Contrairement à une clé ou à un badge, la caractéristique mesurée est propre à l'individu et ne peut pas être prêtée. Deux taux permettent d'évaluer un tel système : le \gls{far}, c'est-à-dire la proportion de personnes non autorisées acceptées à tort, et le \gls{frr}, c'est-à-dire la proportion de personnes autorisées refusées à tort. Le seuil de décision fait varier l'un au détriment de l'autre : un seuil strict réduit les fausses acceptations mais augmente les refus injustifiés.
 
 \subsection{Détection de personnes}
 
-Détecter une personne consiste à la localiser dans l'image avant toute tentative d'identification. Pour les visages, une méthode classique est celle de Viola et Jones~\cite{viola2001rapid}. Elle repose sur une représentation de l'image qui rend le calcul des caractéristiques très rapide, et sur une cascade de classifieurs qui écarte tôt les zones sans visage. Les auteurs rapportent un fonctionnement à environ 15 images par seconde sur un processeur de 700~MHz.
+Détecter une personne consiste à la localiser dans l'image avant toute tentative d'identification. Pour les visages, une méthode classique est celle de Viola et Jones~\cite{viola2001rapid}. Elle repose sur une représentation de l'image qui rend le calcul des caractéristiques très rapide, et sur une cascade de classifieurs, c'est-à-dire de petits programmes qui décident si une zone de l'image contient ou non un visage, et qui écarte tôt les zones sans visage. Les auteurs rapportent un fonctionnement à environ 15 images par seconde sur un processeur de 700~MHz.
 
-Les détecteurs à réseaux de neurones ont depuis pris le relais pour les objets en général. YOLO traite la détection comme un problème de régression : un seul réseau prédit, en une seule passe sur l'image entière, les cadres englobants et les classes associées~\cite{redmon2016yolo}. Les auteurs rapportent 45 images par seconde pour le modèle de base et 155 pour une version plus petite, ce qui convient à un traitement vidéo continu sur un matériel local.
+Les détecteurs à réseaux de neurones ont depuis pris le relais pour les objets en général. \gls{yolo} traite la détection comme un problème de régression, c'est-à-dire qu'il prédit directement des valeurs numériques : un seul réseau prédit, en une seule passe sur l'image entière, les cadres englobants et les classes associées~\cite{redmon2016yolo}. Les auteurs rapportent 45 images par seconde pour le modèle de base et 155 pour une version plus petite, ce qui convient à un traitement vidéo continu sur un matériel local.
 
 \subsection{Reconnaissance faciale}
 
-Les systèmes modernes de reconnaissance faciale enchaînent quatre étapes : la détection, l'alignement, la représentation et la vérification~\cite{serengil2020lightface}. Les premières méthodes représentaient un visage à l'aide des « eigenfaces », obtenues par analyse statistique d'un ensemble d'images de visages~\cite{turk1991eigenfaces}. L'apprentissage profond a changé cette représentation. FaceNet apprend à associer à chaque visage un vecteur de 128 dimensions, de sorte que la distance entre deux vecteurs reflète la ressemblance des visages, et atteint 99,63~\% de bonnes réponses sur la base LFW~\cite{schroff2015facenet}. Cette base de 13~233 images de visages prises dans des conditions non contrôlées sert de référence pour comparer les méthodes~\cite{huang2007lfw}.
+Les systèmes modernes de reconnaissance faciale enchaînent quatre étapes : la détection du visage, l'alignement (sa mise dans une position standard), la représentation (sa transformation en vecteur de nombres) et la vérification (la comparaison avec les personnes enregistrées)~\cite{serengil2020lightface}. DeepFace est une bibliothèque logicielle qui regroupe plusieurs modèles de ce type. Les premières méthodes représentaient un visage à l'aide des « eigenfaces », c'est-à-dire les vecteurs propres d'un ensemble d'images de visages~\cite{turk1991eigenfaces}. L'apprentissage profond a changé cette représentation. FaceNet, un réseau de neurones développé chez Google, apprend à associer à chaque visage un vecteur de 128 dimensions (appelé « embedding » ou plongement)\glsadd{embedding}, de sorte que la distance entre deux vecteurs reflète la ressemblance des visages, et atteint 99,63~\% de bonnes réponses sur la base \gls{lfw}~\cite{schroff2015facenet}. Cette base de 13~233 images de visages prises dans des conditions non contrôlées sert de référence pour comparer les méthodes~\cite{huang2007lfw}.
 
 Une fois les vecteurs obtenus, l'identification revient à comparer le vecteur du visage présenté à ceux des personnes enregistrées, puis à appliquer un seuil de distance. C'est ce seuil qui fixe le compromis entre fausses acceptations et faux rejets évoqué plus haut.
 
 \subsection{Anti-usurpation et test de vivacité}
 
-Une attaque de présentation consiste à présenter au capteur une reproduction du visage d'une personne autorisée, par exemple une photographie imprimée ou affichée sur un écran. La norme ISO/IEC~30107-3 définit comment évaluer et rapporter les performances des mécanismes de détection de ces attaques et classe les attaques connues, sans imposer de technique particulière~\cite{iso30107}.
+Une attaque de présentation consiste à présenter au capteur une reproduction du visage d'une personne autorisée, par exemple une photographie imprimée ou affichée sur un écran\glsadd{antispoofing}. La norme ISO/IEC~30107-3, publiée par l'Organisation internationale de normalisation et la Commission électrotechnique internationale, définit comment évaluer et rapporter les performances des mécanismes de détection de ces attaques et classe les attaques connues, sans imposer de technique particulière~\cite{iso30107}.
 
-Parmi les techniques, le test de vivacité vérifie que le visage présenté appartient à une personne vivante. Pan et ses collègues s'appuient sur les clignements spontanés des yeux, détectés avec une caméra ordinaire et sans matériel supplémentaire~\cite{pan2007eyeblink}. Cette approche est passive. Une approche active demande au contraire à l'utilisateur d'accomplir un geste, comme sourire ou cligner des yeux : c'est celle qu'adopte BioGate (chapitre~\ref{chap:2}).
+Parmi les techniques, le test de vivacité (\emph{liveness})\glsadd{liveness} vérifie que le visage présenté appartient à une personne vivante. Pan et ses collègues s'appuient sur les clignements spontanés des yeux, détectés avec une caméra ordinaire et sans matériel supplémentaire~\cite{pan2007eyeblink}. Cette approche est passive. Une approche active demande au contraire à l'utilisateur d'accomplir un geste, comme sourire ou cligner des yeux : c'est celle qu'adopte BioGate (chapitre~\ref{chap:2}).
 
 \subsection{Edge Computing}
 
-L'Edge Computing déplace le traitement des données vers la périphérie du réseau, près des capteurs, au lieu de tout envoyer vers un centre de données distant. Shi et ses collègues en citent les avantages : temps de réponse, économie de bande passante et d'énergie, sécurité et confidentialité des données~\cite{shi2016edge}. Ces propriétés correspondent aux besoins d'un contrôle d'accès, qui doit répondre rapidement et ne pas diffuser d'images de visages.
+L'Edge Computing\glsadd{edge} déplace le traitement des données vers la périphérie du réseau, près des capteurs, au lieu de tout envoyer vers un centre de données distant. Shi et ses collègues en citent les avantages : temps de réponse, économie de bande passante et d'énergie, sécurité et confidentialité des données~\cite{shi2016edge}. Ces propriétés correspondent aux besoins d'un contrôle d'accès, qui doit répondre rapidement et ne pas diffuser d'images de visages.
 
 \subsection{Évolution du visage dans le temps}
 
@@ -41,13 +41,13 @@ Les systèmes grand public en tiennent compte. Face ID s'adapte automatiquement 
 
 \subsection{Caméras connectées reliées à un service en ligne}
 
-Les caméras connectées grand public confient en général leurs vidéos à un service du fabricant. En 2023, la Federal Trade Commission américaine a reproché à Ring d'avoir donné à ses employés un accès étendu aux vidéos de ses clients~\cite{ftc2023ring}.
+Les caméras connectées grand public confient en général leurs vidéos à un service du fabricant. En 2023, la \gls{ftc}, autorité américaine de protection des consommateurs, a reproché à Ring d'avoir donné à ses employés un accès étendu aux vidéos de ses clients, et de ne pas avoir empêché des pirates de prendre le contrôle de caméras d'utilisateurs~\cite{ftc2023ring}.
 
-Google Nest propose une détection de visages familiers dont le traitement est partagé. La caméra calcule une empreinte du visage et effectue l'identification, tandis que la bibliothèque d'images est gérée par le service en ligne Nest Aware. La fonction exige un abonnement et n'est proposée que dans quelques pays : États-Unis, Canada, Japon et Australie~\cite{google2024nestfaces}.
+Google Nest propose une détection de visages familiers dont le traitement est partagé. La caméra calcule une empreinte du visage et effectue l'identification, tandis que la bibliothèque d'images est gérée par Nest Aware, le service en ligne de Google. La fonction exige un abonnement et n'est proposée que dans quelques pays : États-Unis, Canada, Japon et Australie~\cite{google2024nestfaces}.
 
 \subsection{Face ID}
 
-Face ID est la solution de reconnaissance faciale d'Apple. Les données du visage, y compris leurs représentations mathématiques, sont chiffrées et protégées par le Secure Enclave de l'appareil, où se fait aussi la comparaison. Le système vérifie que les yeux sont ouverts et que l'attention est dirigée vers l'appareil, et utilise des réseaux de neurones contre l'usurpation~\cite{apple2023faceid}.
+Face ID est la solution de reconnaissance faciale d'Apple. Les données du visage, y compris leurs représentations mathématiques, sont chiffrées et protégées par le Secure Enclave\glsadd{secureenclave}, un composant sécurisé de l'appareil, où se fait aussi la comparaison. Le système vérifie que les yeux sont ouverts et que l'attention est dirigée vers l'appareil, et utilise des réseaux de neurones contre l'usurpation~\cite{apple2023faceid}.
 
 \subsection{Tableau comparatif}
 
@@ -70,19 +70,47 @@ BioGate & En local sur le serveur Edge & Défi actif (sourire, clignement) & App
 
 \section{Cadre légal et éthique des données biométriques}
 
-Le règlement général sur la protection des données (RGPD) range les données biométriques traitées pour identifier une personne de manière unique parmi les catégories particulières de données : leur traitement est interdit en principe, sauf exception, dont le consentement explicite de la personne concernée~\cite{rgpd2016}. Le règlement pose aussi des principes de minimisation des données et de limitation de leur durée de conservation.
+Le \gls{rgpd} range les données biométriques traitées pour identifier une personne de manière unique parmi les catégories particulières de données : leur traitement est interdit en principe, sauf exception, dont le consentement explicite de la personne concernée~\cite{rgpd2016}. Le règlement pose aussi des principes de minimisation des données et de limitation de leur durée de conservation.
 
-Au Bénin, le Livre~V du Code du numérique, institué par la loi n\textsuperscript{o}~2017-20, encadre la protection des données à caractère personnel. Il a remplacé la loi n\textsuperscript{o}~2009-9 et son application relève de l'Autorité de protection des données personnelles (APDP)~\cite{benin2018code}.
+Au Bénin, le Livre~V du Code du numérique, institué par la loi n\textsuperscript{o}~2017-20, encadre la protection des données à caractère personnel. Il a remplacé la loi n\textsuperscript{o}~2009-9 et son application relève de l'\gls{apdp}~\cite{benin2018code}.
 
 Pour un système comme BioGate, il en résulte deux exigences : recueillir le consentement explicite des personnes enrôlées et limiter la conservation des images. Le chapitre~\ref{chap:2} présente les mesures retenues, dont la purge automatique des photos d'intrus.
 
 \section{Analyse critique et positionnement}
 
-Les solutions examinées réunissent chacune une partie des propriétés recherchées. Face ID traite les données sur l'appareil, vérifie la vivacité et s'adapte aux changements d'apparence, mais c'est une fonction des appareils Apple. Google Nest partage le traitement entre la caméra et un service en ligne, et la fonction est soumise à un abonnement. Dans les deux cas, la solution est propriétaire.
+\subsection{Ce que les solutions existantes offrent et que BioGate n'offre pas}
 
-BioGate vise à réunir les trois propriétés, soit le traitement local, la vérification de vivacité et l'adaptation aux évolutions du visage, dans un système de contrôle d'accès construit à partir de bibliothèques logicielles ouvertes. Cette comparaison reste limitée : elle s'appuie sur la documentation publique des fabricants et non sur des mesures, et les performances respectives n'ont pas été comparées.
+Face ID et Google Nest sont des produits finis. Face ID protège les données du visage dans un composant matériel dédié, vérifie l'attention de l'utilisateur et emploie des réseaux de neurones spécialisés contre l'usurpation~\cite{apple2023faceid}. BioGate ne dispose d'aucun de ces éléments : il s'exécute sur du matériel ordinaire (ordinateur personnel ou micro-ordinateur monocarte de type Raspberry Pi) et sa vérification de vivacité repose sur un geste demandé à l'utilisateur. Face ID, produit industriel mature, offre vraisemblablement de meilleures performances que BioGate ; ce travail ne cherche ni à les égaler ni à les mesurer.
+
+Ces produits bénéficient en outre d'une industrialisation et d'une maintenance suivies. BioGate, de son côté, n'a été évalué que sur un nombre limité de cas (chapitre~\ref{chap:3}) et n'a fait l'objet d'aucun audit de sécurité.
+
+\subsection{Limites des solutions reliées à un service en ligne}
+
+Les solutions qui dépendent d'un service en ligne présentent trois limites.
+\begin{itemize}
+  \item \textbf{Dépendance au réseau} : elles exigent une connexion Internet de qualité suffisante pour transmettre les flux vidéo, alors que le traitement local réduit justement le coût en bande passante~\cite{shi2016edge}.
+  \item \textbf{Coût} : certaines fonctions sont soumises à un abonnement payant, comme la détection de visages familiers de Google Nest~\cite{google2024nestfaces}.
+  \item \textbf{Sécurité et confidentialité} : elles confient des images de l'intérieur des foyers à un tiers. Le cas de Ring montre qu'un service de ce type peut donner à ses employés un accès excessif aux vidéos et ne pas empêcher des pirates de prendre le contrôle de caméras~\cite{ftc2023ring}. Un service centralisé qui héberge les images de nombreux foyers constitue en outre une cible plus intéressante qu'un système local isolé.
+\end{itemize}
+
+\subsection{Ce que BioGate apporte}
+
+BioGate répond à ces limites par les choix suivants.
+\begin{itemize}
+  \item \textbf{Données en local} : l'analyse des images se fait sur le serveur local. Seules les alertes d'intrusion, que le propriétaire active lui-même, envoient une photo vers un service de messagerie.
+  \item \textbf{Absence d'abonnement et de dépendance au réseau pour l'analyse} : le fonctionnement de base ne repose sur aucun service payant et ne nécessite pas de connexion Internet.
+  \item \textbf{Vérification de vivacité active} : un geste demandé à l'utilisateur permet de distinguer une personne présente d'une photographie.
+  \item \textbf{Adaptation aux évolutions du visage} : un apprentissage continu, confirmé par une authentification complémentaire, ajoute de nouveaux échantillons aux profils. Un test préliminaire est présenté au chapitre~\ref{chap:3}.
+  \item \textbf{Architecture modulaire} : la détection, l'identification, la vivacité et le pilotage des actionneurs sont séparés en modules, ce qui permet de les réutiliser dans d'autres contextes d'accès ou de pointage.
+\end{itemize}
+
+\subsection{Statut du travail : un prototype}
+
+BioGate est un prototype et non un produit fini. Il s'appuie sur des modèles pré-entraînés existants plutôt que sur des modèles développés pour ce travail : les performances de ces modèles ne sont donc pas des résultats de ce travail. L'apport propre de BioGate est l'intégration de ces composants dans une architecture cohérente, la logique d'authentification (score de confiance, vérification de vivacité, apprentissage continu confirmé) et l'évaluation du montage. La comparaison avec les produits aboutis porte pour cette raison sur les propriétés de l'architecture, et non sur la performance.
+
+La modularité ouvre des usages au-delà du domicile. Le système de pointage de Ayiwahoun~\cite{ayiwahoun2025pointage} associe par exemple un badge RFID et la reconnaissance faciale ; son auteur relève l'absence de détection de vivacité parmi les limites observées et cite l'anti-usurpation comme piste d'amélioration (section~3.3). Le module de vivacité de BioGate pourrait répondre à ce besoin : ce point est repris dans les perspectives.
 
 \addcontentsline{toc}{section}{Conclusion}
 \section*{Conclusion}
 
-Ce chapitre a posé les notions de base du contrôle d'accès par reconnaissance faciale et montré que les solutions examinées ne réunissent pas, dans un système ouvert, le traitement local, la vérification de vivacité et l'adaptation aux évolutions du visage. Il a aussi rappelé le cadre légal qui s'impose aux données biométriques. Le chapitre suivant présente l'analyse des besoins, l'architecture de BioGate et les choix techniques qui répondent à ces constats.
+Ce chapitre a posé les notions de base du contrôle d'accès par reconnaissance faciale et montré que les solutions examinées ne réunissent pas, dans un système ouvert, le traitement local, la vérification de vivacité et l'adaptation aux évolutions du visage. Il a aussi précisé le statut de BioGate : un prototype, qui n'égale pas les produits aboutis mais qui démontre la faisabilité de cette combinaison. Il a aussi rappelé le cadre légal qui s'impose aux données biométriques. Le chapitre suivant présente l'analyse des besoins, l'architecture de BioGate et les choix techniques qui répondent à ces constats.
