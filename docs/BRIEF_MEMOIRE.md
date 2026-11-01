@@ -75,6 +75,15 @@ Pour récupérer le code à jour : `git fetch origin && git merge origin/main` (
 ### Tests : 167 réussis sur `main` (175 une fois les 8 tests de vivacité de la branche fusionnés ; à relancer après fusion)
 Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\python.exe -m unittest discover -s tests -t .`
 
+### Installation (`requirements.txt` corrigé le 01/11)
+- Problème : `mediapipe` exige `opencv-contrib-python` alors que `deepface` et `ultralytics` exigent `opencv-python`. Les deux paquets installent le
+  même dossier `cv2` ; dans l'environnement de l'auteur ils avaient des versions différentes (4.11 et 4.13). De plus `retina-face` 0.0.19 et suivantes
+  exigent un troisième paquet OpenCV (5.x), le fichier avait un BOM et presque aucune version n'était fixée.
+- Correction : les deux paquets OpenCV sont fixés à la même version (4.11.0.86), `retina-face` à 0.0.17, `keras` à 3.14.1, les autres bibliothèques
+  principales aux versions des essais. Vérifié dans un environnement neuf (`uv venv` puis installation du fichier tel quel) : un seul cv2 cohérent et
+  les 167 tests réussis. `torch` n'est pas fixé (essais avec la 2.11.0, tests vérifiés aussi avec la 2.15.0).
+- Python 3.11 est exigé (la 3.13 pose des incompatibilités).
+
 ### Mesures
 - Faites : filtre de visage (Haar), apprentissage continu, temps de traitement (voir `docs/lab_journal.md`).
 - **FAR/FRR sur LFW (fait le 01/11)** : `tests/mesures/mesure_far_frr.py`, résultats dans `docs/mesures/far_frr/`
@@ -109,8 +118,19 @@ Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\
 7. **Introduction** : adopter le plan et le ton de l'annexe A (cf. §1).
 8. **À recouper avec `docs/lab_journal.md` avant publication** : la distance moyenne « 0,269 → 0,106 » (le journal donne d'autres relevés),
    et la ligne « visages proches non testés devant la caméra » (le journal contient des confusions observées entre l'auteur et son frère).
-9. **Captures du tableau de bord** : les six `\imageouplace` restent en place ; elles seront produites sur le poste de développement.
+9. **Captures du tableau de bord** : produites le 01/11 dans `docs/images_memoire/` ; les copier dans `memoire/images/` sous ces noms,
+   qui sont ceux attendus par les `\imageouplace` : `dashboard_journal.png`, `dashboard_profils.png`, `dashboard_config.png`,
+   `dashboard_alertes.png`, `dashboard_couplage.png` (écran de saisie du code). `dashboard_stats.png` est en plus : elle permet d'ajouter
+   une figure à la page des statistiques, aujourd'hui décrite en texte seulement.
+   **Les légendes doivent dire « données de démonstration »** : les captures viennent d'un serveur simulé (`biogate-dashboard/scripts/mock-api.mjs`),
+   avec des noms fictifs (sauf celui de l'auteur) et les réglages par défaut du profil Domicile, pas d'une session réelle.
+   **Restent à fournir par l'auteur** : `dashboard_surveillance.png` (il faut la vraie caméra : le serveur simulé n'envoie pas de vidéo, la page
+   affiche alors « Flux vidéo indisponible ») et `bw21_carte.jpg` (sa propre carte : le fichier actuel est une photo de vendeur de 225×225 pixels).
    Ne rien inventer à leur place.
+10. **Profil « haute sécurité » et vivacité** : le tableau de bord (`Config.jsx`) décrit ce profil par « MFA + fingerprint + liveness », mais le
+    profil du serveur (`database/db_manager.py`, `HAUTE_SECURITE`) met `LIVENESS_ENABLED` à `False`. Avant la correction de la branche, ce réglage
+    n'avait aucun effet ; depuis, il désactive la vivacité en haute sécurité. L'intention affichée est donc la vivacité active : décision de l'auteur,
+    à trancher avant de figer le tableau des profils du chapitre 2.
 
 ---
 
