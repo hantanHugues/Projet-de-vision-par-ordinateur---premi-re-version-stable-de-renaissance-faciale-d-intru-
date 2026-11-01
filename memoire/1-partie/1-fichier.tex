@@ -43,7 +43,7 @@ Les systèmes grand public en tiennent compte. Face ID s'adapte automatiquement 
 
 Les caméras connectées grand public confient en général leurs vidéos à un service du fabricant. En 2023, la \gls{ftc}, autorité américaine de protection des consommateurs, a accusé Ring d'avoir donné à tous ses employés, ainsi qu'à des sous-traitants, un accès complet aux vidéos de ses clients~\cite{ftc2023ring}, et de ne pas avoir empêché des pirates de prendre le contrôle de caméras d'utilisateurs~\cite{ftc2023ringpr}.
 
-Google Nest propose une détection de visages familiers. Selon les modèles, les données de ces visages sont conservées dans le service en ligne, où elles sont chiffrées, ou dans la mémoire interne de la caméra. La page d'aide ne précise pas où la comparaison est calculée. La fonction exige un abonnement, et la version française de la page indique qu'elle n'est disponible qu'en Australie, au Canada, aux États-Unis et au Japon~\cite{google2026familiarface}.
+Google Nest propose une détection de visages familiers. Selon les modèles, les données de ces visages sont conservées dans le service en ligne, où elles sont chiffrées, ou dans la mémoire interne de la caméra. La page d'aide ne précise pas où la comparaison est calculée. Chaque fois que la caméra reconnaît un visage, des instantanés sont ajoutés à la bibliothèque des visages familiers, et l'application demande à l'utilisateur si un visage inconnu est une connaissance. La fonction exige un abonnement, et la version française de la page indique qu'elle n'est disponible qu'en Australie, au Canada, aux États-Unis et au Japon~\cite{google2026familiarface}.
 
 \subsection{Face ID}
 
@@ -51,11 +51,11 @@ Face ID est la solution de reconnaissance faciale d'Apple. Les données du visag
 
 \subsection{Frigate}
 
-Frigate est un enregistreur vidéo réseau dont la documentation décrit une fonction de reconnaissance faciale. Tous les traitements s'exécutent localement sur le système de l'utilisateur. Une connexion Internet n'est nécessaire qu'une seule fois, pour télécharger les modèles, qui fonctionnent ensuite hors ligne~\cite{frigate_face_recognition}.
+Frigate est un enregistreur vidéo réseau dont la documentation décrit une fonction de reconnaissance faciale. Tous les traitements s'exécutent localement sur le système de l'utilisateur. Une connexion Internet n'est nécessaire qu'une seule fois, pour télécharger les modèles, qui fonctionnent ensuite hors ligne~\cite{frigate_face_recognition}. La page consacrée à la reconnaissance faciale ne mentionne aucune vérification de vivacité. L'adaptation y est manuelle : les visages reconnus sont placés dans une file d'entraînement, et c'est l'utilisateur qui les attribue lui-même à une personne pour améliorer la reconnaissance.
 
 \subsection{Tableau comparatif}
 
-Le tableau~\ref{tab:comparatif} compare ces solutions à BioGate selon les trois critères retenus. Les cellules des solutions externes reprennent uniquement ce que disent les pages d'aide des fabricants ; la mention « non mentionné » signifie que la page consultée n'en parle pas, et non que la fonction n'existe pas ; Frigate, décrit plus haut, ne figure pas dans le tableau : sa documentation n'a été examinée que pour le traitement local.
+Le tableau~\ref{tab:comparatif} compare ces solutions à BioGate selon les trois critères retenus. Les cellules des solutions externes reprennent uniquement ce que disent les pages d'aide des fabricants ; la mention « non mentionné » signifie que la page consultée n'en parle pas, et non que la fonction n'existe pas ; Pour Frigate, seule la page consacrée à la reconnaissance faciale a été examinée.
 
 \begin{table}[H]
 \centering
@@ -65,8 +65,9 @@ Le tableau~\ref{tab:comparatif} compare ces solutions à BioGate selon les trois
 \toprule
 \textbf{Solution} & \textbf{Traitement des données} & \textbf{Vivacité} & \textbf{Adaptation au visage} \\
 \midrule
-Google Nest~\cite{google2026familiarface} & Données de visages dans le service en ligne (chiffrées) ou dans la caméra selon le modèle ; lieu de la comparaison non précisé & Non mentionné & Décrite en termes généraux (la reconnaissance s'améliore avec le temps) \\
+Google Nest~\cite{google2026familiarface} & Données de visages dans le service en ligne (chiffrées) ou dans la caméra selon le modèle ; lieu de la comparaison non précisé & Non mentionné & Ajout automatique d'instantanés à la bibliothèque ; l'utilisateur nomme les inconnus \\
 Face ID~\cite{apple2026faceid} & Sur l'appareil, dans le Secure Enclave & Attention du regard et réseaux de neurones anti-usurpation & Adaptation automatique, code demandé pour les grands changements \\
+Frigate~\cite{frigate_face_recognition} & En local ; téléchargement unique des modèles & Non mentionné & Manuelle : l'utilisateur attribue les visages reconnus à une personne \\
 BioGate & En local sur le serveur Edge & Défi actif (sourire, clignement) & Apprentissage continu confirmé par une authentification complémentaire \\
 \bottomrule
 \end{tabularx}
@@ -108,7 +109,7 @@ BioGate répond à ces limites par les choix suivants.
   \item \textbf{Données en local} : l'analyse des images se fait sur le serveur local. Seules les alertes d'intrusion, que le propriétaire active lui-même, envoient une photo vers un service de messagerie.
   \item \textbf{Absence d'abonnement et de dépendance à Internet} : une fois les modèles téléchargés lors de l'installation, le fonctionnement de base ne repose sur aucun service payant et ne nécessite pas de connexion Internet. Seules les alertes à distance en ont besoin.
   \item \textbf{Vérification de vivacité active} : un geste demandé à l'utilisateur permet de distinguer une personne présente d'une photographie.
-  \item \textbf{Adaptation aux évolutions du visage} : un apprentissage continu, confirmé par une authentification complémentaire, ajoute de nouveaux échantillons aux profils. Un test préliminaire est présenté au chapitre~\ref{chap:3}.
+  \item \textbf{Adaptation aux évolutions du visage} : un apprentissage continu, confirmé par une authentification complémentaire, ajoute de nouveaux échantillons aux profils. Google Nest ajoute automatiquement des instantanés à partir de la seule reconnaissance du visage~\cite{google2026familiarface}, et Frigate demande une validation manuelle de chaque visage~\cite{frigate_face_recognition} ; BioGate n'ajoute un échantillon qu'après confirmation par un second facteur. Un test préliminaire est présenté au chapitre~\ref{chap:3}.
   \item \textbf{Architecture modulaire} : la détection, l'identification, la vivacité et le pilotage des actionneurs sont séparés en modules, ce qui permet de les réutiliser dans d'autres contextes d'accès ou de pointage.
 \end{itemize}
 
@@ -121,4 +122,4 @@ La modularité ouvre des usages au-delà du domicile, comme le pointage de prés
 \addcontentsline{toc}{section}{Conclusion}
 \section*{Conclusion}
 
-Ce chapitre a posé les notions de base du contrôle d'accès par reconnaissance faciale et montré que, dans la documentation consultée, le traitement local, la vérification de vivacité et l'adaptation aux évolutions du visage ne sont pas documentés ensemble pour les solutions examinées ; Frigate n'a toutefois été examiné que sur son traitement local. Il a aussi précisé le statut de BioGate : un prototype, qui n'égale pas les produits aboutis mais qui démontre la faisabilité de cette combinaison. Il a aussi rappelé le cadre légal qui s'impose aux données biométriques. Le chapitre suivant présente l'analyse des besoins, l'architecture de BioGate et les choix techniques qui répondent à ces constats.
+Ce chapitre a posé les notions de base du contrôle d'accès par reconnaissance faciale et montré que Face ID réunit le traitement local, la vérification de vivacité et l'adaptation aux changements d'apparence, mais comme fonction propriétaire des appareils Apple, alors que Google Nest et Frigate ne documentent pas de vérification de vivacité. Il a aussi précisé le statut de BioGate : un prototype, qui n'égale pas les produits aboutis mais qui démontre la faisabilité de cette combinaison. Il a aussi rappelé le cadre légal qui s'impose aux données biométriques. Le chapitre suivant présente l'analyse des besoins, l'architecture de BioGate et les choix techniques qui répondent à ces constats.
