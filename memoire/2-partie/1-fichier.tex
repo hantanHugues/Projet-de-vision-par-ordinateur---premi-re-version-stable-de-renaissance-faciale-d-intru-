@@ -612,28 +612,19 @@ Période de la purge & Fréquence du contrôle des photos à supprimer. & 60 min
 
 \section{Gestion des erreurs et des pannes}
 
-Cette section décrit le comportement du système face aux défaillances. L'échec d'un élément périphérique ne doit pas bloquer l'analyse. Le tableau~\ref{tab:pannes} résume le comportement prévu, tel qu'il est écrit dans le code.
+Cette section décrit le comportement du système face aux défaillances. L'échec d'un élément périphérique ne doit pas bloquer l'analyse. Le comportement prévu face aux principales défaillances, tel qu'il est écrit dans le code, est le suivant :
 
-\begin{table}[H]
-\centering
-\caption{Comportement du système face aux défaillances}\label{tab:pannes}
-\small
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{4.1cm}>{\raggedright\arraybackslash}X@{}}
-\toprule
-\textbf{Défaillance} & \textbf{Comportement} \\
-\midrule
-Flux vidéo interrompu & Le serveur libère la source et tente de la rouvrir, toutes les secondes après une lecture ratée, toutes les trois secondes si l'ouverture échoue. La caméra BW21-CBV se reconnecte de son côté au réseau Wi-Fi. \\
-Analyse plus lente que la caméra & Les images attendent dans une file de quatre places. Si elle est pleine, l'image est abandonnée, et le fil de capture ne se bloque jamais. \\
-Second avis MediaPipe indisponible ou en échec & Un avertissement est journalisé et le détecteur de Haar décide seul. Le risque de prendre un pli de vêtement pour un visage réapparaît alors. \\
-Envoi d'alerte impossible (délai dépassé, service injoignable, requête refusée) & L'envoi se fait dans un fil séparé qui ne ralentit pas l'analyse. L'erreur est journalisée avec un message explicite, dans lequel le jeton Telegram est masqué. Il n'y a pas de nouvelle tentative automatique. \\
-Photo absente au moment de l'alerte & Le message est envoyé sans photo. \\
-Actionneur injoignable & La requête a un délai d'une seconde et part dans un fil séparé. Dans le prototype, les actionneurs sont simulés. \\
-Second facteur non fourni à temps & L'accès est refusé après 15 secondes. L'échec du seul test de vivacité ferme ce canal sans refuser l'accès. \\
-Individu disparu avant le verdict & Avant le verdict, une alerte de fuite est journalisée si un visage avait été vu ; un passage sans visage laisse seulement une trace discrète. Pendant la fenêtre de grâce d'un intrus provisoire, l'alerte est annulée et la photo supprimée. \\
-Arrêt puis redémarrage du serveur & Les caméras et la configuration enregistrées sont rechargées, et la purge des photos s'exécute au démarrage pour rattraper l'arrêt. \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\begin{itemize}
+  \item \textbf{Flux vidéo interrompu} : le serveur libère la source et tente de la rouvrir, toutes les secondes après une lecture ratée et toutes les trois secondes si l'ouverture échoue. La caméra BW21-CBV se reconnecte de son côté au réseau Wi-Fi ;
+  \item \textbf{Analyse plus lente que la caméra} : les images attendent dans une file de quatre places. Si elle est pleine, l'image est abandonnée, et le fil de capture ne se bloque jamais ;
+  \item \textbf{Second avis de MediaPipe indisponible} : un avertissement est journalisé et le détecteur de Haar décide seul. Le risque de prendre un pli de vêtement pour un visage réapparaît alors ;
+  \item \textbf{Envoi d'alerte impossible} (délai dépassé, service injoignable, requête refusée) : l'envoi se fait dans un fil séparé, qui ne ralentit pas l'analyse. L'erreur est journalisée avec un message explicite, dans lequel le jeton Telegram est masqué. Il n'y a pas de nouvelle tentative ;
+  \item \textbf{Photo absente au moment de l'alerte} : le message est envoyé sans photo ;
+  \item \textbf{Actionneur injoignable} : la requête a un délai d'une seconde et part dans un fil séparé. Dans le prototype, les actionneurs sont simulés ;
+  \item \textbf{Second facteur non fourni à temps} : l'accès est refusé après 15 secondes. L'échec du seul test de vivacité ferme ce canal sans refuser l'accès ;
+  \item \textbf{Individu disparu avant le verdict} : une alerte de fuite est journalisée si un visage avait été vu, et un passage sans visage laisse une trace discrète. Pendant la fenêtre de grâce d'un intrus provisoire, l'alerte est annulée et la photo supprimée ;
+  \item \textbf{Redémarrage du serveur} : les caméras et la configuration enregistrées sont rechargées, et la purge des photos s'exécute au démarrage pour rattraper l'arrêt.
+\end{itemize}
 
 Trois pannes ne sont pas traitées :
 \begin{itemize}
