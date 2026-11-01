@@ -17,6 +17,7 @@ import threading
 import time
 import platform
 from typing import Optional, Dict, Callable, List
+from urllib.parse import urlsplit, urlunsplit
 
 import config
 
@@ -27,6 +28,48 @@ def mirror_annotations(annotations: list, frame_width: int) -> list:
         (oid, frame_width - x2, y1, frame_width - x1, y2, *rest)
         for oid, x1, y1, x2, y2, *rest in annotations
     ]
+
+
+URL_MASK = "********"
+
+
+def _url_with_password(parts, password: str) -> str:
+    """Même adresse (SplitResult) avec un autre mot de passe : identifiant:mot_de_passe@hôte:port."""
+    host = parts.hostname or ""
+    if ":" in host:                       # adresse IPv6
+        host = f"[{host}]"
+    if parts.port:
+        host += f":{parts.port}"
+    return urlunsplit(parts._replace(netloc=f"{parts.username or ''}:{password}@{host}"))
+
+
+def mask_url_password(url):
+    """http://biogate:CLE@ip/stream -> http://biogate:********@ip/stream (le dashboard n'a pas à voir la clé)."""
+    if not url:
+        return url
+    try:
+        parts = urlsplit(url)
+        return _url_with_password(parts, URL_MASK) if parts.password else url
+    except ValueError:
+        return url
+
+
+def restore_url_password(new_url, stored_url):
+    """
+    Le dashboard renvoie l'adresse telle qu'il l'a reçue, étoiles comprises : on remet le vrai mot de
+    passe, celui déjà enregistré, pour que changer seulement l'IP ne demande pas de retaper la clé.
+    Si l'utilisateur a tapé une nouvelle clé, l'adresse est gardée telle quelle.
+    """
+    if not new_url or URL_MASK not in new_url:
+        return new_url
+    try:
+        stored_password = urlsplit(stored_url or "").password
+        parts = urlsplit(new_url)
+        if stored_password and parts.password == URL_MASK:
+            return _url_with_password(parts, stored_password)
+    except ValueError:
+        pass
+    return new_url
 
 
 class CameraSource:
