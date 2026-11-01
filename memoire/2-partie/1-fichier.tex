@@ -176,6 +176,33 @@ Le tableau de bord est une application de bureau développée avec Electron~\cit
 
 \imageouplace{dashboard_surveillance.png}{0.95\textwidth}{Page de surveillance du tableau de bord}{fig:dashboard}
 
+\subsection{Paramètres et profils de sécurité}
+
+Le comportement du système se règle par des paramètres, que l'on modifie depuis la page de configuration du tableau de bord. Ils sont enregistrés dans la table de configuration de la base et rechargés au démarrage du serveur, si bien qu'un redémarrage ne les remet pas à leur valeur d'origine. Ils portent sur la reconnaissance (seuil de distance, intervalle de revérification, durée d'analyse, échecs tolérés), la détection (confiance et taille de l'image), les deux facteurs et leurs délais, la fenêtre de grâce, les canaux d'alerte et leurs identifiants, les adresses des modules matériels, la durée de conservation des photos et les sources vidéo.
+
+Quatre profils de sécurité regroupent des jeux de valeurs prêts à l'emploi : portail, domicile, bureau et haute sécurité. Le tableau~\ref{tab:profils} en donne les principaux réglages. Le profil domicile est celui par défaut. Les paramètres d'un profil restent modifiables un à un. L'aspect de la page de configuration est décrit au chapitre~\ref{chap:3}.
+
+\begin{table}[H]
+\centering
+\caption{Principaux réglages des profils de sécurité}\label{tab:profils}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}Xcccc@{}}
+\toprule
+\textbf{Réglage} & \textbf{Portail} & \textbf{Domicile} & \textbf{Bureau} & \textbf{Haute sécurité} \\
+\midrule
+Fenêtre de grâce avant l'alerte (s) & 120 & 60 & 30 & 5 \\
+Authentification multifacteur & non & non & oui & oui \\
+Alerte Telegram activée & oui & oui & non & oui \\
+Alerte par courrier activée & oui & oui & non & oui \\
+Durée d'analyse d'un visage inconnu (s) & 1,5 & 1 & 1 & 0,8 \\
+Échecs avant remise en question & 5 & 3 & 3 & 1 \\
+Délai de l'empreinte (s) & 20 & 15 & 15 & 10 \\
+Conservation des photos (h) & 72 & 72 & 24 & 12 \\
+Silhouette sans visage classée intrus après (s) & jamais & jamais & jamais & 5 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \subsection{Sécurité des échanges avec le tableau de bord}
 
 Le tableau de bord est couplé au serveur à la manière d'un appareil domestique. Au premier lancement, le serveur tire au hasard un code à six chiffres et l'affiche dans son propre terminal. L'utilisateur le saisit dans le tableau de bord. Le code est valable cinq minutes et limité à cinq essais. Le serveur renvoie alors un jeton aléatoire opaque, valable trente jours, que l'application conserve chiffré par le système d'exploitation. Vingt-cinq routes exigent ce jeton : la configuration, le journal, les profils, les caméras, les actionneurs et les flux vidéo, où il passe dans l'adresse de la requête. Les origines autorisées à appeler le serveur sont restreintes à celles du tableau de bord.
@@ -249,7 +276,7 @@ Un intrus est défini comme un visage inconnu et non comme une silhouette sans v
 
 \subsection{Machine à états}
 
-Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etats}). Il est d'abord en analyse. Si un résident est reconnu, il est soit admis directement, soit placé en attente d'un second facteur selon que l'authentification multifacteur (\gls{mfa}) est désactivée ou activée ; elle est désactivée par défaut, le visage seul suffit alors. Si le visage reste inconnu au bout d'une seconde, l'individu devient un intrus provisoire, ce qui ouvre la fenêtre de grâce de 60 secondes. Un état « visage reconnu » est défini dans le code, mais il est traversé instantanément.
+Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etats}). Il est d'abord en analyse. Si un résident est reconnu, il est soit admis directement, soit placé en attente d'un second facteur, selon un paramètre : l'authentification multifacteur (\gls{mfa}). Lorsqu'elle est désactivée, le visage seul suffit. Lorsqu'elle est activée, l'empreinte et le test de vivacité démarrent ensemble, et le premier qui réussit accorde l'accès. Le paramètre est désactivé dans le profil de sécurité par défaut (domicile) et activé dans les profils bureau et haute sécurité ; le propriétaire peut le modifier depuis le tableau de bord. Si le visage reste inconnu au bout d'une seconde, l'individu devient un intrus provisoire, ce qui ouvre la fenêtre de grâce, de 60 secondes dans le profil par défaut. Un état « visage reconnu » est défini dans le code, mais il est traversé instantanément.
 
 \begin{figure}[H]
 \centering
@@ -269,13 +296,13 @@ Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etat
   \draw[->] (fp) -- node[lab, right] {empreinte ou\\vivacité réussie} (grant);
   \draw[->] (fp) -- node[lab, above] {échec ou\\15 s} (den);
   \draw[->] (ana.south) -- node[lab, above right, pos=0.55] {visage inconnu\\après 1 s} (ip.west);
-  \draw[->] (ip) -- node[lab, above] {60 s} (ic);
+  \draw[->] (ip) -- node[lab, above] {grâce\\écoulée} (ic);
   \draw[->] (ip.south) -- ++(0,-0.7) -| node[lab, pos=0.25, below] {résident reconnu : alerte annulée} (ana.south west);
 \end{tikzpicture}
 \caption{Machine à états d'un individu suivi}\label{fig:etats}
 \end{figure}
 
-Le score de confiance affiché est d'abord la confiance de la reconnaissance du visage, $(1 - d) \times 100$ où $d$ est la distance mesurée. Il est remis à jour à chaque revérification. Il passe à 85~\% après un test de vivacité réussi et à 100~\% après une empreinte validée ; ces deux valeurs sont des paramètres de configuration. Quatre profils de sécurité (portail, domicile, bureau, haute sécurité) regroupent les réglages correspondants.
+Le score de confiance affiché est calculé tant que le visage est le seul facteur : c'est $(1 - d) \times 100$, où $d$ est la distance cosinus entre le vecteur du visage présenté et le vecteur le plus proche des profils enrôlés. Il est recalculé à chaque revérification, toutes les 0,8 seconde. Ce pourcentage mesure la proximité entre deux vecteurs, et non une probabilité que la personne soit la bonne. Au seuil de reconnaissance de 0,35, il vaut 65~\%. Lorsque le second facteur est exigé, le score ne se calcule plus : il prend la valeur fixe de 85~\% après un test de vivacité réussi, et de 100~\% après une empreinte validée. Ces deux valeurs sont des paramètres de configuration.
 
 Lorsque le second facteur est exigé, l'empreinte et le test de vivacité sont deux voies concurrentes : la première qui réussit accorde l'accès. L'empreinte dispose de 15 secondes ; passé ce délai, ou en cas d'empreinte refusée, l'accès est refusé. Le test de vivacité tourne en parallèle et dispose de 10 secondes. S'il échoue ou expire, son canal se ferme sans refuser l'accès : l'empreinte reste possible jusqu'à la fin des 15 secondes.
 
@@ -284,6 +311,8 @@ Lorsque le second facteur est exigé, l'empreinte et le test de vivacité sont d
 Le test de vivacité s'appuie sur le modèle de points du visage de MediaPipe, qui fournit 52 coefficients d'expression compris entre 0 et 1~\cite{google_facelandmarker,mediapipe_blendshape_card}. Les coefficients utilisés sont la fermeture de chaque œil et le sourire de chaque côté de la bouche, moyennés. Un clignement est compté lorsque la fermeture des yeux dépasse 0,35. Un sourire est validé lorsque son coefficient dépasse 0,40 pendant la durée demandée, et la mesure n'est remise à zéro que si le coefficient redescend sous 0,25, pour ne pas pénaliser une légère variation. Le seuil de sourire a été abaissé de 0,45 à 0,40 après l'enregistrement de séances réelles, où les pics du sourire atteignent 0,60 à 0,75.
 
 À chaque tentative, le système tire au sort un seul geste, un sourire ou des clignements des yeux, ainsi que ses paramètres : deux à quatre clignements, ou un sourire tenu de une à deux secondes. La personne dispose de dix secondes. Le tirage au sort se justifie par un raisonnement : un geste demandé au hasard ne peut pas être connu à l'avance. Une photographie ne peut exécuter aucun geste, et une vidéo préparée doit contenir précisément le geste demandé ; la variété des gestes et de leurs paramètres oblige l'attaquant à disposer de la bonne séquence. Le principe d'un défi tiré au hasard est celui de Widjaya et Wicaksana, qui l'appliquent à d'autres gestes (ouvrir la bouche, cligner des yeux, tourner la tête)~\cite{widjaya2023challenge}.
+
+BioGate n'utilise qu'une caméra ordinaire en deux dimensions, sans capteur de profondeur ni infrarouge. Il ne peut donc pas contrôler le relief du visage, ce que permettent des dispositifs équipés de capteurs spécialisés. La protection contre une photographie repose ici uniquement sur le défi actif décrit ci-dessus, et l'ajout d'un capteur de profondeur est une perspective.
 
 Une première version exigeait une validation faciale ininterrompue de cinq à six secondes. Elle a été écartée : une webcam ordinaire ne mesure pas la profondeur, et une photo immobile la franchirait même plus facilement. Le défi actif la remplace. L'efficacité du test contre des attaques réelles, photo, vidéo rejouée ou masque, n'a pas été mesurée (chapitre~\ref{chap:3}).
 
@@ -323,7 +352,7 @@ Le premier (figure~\ref{fig:seq1}) est celui d'un résident qui se présente dev
 \caption{Diagramme de séquence : reconnaissance d'un résident}\label{fig:seq1}
 \end{figure}
 
-Le deuxième scénario (figure~\ref{fig:seq2}) est celui d'un visage inconnu. Une seconde après l'apparition du visage, l'individu devient un intrus provisoire et une photo est prise. Pendant les 60 secondes de la fenêtre de grâce, la reconnaissance d'un résident annule l'alerte et supprime la photo. Sinon, l'intrus est confirmé, l'événement est enregistré et le message part vers Telegram avec la photo.
+Le deuxième scénario (figure~\ref{fig:seq2}) est celui d'un visage inconnu. Une seconde après l'apparition du visage, l'individu devient un intrus provisoire et une photo est prise. Pendant la fenêtre de grâce, la reconnaissance d'un résident annule l'alerte et supprime la photo. Si la fenêtre se termine sans cela, l'intrus est confirmé, l'événement est enregistré et le message part vers Telegram avec la photo.
 
 \begin{figure}[H]
 \centering
@@ -340,10 +369,10 @@ Le deuxième scénario (figure~\ref{fig:seq2}) est celui d'un visage inconnu. Un
   \seqself{5.5}{-2.6}{visage inconnu après 1 s : intrus provisoire, photo}{2.0cm}
   \seqmsg{5.5}{8.3}{-4.1}{journalise INTRUDER\_PENDING}{}
   \draw[dashed] (-0.7,-4.7) rectangle (14.4,-9.0);
-  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-4.7) {alt [résident reconnu dans les 60 s]};
+  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-4.7) {alt [résident reconnu pendant la grâce]};
   \seqself{5.5}{-5.7}{alerte annulée, photo supprimée}{2.0cm}
   \draw[dashed] (-0.7,-6.7) -- (14.4,-6.7);
-  \node[font=\tiny, anchor=north west] at (-0.6,-6.7) {[sinon, 60 s écoulées]};
+  \node[font=\tiny, anchor=north west] at (-0.6,-6.7) {[sinon, grâce écoulée]};
   \seqmsg{5.5}{8.3}{-7.5}{INTRUDER\_CONFIRMED}{}
   \seqmsg{5.5}{10.9}{-8.1}{message et photo}{}
   \seqmsg{10.9}{13.5}{-8.7}{notification}{}
@@ -404,7 +433,7 @@ Cette durée limitée de conservation des photos répond au principe de limitati
 
 \section{Alertes à distance}
 
-Un visage inconnu est d'abord classé intrus provisoire. Une fenêtre de grâce de 60 secondes s'ouvre : si un résident est reconnu dans ce délai, l'alerte est annulée en silence et la photo supprimée. Sinon, l'intrus est confirmé et le serveur envoie, avec la photo jointe, un message par Telegram, selon la configuration saisie dans le tableau de bord. Le courrier électronique et WhatsApp sont des perspectives (chapitre~\ref{chap:3}). Un délai minimal de 30 secondes sépare deux alertes, pour éviter une avalanche lorsque le suivi attribue plusieurs identités à la même personne. Ces envois sont les seuls échanges avec l'extérieur ; ils sont désactivés par défaut. Un module d'envoi par courrier électronique est écrit, mais il n'a été éprouvé qu'avec un serveur simulé ; il est donc rangé parmi les perspectives.
+Un visage inconnu est d'abord classé intrus provisoire. Une fenêtre de grâce s'ouvre, de 60 secondes dans le profil par défaut et réglable de 5 à 120 secondes selon le profil de sécurité : si un résident est reconnu dans ce délai, l'alerte est annulée en silence et la photo supprimée. Si l'individu quitte le champ de la caméra avant la fin de la fenêtre, le suivi le perd environ deux secondes après sa disparition, le minuteur est annulé, la photo est supprimée et aucune alerte n'est envoyée ; seul l'événement d'intrus provisoire reste au journal. Ce comportement évite les fausses alertes, mais un intrus qui ne reste pas jusqu'à la fin de la fenêtre n'est pas signalé : c'est une limite du prototype (chapitre~\ref{chap:3}). Si l'individu reste, l'intrus est confirmé et le serveur envoie, avec la photo jointe, un message par Telegram, selon la configuration saisie dans le tableau de bord. Le courrier électronique et WhatsApp sont des perspectives (chapitre~\ref{chap:3}). Un délai minimal de 30 secondes sépare deux alertes, pour éviter une avalanche lorsque le suivi attribue plusieurs identités à la même personne. Ces envois sont les seuls échanges avec l'extérieur ; ils sont désactivés par défaut. Un module d'envoi par courrier électronique est fonctionnel : il envoie le message avec la photo en pièce jointe, après négociation d'une connexion chiffrée~\cite{rfc3207}, et il est couvert par des tests automatiques menés avec un serveur simulé. Il n'a en revanche pas été éprouvé avec un vrai serveur de messagerie, si bien que sa validation en conditions réelles est rangée parmi les perspectives.
 
 L'envoi par Telegram a une conséquence pour la vie privée : la photo de l'intrus quitte le traitement local et transite par un service extérieur pour atteindre le téléphone du propriétaire. La purge de 72 heures ne s'applique qu'au disque du serveur. La suppression automatique des photos déjà envoyées, trois jours après l'envoi, est prévue avant la soutenance mais n'est pas encore mise en œuvre : c'est une perspective.
 
@@ -427,7 +456,7 @@ Envoi d'alerte impossible (délai dépassé, service injoignable, requête refus
 Photo absente au moment de l'alerte & Le message est envoyé sans photo. \\
 Actionneur injoignable & La requête a un délai d'une seconde et part dans un fil séparé. Dans le prototype, les actionneurs sont simulés. \\
 Second facteur non fourni à temps & L'accès est refusé après 15 secondes. L'échec du seul test de vivacité ferme ce canal sans refuser l'accès. \\
-Individu disparu avant le verdict & Une alerte de fuite est journalisée si un visage avait été vu. Un passage sans visage laisse seulement une trace discrète. \\
+Individu disparu avant le verdict & Avant le verdict, une alerte de fuite est journalisée si un visage avait été vu ; un passage sans visage laisse seulement une trace discrète. Pendant la fenêtre de grâce d'un intrus provisoire, l'alerte est annulée et la photo supprimée. \\
 Arrêt puis redémarrage du serveur & Les caméras et la configuration enregistrées sont rechargées, et la purge des photos s'exécute au démarrage pour rattraper l'arrêt. \\
 \bottomrule
 \end{tabularx}
