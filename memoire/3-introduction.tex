@@ -1,0 +1,31 @@
+\introduction
+
+La sécurité des accès physiques repose encore, dans la plupart des habitations, sur des moyens simples : clés, serrures mécaniques, alarmes. Ces dispositifs authentifient un objet et non une personne : une clé perdue ou copiée ouvre la porte à un tiers comme à son propriétaire, et une alarme signale une intrusion sans fournir de preuve exploitable de l'identité de l'intrus~\asourcer. Les progrès de la vision par ordinateur et de l'apprentissage profond permettent désormais de fonder le contrôle d'accès sur le visage.
+
+\section*{1- Contexte et justification}
+
+Les solutions grand public de surveillance, comme Ring ou Nest, transmettent les flux vidéo vers des serveurs distants~\asourcer. Cette architecture soulève un problème de confidentialité et rend le système dépendant d'une connexion Internet. Les solutions de reconnaissance faciale exécutées localement évitent ce défaut, mais elles présentent d'autres limites : l'usurpation par une photographie imprimée ou affichée sur un téléphone, la difficulté de faire fonctionner des modèles lourds sur un matériel modeste, le refus d'accès aux résidents légitimes dans des situations courantes (mains occupées, capteur d'empreinte défaillant), et le risque de dégrader la base des personnes autorisées lorsque le système apprend sans supervision. C'est dans ce contexte que s'inscrit le projet BioGate, une infrastructure de contrôle d'accès biométrique qui exécute localement l'ensemble du traitement par intelligence artificielle.
+
+\section*{2- Problématique}
+
+Comment concevoir et mettre en œuvre un système de contrôle d'accès biométrique qui traite les données en local, résiste à l'usurpation par photographie et reste utilisable au quotidien par les résidents légitimes ?
+
+\section*{3- Objectifs}
+
+L'objectif général de ce travail est de concevoir et d'implémenter BioGate, un système de contrôle d'accès par vision artificielle fondé sur une architecture Edge Computing. Les objectifs spécifiques sont les suivants :
+\begin{itemize}
+  \item détecter et suivre une présence humaine en temps réel ;
+  \item identifier les personnes autorisées par reconnaissance faciale ;
+  \item contrer l'usurpation par un défi de vivacité et une authentification multifacteur ;
+  \item alerter le propriétaire à distance, avec une photo, en cas d'intrusion ;
+  \item préserver la confidentialité par un traitement local et une purge automatique des photos d'intrus.
+\end{itemize}
+
+\section*{4- Organisation du mémoire}
+
+La suite de ce mémoire est organisée comme suit :
+\begin{itemize}
+  \item le \textbf{chapitre~\ref{chap:1}} présente l'état de l'art du contrôle d'accès biométrique, de la détection de personnes et de la reconnaissance faciale ;
+  \item le \textbf{chapitre~\ref{chap:2}} décrit l'analyse des besoins, l'architecture du système et les choix techniques ;
+  \item le \textbf{chapitre~\ref{chap:3}} expose l'implémentation, les tests réalisés, les résultats et leurs limites.
+\end{itemize}

@@ -1,0 +1,57 @@
+% ============================================================
+%  MÉMOIRE DE LICENCE — fichier principal
+%  Compilation :  cd memoire && latexmk memoire.tex   (sortie : build/memoire.pdf)
+% ============================================================
+\documentclass[12pt,a4paper,oneside,openany]{book}
+
+% ---------- À COMPLÉTER PAR L'ÉTUDIANT (les crochets rouges s'affichent sur la page de garde) ----------
+\newcommand{\auteur}{Hugues HANTAN}
+\newcommand{\titrememoire}{Conception et implémentation d'une infrastructure de contrôle d'accès biométrique intelligente par vision artificielle et architecture Edge Computing : le système BioGate}
+\newcommand{\optionlicence}{\adonner{Option à confirmer}}
+\newcommand{\encadrant}{\adonner{Grade à confirmer} Probus KIKI}
+\newcommand{\anneeacademique}{\adonner{Année académique à confirmer}}
+% Membres du jury : une ligne par membre « Nom & Grade & Établissement & Rôle \\ »
+\newcommand{\membresjury}{%
+  \adonner{Nom à confirmer} & \adonner{Grade} & \adonner{Établissement} & Président \\
+  \adonner{Nom à confirmer} & \adonner{Grade} & \adonner{Établissement} & Examinateur \\
+  \adonner{Nom à confirmer} & \adonner{Grade} & \adonner{Établissement} & Encadrant \\}
+% -------------------------------------------------------------------------------------------------------
+
+\input{preambule}
+
+\begin{document}
+
+% ===== Page de garde =====
+\input{frontmatter/titre}
+
+% ===== Pièces liminaires (numérotation romaine) =====
+\frontmatter
+\pagenumbering{roman}
+\setcounter{page}{1}
+\sommaire
+\input{frontmatter/dedicace}
+\input{frontmatter/remerciements}
+\input{frontmatter/resume}
+\input{frontmatter/abstract}
+\addcontentsline{toc}{chapter}{Liste des figures}
+\listoffigures
+\addcontentsline{toc}{chapter}{Liste des tableaux}
+\listoftables
+\input{frontmatter/acronymes}
+\input{frontmatter/glossaire}
+
+% ===== Corps du mémoire (numérotation arabe) =====
+\mainmatter
+\pagenumbering{arabic}
+\input{chapitres/introduction}
+\input{chapitres/chapitre1}
+\input{chapitres/chapitre2}
+\input{chapitres/chapitre3}
+\input{chapitres/conclusion}
+
+% ===== Fin =====
+\input{biblio/bibliographie}
+\addcontentsline{toc}{chapter}{Table des matières}
+\tabledesmatieres
+
+\end{document}

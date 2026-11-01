@@ -1,4 +1,13 @@
 $pdf_mode = 1;
 $out_dir = 'build';
-$pdflatex = 'pdflatex -interaction=nonstopmode -halt-on-error -file-line-error %O %S';
-$max_repeat = 6;
+$pdflatex = 'pdflatex -interaction=nonstopmode -file-line-error %O %S';
+$max_repeat = 8;
+
+# Glossaire et acronymes (package glossaries)
+add_cus_dep('acn', 'acr', 0, 'makeglossaries');
+add_cus_dep('glo', 'gls', 0, 'makeglossaries');
+sub makeglossaries {
+  my ($base_name, $path) = @_;
+  return system("makeglossaries", "-d", ($path eq "" ? "." : $path), $base_name);
+}
+$clean_ext .= ' acr acn alg glo gls glg ptc mtc mtc0 maf nlo nls ilg loa';

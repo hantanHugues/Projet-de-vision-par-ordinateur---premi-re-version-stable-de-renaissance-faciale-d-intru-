@@ -1,57 +1,150 @@
-% ============================================================
-%  MÉMOIRE DE LICENCE — fichier principal
-%  Compilation :  cd memoire && latexmk memoire.tex   (sortie : build/memoire.pdf)
-% ============================================================
-\documentclass[12pt,a4paper,oneside,openany]{book}
+%--------------A VOTRE ATTENTION-------------%
+% Gabarit officiel IFRI (Licence) : New IFRI template latex 05-04-2020.
+% Fichier principal (anciennement main.tex), renommé pour produire build/memoire.pdf.
+% Les Membres doivent figurer dans la dernière version finale du mémoire après soutenance pour dépôt de mémoire
 
-% ---------- À COMPLÉTER PAR L'ÉTUDIANT (les crochets rouges s'affichent sur la page de garde) ----------
-\newcommand{\auteur}{Hugues HANTAN}
-\newcommand{\titrememoire}{Conception et implémentation d'une infrastructure de contrôle d'accès biométrique intelligente par vision artificielle et architecture Edge Computing : le système BioGate}
-\newcommand{\optionlicence}{\adonner{Option à confirmer}}
-\newcommand{\encadrant}{\adonner{Grade à confirmer} Probus KIKI}
-\newcommand{\anneeacademique}{\adonner{Année académique à confirmer}}
-% Membres du jury : une ligne par membre « Nom & Grade & Établissement & Rôle \\ »
-\newcommand{\membresjury}{%
-  \adonner{Nom à confirmer} & \adonner{Grade} & \adonner{Établissement} & Président \\
-  \adonner{Nom à confirmer} & \adonner{Grade} & \adonner{Établissement} & Examinateur \\
-  \adonner{Nom à confirmer} & \adonner{Grade} & \adonner{Établissement} & Encadrant \\}
-% -------------------------------------------------------------------------------------------------------
+\documentclass{ifri}
+\usepackage{titletoc}
+\setlength{\glsdescwidth}{0.65\textwidth}
+% \usepackage{lscape}
 
-\input{preambule}
+% --- Marqueurs de travail (en rouge dans le PDF tant qu'ils ne sont pas traités) ---
+\newcommand{\asourcer}{\textcolor{red}{\textbf{[SOURCE À FOURNIR]}}}
+\newcommand{\adonner}[1]{\textcolor{red}{\textbf{[#1]}}}
+\newcommand{\aredigerr}{\par\noindent\textcolor{gray}{\emph{À rédiger.}}\par}
+
+\addto\captionsfrench{\renewcommand{\listfigurename}{Liste des figures}\renewcommand{\listtablename}{Liste des tableaux}}
+
+\typeMemoire{Diplôme de Licence en Informatique}
+\optionFormation{\adonner{Option à confirmer}}
+\etudiant{Hugues \textbf{HANTAN}}
+\titreDuMemoire{Conception et implémentation d'une infrastructure de contrôle d'accès biométrique intelligente par vision artificielle et architecture Edge Computing : le système BioGate} % À confirmer par l'étudiant
+
+\dateSoutenance{-}
+%\promo{2\up{ème}}
+\anneeScolaire{\adonner{Année académique à confirmer}}
+
+
+%%maitre de mémoire
+\encadrants{\adonner{Grade à confirmer} Probus \textbf{KIKI}}
+
+%% Membres du Jury
+\jurys{%
+\begin{tabular}{llll}
+	\adonner{Nom du président} & \adonner{Grade} & \adonner{Entité} & Président \\
+	\adonner{Nom de l'examinateur} & \adonner{Grade} & \adonner{Entité} & Examinateur \\
+	\adonner{Nom du rapporteur} & \adonner{Grade} & \adonner{Entité} & Rapporteur \\
+\end{tabular}
+}
+
+
+\hypersetup{
+ pdftitle={Conception et implémentation d'une infrastructure de contrôle d'accès biométrique : BioGate},
+ pdfauthor={Hugues HANTAN},
+ pdfsubject={Mémoire de Licence en Informatique}
+ }
+
+\color{bookColor}
+
+%importation du glossaire
+\loadglsentries{glossaire_reduit}
 
 \begin{document}
 
-% ===== Page de garde =====
-\input{frontmatter/titre}
+\pageDeGarde
+%\pageTitre
 
-% ===== Pièces liminaires (numérotation romaine) =====
-\frontmatter
+\pagecolor{white}
+
+%% page vide
+%\thispagestyle{empty}\ \clearpage
+
+
+\selectlanguage{french}
+
+% sommaire
 \pagenumbering{roman}
-\setcounter{page}{1}
-\sommaire
-\input{frontmatter/dedicace}
-\input{frontmatter/remerciements}
-\input{frontmatter/resume}
-\input{frontmatter/abstract}
-\addcontentsline{toc}{chapter}{Liste des figures}
+
+\setcounter{tocdepth}{0}
+\startlist{toc}
+\printlist{toc}{}{\chapter*{Sommaire}}
+\setcounter{tocdepth}{5}
+
+%% rdedicaces
+\include{0-dedicace}
+\newpage
+
+%% remerciements
+\include{1-remerciements}
+\newpage
+
+% Résume
+\include{2-resume}
+\selectlanguage{french} % ajouté : le résumé se termine en anglais
+\newpage
+
+%liste des figures
 \listoffigures
-\addcontentsline{toc}{chapter}{Liste des tableaux}
+\newpage
+
+%liste des tableaux
 \listoftables
-\input{frontmatter/acronymes}
-\input{frontmatter/glossaire}
+\newpage
 
-% ===== Corps du mémoire (numérotation arabe) =====
-\mainmatter
+%liste des algo : retirée (aucun algorithme dans ce mémoire) ; réactiver si besoin
+%\selectlanguage{french}
+%\listofalgorithmes
+%\newpage
+
+% Les sigles et acronymes
+\setglossarystyle{altlist}
+\printglossary[title=Liste des acronymes, toctitle=Liste des acronymes, type=\acronymtype]
+\newpage
+
+% Le glossaire proprement dit
+\setglossarystyle{altlist}
+\printglossary[type=main]
+
+
 \pagenumbering{arabic}
-\input{chapitres/introduction}
-\input{chapitres/chapitre1}
-\input{chapitres/chapitre2}
-\input{chapitres/chapitre3}
-\input{chapitres/conclusion}
+\setcounter{page}{1}
+%%introduction
+\include{3-introduction}
+%\lhead[]{} \rhead[]{} \chead[]{}
+\selectlanguage{french}
+\fancyhead[L]{\tiny \leftmark}
+\fancyhead[R]{\scriptsize \rightmark}
+\fancyfoot[C]{\thepage}
 
-% ===== Fin =====
-\input{biblio/bibliographie}
-\addcontentsline{toc}{chapter}{Table des matières}
-\tabledesmatieres
+\chapter{Revue de littérature et état de l'art}\label{chap:1}
+ \input{1-partie/1-fichier}
+
+\chapter{Analyse, conception et choix techniques}\label{chap:2}
+ \input{2-partie/1-fichier}
+
+\chapter{Implémentation, validation et perspectives}\label{chap:3}
+ \input{3-partie/1-fichier}
+
+% \include{perspectives}
+%%conclusion
+\include{4-conclusion}
+%
+\lhead[]{} \rhead[]{} \chead[]{}
+
+%%biblio
+% Aucune source n'a encore été fournie : bibliographie vide pour le moment.
+% Quand des références réelles seront saisies dans biblio.bib, remplacer le bloc ci-dessous par :
+%   \addcontentsline{toc}{chapter}{Bibliographie}
+%   \bibliographystyle{abbrv}
+%   \bibliography{biblio}
+\chapter*{Bibliographie}
+\addcontentsline{toc}{chapter}{Bibliographie}
+\textcolor{red}{\textbf{[Aucune source saisie pour le moment]}}
+
+
+%\include{annexe}
+
+\newpage
+\tableofcontents
 
 \end{document}
