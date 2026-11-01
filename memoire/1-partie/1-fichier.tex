@@ -88,9 +88,9 @@ Pour un système comme BioGate, il en résulte, dans le RGPD comme dans le Code 
 
 \subsection{Ce que les solutions existantes offrent et que BioGate n'offre pas}
 
-Face ID et Google Nest sont des produits finis. Face ID protège les données du visage dans un composant matériel dédié, vérifie l'attention de l'utilisateur et emploie des réseaux de neurones spécialisés contre l'usurpation~\cite{apple2026faceid}. BioGate ne dispose d'aucun de ces éléments : il s'exécute sur du matériel ordinaire (ordinateur personnel ou micro-ordinateur monocarte de type Raspberry Pi) et sa vérification de vivacité repose sur un geste demandé à l'utilisateur. Face ID, produit industriel mature, offre vraisemblablement de meilleures performances que BioGate ; ce travail ne cherche ni à les égaler ni à les mesurer.
+Face ID et Google Nest sont des produits finis. Face ID protège les données du visage dans un composant matériel dédié, vérifie l'attention de l'utilisateur et emploie des réseaux de neurones spécialisés contre l'usurpation~\cite{apple2026faceid}. BioGate ne dispose d'aucun de ces éléments : le prototype s'exécute sur un ordinateur personnel, sans composant de sécurité dédié (le portage sur un micro-ordinateur monocarte de type Raspberry Pi est visé mais n'a pas été testé), et sa vérification de vivacité repose sur un geste demandé à l'utilisateur. Face ID, produit industriel mature, offre vraisemblablement de meilleures performances que BioGate ; ce travail ne cherche ni à les égaler ni à les mesurer.
 
-Ces produits bénéficient en outre d'une industrialisation et d'une maintenance suivies. BioGate, de son côté, n'a été évalué que sur un nombre limité de cas (chapitre~\ref{chap:3}) et n'a fait l'objet d'aucun audit de sécurité.
+Ces produits bénéficient en outre d'une industrialisation et d'une maintenance suivies. BioGate, de son côté, n'a été évalué que sur un nombre limité de cas (chapitre~\ref{chap:3}) et n'a fait l'objet d'aucun audit de sécurité externe (chapitre~\ref{chap:3}).
 
 \subsection{Limites des solutions reliées à un service en ligne}
 
