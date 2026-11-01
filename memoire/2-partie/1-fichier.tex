@@ -47,7 +47,7 @@ BioGate sépare l'acquisition des images, l'intelligence artificielle et la supe
   \node[box, minimum width=3cm] (cam) at (0,0) {Caméra BW21-CBV\\flux MJPEG protégé};
   \node[box, minimum width=4cm] (srv) at (5.6,0) {Serveur local (Edge)\\API FastAPI\\pipeline d'analyse\\score de confiance\\base SQLite};
   \node[box, minimum width=3.6cm] (dash) at (11.4,1.7) {Tableau de bord\\Electron / React};
-  \node[box, minimum width=3.6cm] (alert) at (11.4,0) {Alertes\\Telegram, e-mail};
+  \node[box, minimum width=3.6cm] (alert) at (11.4,0) {Alertes\\Telegram};
   \node[sim, minimum width=3.6cm] (iot) at (11.4,-1.7) {Empreinte, gâche, lumière\\(simulés)};
   \draw[->] (cam) -- (srv);
   \draw[<->] (srv) -- (dash);
@@ -68,7 +68,7 @@ BioGate sépare l'acquisition des images, l'intelligence artificielle et la supe
 Caméra BW21-CBV & Capture et diffusion du flux MJPEG protégé & Réalisé et testé : flux reçu par le serveur, reconnexion automatique après une coupure \\
 Serveur local & Analyse des images, authentification, base de données, alertes & Réalisé, exécuté sur un ordinateur personnel \\
 Tableau de bord & Supervision, enrôlement, configuration, alertes & Réalisé et testé ; le flux de la caméra et les alertes s'y affichent \\
-Alertes à distance & Notification d'intrusion avec photo & Réalisé ; Telegram testé en conditions réelles, e-mail testé seulement avec un serveur simulé \\
+Alertes à distance & Notification d'intrusion avec photo & Réalisé avec Telegram, testé en conditions réelles ; courrier électronique et WhatsApp laissés en perspectives \\
 Lecteur d'empreinte & Second facteur d'authentification & Conçu et simulé \\
 Gâche et éclairage & Ouverture et éclairage d'accueil ou d'alerte & Conçus et simulés \\
 Écran LCD sur la caméra & Affichage des consignes du test de vivacité & Prévu, non réalisé \\
@@ -97,7 +97,7 @@ Le serveur est une application Python bâtie avec FastAPI~\cite{fastapi_docs}. I
 
 \subsection{Tableau de bord}
 
-Le tableau de bord est une application de bureau développée avec Electron~\cite{electron_docs} et React. Il comporte sept pages : la surveillance, avec le flux annoté de la caméra, l'état de chaque individu suivi, son score de confiance et la progression du test de vivacité ; le journal d'accès, filtrable, exportable et doté d'un bouton de purge ; les profils des résidents, avec l'enrôlement par photo ou par capture de la caméra ; les statistiques du jour ; la configuration, qui regroupe les sources vidéo, les profils de sécurité, les paramètres et l'état de la purge automatique ; les alertes, où l'on règle et teste les canaux Telegram et e-mail ; et l'écran de couplage. Il affiche aussi une notification native du système lorsqu'une intrusion est confirmée.
+Le tableau de bord est une application de bureau développée avec Electron~\cite{electron_docs} et React. Il comporte sept pages : la surveillance, avec le flux annoté de la caméra, l'état de chaque individu suivi, son score de confiance et la progression du test de vivacité ; le journal d'accès, filtrable, exportable et doté d'un bouton de purge ; les profils des résidents, avec l'enrôlement par photo ou par capture de la caméra ; les statistiques du jour ; la configuration, qui regroupe les sources vidéo, les profils de sécurité, les paramètres et l'état de la purge automatique ; les alertes, où l'on règle et teste le canal Telegram ; et l'écran de couplage. Il affiche aussi une notification native du système lorsqu'une intrusion est confirmée.
 
 \subsection{Sécurité des échanges avec le tableau de bord}
 
@@ -180,7 +180,7 @@ Cette durée limitée de conservation des photos répond au principe de limitati
 
 \section{Alertes à distance}
 
-Un visage inconnu est d'abord classé intrus provisoire. Une fenêtre de grâce de 60 secondes s'ouvre : si un résident est reconnu dans ce délai, l'alerte est annulée en silence et la photo supprimée. Sinon, l'intrus est confirmé et le serveur envoie, avec la photo jointe, un message par Telegram et par courrier électronique, selon la configuration saisie dans le tableau de bord. Un délai minimal de 30 secondes sépare deux alertes, pour éviter une avalanche lorsque le suivi attribue plusieurs identités à la même personne. Ces envois sont les seuls échanges avec l'extérieur ; ils sont désactivés par défaut.
+Un visage inconnu est d'abord classé intrus provisoire. Une fenêtre de grâce de 60 secondes s'ouvre : si un résident est reconnu dans ce délai, l'alerte est annulée en silence et la photo supprimée. Sinon, l'intrus est confirmé et le serveur envoie, avec la photo jointe, un message par Telegram, selon la configuration saisie dans le tableau de bord. Le courrier électronique et WhatsApp sont des perspectives (chapitre~\ref{chap:3}). Un délai minimal de 30 secondes sépare deux alertes, pour éviter une avalanche lorsque le suivi attribue plusieurs identités à la même personne. Ces envois sont les seuls échanges avec l'extérieur ; ils sont désactivés par défaut.
 
 \section{Justification des choix techniques}
 
@@ -189,7 +189,7 @@ Les choix ci-dessous reprennent les raisons consignées dans le journal de bord 
   \item \textbf{Modèle de reconnaissance} : VGG-Face, associé à une détection de visage basique, s'est révélé trop imprécis sous la lumière d'une webcam. FaceNet512, utilisé par la bibliothèque DeepFace, a été retenu pour sa robustesse aux conditions lumineuses.
   \item \textbf{Test de vivacité} : une première version calculait à la main l'ouverture des yeux et de la bouche. La version actuelle utilise les coefficients d'expression fournis par le modèle de points du visage de MediaPipe, et tire au sort le geste demandé.
   \item \textbf{Analyse de la posture} : une analyse posturale en trois dimensions a été étudiée puis abandonnée, car elle était chargée sans jamais être utilisée.
-  \item \textbf{Alertes} : Telegram et le courrier électronique ont remplacé WhatsApp. L'interface officielle de WhatsApp exige un portefeuille d'entreprise Meta et, depuis le 1\ier{} juillet 2025, facture au message les envois faits par l'entreprise~\cite{meta_wa_overview,meta_wa_pricing}. Telegram est gratuit par défaut pour un bot, avec des limites de débit~\cite{telegram_botfaq}, et le courrier électronique repose sur le protocole SMTP~\cite{rfc5321}.
+  \item \textbf{Alertes} : Telegram a été retenu parce qu'un bot est gratuit par défaut, avec des limites de débit~\cite{telegram_botfaq}, et qu'il accepte l'envoi d'une photo~\cite{telegram_botapi}. WhatsApp n'a pas été retenu : son interface officielle exige un portefeuille d'entreprise Meta et, depuis le 1\ier{} juillet 2025, facture au message les envois faits par l'entreprise~\cite{meta_wa_overview,meta_wa_pricing}. Le courrier électronique, fondé sur le protocole SMTP~\cite{rfc5321}, reste une perspective.
   \item \textbf{Base de données} : SQLite stocke tout dans un fichier local, sans serveur de base de données~\cite{sqlite_about}, ce qui convient à une installation locale unique.
   \item \textbf{Caméra} : la BW21-CBV a été préférée à l'ESP32-CAM envisagée au départ, pour son Wi-Fi bi-bande~\cite{aithinker_bw21_spec} : le module ESP32-CAM, bâti sur l'ESP32, n'émet qu'en 2,4~GHz~\cite{aithinker_esp32cam,espressif_esp32}.
   \item \textbf{Tableau de bord} : une application de bureau Electron et React permet d'afficher le flux et de conserver le jeton chiffré par le système d'exploitation.
