@@ -9,6 +9,15 @@
 \usepackage{booktabs}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta}
+\usetikzlibrary{shapes.multipart}
+% --- Macros de schémas UML ---
+\newcommand{\acteur}[3]{\begin{scope}[shift={(#2)}]\draw (0,0.35) circle (0.14);\draw (0,0.21)--(0,-0.2);\draw (-0.25,0.05)--(0.25,0.05);\draw (0,-0.2)--(-0.2,-0.55);\draw (0,-0.2)--(0.2,-0.55);\node[font=\scriptsize, align=center, below] at (0,-0.55) {#3};\coordinate (#1) at (0,0);\end{scope}}
+\newcommand{\seqhead}[3]{\node[draw, font=\scriptsize, align=center, minimum width=2.1cm, minimum height=0.7cm, fill=gray!10] (#1) at (#2,0) {#3};}
+\newcommand{\seqlife}[2]{\draw[gray, dashed] (#1.south) -- (#1 |- 0,#2);}
+\newcommand{\seqmsg}[5]{\draw[->, #5] (#1,#3) -- node[above, font=\tiny, align=center, inner sep=1pt] {#4} (#2,#3);}
+\newcommand{\seqself}[4]{\draw[->] (#1,#2) -- ++(0.6,0) -- ++(0,-0.45) -- ++(-0.6,0); \node[right, font=\tiny, align=left, text width=#4, inner sep=1pt, anchor=north west] at (#1+0.65,#2+0.05) {#3};}
+% Emplacement d'image : affiche l'image si le fichier existe, sinon un cadre rouge à compléter
+\newcommand{\imageouplace}[4]{\begin{figure}[H]\centering\IfFileExists{images/#1}{\includegraphics[width=#2]{images/#1}}{\fbox{\parbox{#2}{\centering\vspace{1.4cm}\textcolor{red}{\textbf{[Image à fournir : #3]}}\vspace{1.4cm}}}}\caption{#3}\label{#4}\end{figure}}
 \setlength{\glsdescwidth}{0.65\textwidth}
 \setlength{\emergencystretch}{2em}
 % \usepackage{lscape}

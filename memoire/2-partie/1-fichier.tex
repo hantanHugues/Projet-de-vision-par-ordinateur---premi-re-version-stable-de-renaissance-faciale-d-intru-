@@ -33,6 +33,50 @@ Le système doit répondre aux besoins suivants :
 
 Le prototype a été réalisé avec des moyens limités. Il s'exécute sur un ordinateur personnel. Aucun lecteur d'empreinte ni actionneur physique (gâche électrique, éclairage) n'a été réalisé : ces éléments sont simulés. Le portage du serveur sur un micro-ordinateur monocarte de type Raspberry Pi est visé à terme, mais il n'a pas été testé et le traitement y serait plus lent.
 
+\subsection{Démarche de développement}
+
+Le développement a suivi une démarche itérative et incrémentale. Chaque étape a été consignée dans un journal de bord de 23 entrées, réparties en phases : mise en place de l'environnement, détection des personnes, journal visuel, analyse posturale (abandonnée), suivi des individus, reconnaissance faciale et apprentissage continu, séparation du client et du serveur, puis une série d'industrialisations (prétraitement de l'image, conservation des preuves, authentification multifacteur, test de vivacité, journal d'audit, multi-caméras, tableau de bord Electron, alertes à distance, purge des photos) et plusieurs séances de recette qui ont révélé et fait corriger des défauts. Chaque défaut découvert a été noté avec sa cause et sa correction, ce qui fournit les raisons des choix présentés dans ce chapitre.
+
+\subsection{Acteurs et cas d'utilisation}
+
+Cinq acteurs interagissent avec le système. Le \emph{résident} est une personne enrôlée, qui entre chez elle. L'\emph{inconnu} est toute personne non enrôlée devant la caméra. Le \emph{propriétaire} supervise et configure le système depuis le tableau de bord. Le \emph{lecteur d'empreinte}, simulé dans le prototype, joue le rôle de second facteur. Le \emph{service Telegram} reçoit les alertes. La figure~\ref{fig:usecase} représente les principaux cas d'utilisation. La reconnaissance d'une personne devant la caméra est le cas central. Le test de vivacité et la validation d'empreinte en sont des extensions, qui ne s'exécutent que si l'authentification multifacteur est activée. Un visage inconnu déclenche le cas d'alerte d'intrusion, qui envoie le message au service Telegram.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>={Stealth[length=2mm]},
+  uc/.style={draw, ellipse, align=center, font=\scriptsize, minimum width=3.7cm, minimum height=1.0cm, inner sep=1pt},
+  ext/.style={font=\tiny, fill=white, inner sep=1pt}]
+  % acteurs
+  \acteur{Res}{0,2.3}{Résident}
+  \acteur{Lec}{0,-0.5}{Lecteur d'empreinte\\(simulé)}
+  \acteur{Inc}{0,-3.1}{Inconnu}
+  \acteur{Pro}{14.2,0.4}{Propriétaire}
+  \acteur{Tel}{4.4,-6.3}{Service\\Telegram}
+  % système
+  \draw (1.9,3.6) rectangle (12.3,-4.2);
+  \node[font=\scriptsize\bfseries] at (7.1,3.3) {Système BioGate};
+  % cas d'utilisation
+  \node[uc] (U1) at (4.4,2.3) {Se faire reconnaître};
+  \node[uc] (U2) at (4.4,0.7) {Passer le test\\de vivacité};
+  \node[uc] (U3) at (4.4,-0.8) {Valider une empreinte};
+  \node[uc] (U4) at (4.4,-3.0) {Déclencher une alerte\\d'intrusion};
+  \node[uc] (U5) at (9.8,2.3) {Superviser (flux, journal,\\statistiques)};
+  \node[uc] (U6) at (9.8,0.7) {Gérer les profils};
+  \node[uc] (U7) at (9.8,-0.9) {Configurer le système\\et les caméras};
+  \node[uc] (U8) at (9.8,-2.6) {Purger les photos\\et le journal};
+  % associations
+  \draw (Res) -- (U1); \draw (Res) -- (U2);
+  \draw (Lec) -- (U3);
+  \draw (Inc) -- (U4);
+  \draw (Pro) -- (U5); \draw (Pro) -- (U6); \draw (Pro) -- (U7); \draw (Pro) -- (U8);
+  \draw (Tel) -- (U4);
+  % extensions
+  \draw[->, dashed] (U2.north) -- node[ext, right] {\guillemotleft{} extend \guillemotright{}} (U1.south);
+  \draw[->, dashed] (U3.west) to[bend left=35] node[ext, left] {\guillemotleft{} extend \guillemotright{}} (U1.west);
+\end{tikzpicture}
+\caption{Diagramme de cas d'utilisation de BioGate}\label{fig:usecase}
+\end{figure}
+
 \section{Architecture du système}
 
 \subsection{Vue d'ensemble}
@@ -80,7 +124,9 @@ Le serveur est conçu pour s'exécuter à terme sur un micro-ordinateur monocart
 
 \subsection{Caméra Ai-Thinker BW21-CBV}
 
-La caméra est une carte BW21-CBV de la société Ai-Thinker. Selon sa fiche technique, elle intègre un Wi-Fi bi-bande (2,4~GHz ou 5~GHz), le Bluetooth basse consommation 5.1 et se programme avec l'environnement Arduino~\cite{aithinker_bw21_spec}. Le cahier des charges la retient pour cette connectivité bi-bande, qui permet d'utiliser la bande 5~GHz.
+La caméra est une carte BW21-CBV de la société Ai-Thinker (figure~\ref{fig:carte}). Selon sa fiche technique, elle intègre un Wi-Fi bi-bande (2,4~GHz ou 5~GHz), le Bluetooth basse consommation 5.1 et se programme avec l'environnement Arduino~\cite{aithinker_bw21_spec}. Le cahier des charges la retient pour cette connectivité bi-bande, qui permet d'utiliser la bande 5~GHz.
+
+\imageouplace{bw21_carte.jpg}{0.5\textwidth}{Carte Ai-Thinker BW21-CBV utilisée dans le prototype}{fig:carte}
 
 Le micrologiciel diffuse l'image en format \gls{mjpeg} (640 par 480 pixels, la taille analysée par le serveur) sur une seule adresse. Il protège ce flux de plusieurs façons :
 \begin{itemize}
@@ -126,7 +172,9 @@ Vingt-cinq routes exigent le jeton du tableau de bord : ce sont celles qui lisen
 
 \subsection{Tableau de bord}
 
-Le tableau de bord est une application de bureau développée avec Electron~\cite{electron_docs} et React. Il comporte sept pages : la surveillance, avec le flux annoté de la caméra, l'état de chaque individu suivi, son score de confiance et la progression du test de vivacité ; le journal d'accès, filtrable, exportable et doté d'un bouton de purge ; les profils des résidents, avec l'enrôlement par photo ou par capture de la caméra ; les statistiques du jour ; la configuration, qui regroupe les sources vidéo, les profils de sécurité, les paramètres et l'état de la purge automatique ; les alertes, où l'on règle et teste le canal Telegram ; et l'écran de couplage. Il affiche aussi une notification native du système lorsqu'une intrusion est confirmée.
+Le tableau de bord est une application de bureau développée avec Electron~\cite{electron_docs} et React. Il comporte sept pages : la surveillance, avec le flux annoté de la caméra, l'état de chaque individu suivi, son score de confiance et la progression du test de vivacité ; le journal d'accès, filtrable, exportable et doté d'un bouton de purge ; les profils des résidents, avec l'enrôlement par photo ou par capture de la caméra ; les statistiques du jour ; la configuration, qui regroupe les sources vidéo, les profils de sécurité, les paramètres et l'état de la purge automatique ; les alertes, où l'on règle et teste le canal Telegram ; et l'écran de couplage. Il affiche aussi une notification native du système lorsqu'une intrusion est confirmée. La figure~\ref{fig:dashboard} montre la page de surveillance.
+
+\imageouplace{dashboard_surveillance.png}{0.95\textwidth}{Page de surveillance du tableau de bord}{fig:dashboard}
 
 \subsection{Sécurité des échanges avec le tableau de bord}
 
@@ -245,26 +293,103 @@ L'enrôlement initial d'une personne se fait uniquement par une action volontair
 
 Dans le prototype, le lecteur d'empreinte n'existe pas : la confirmation est simulée, par une commande envoyée à la route correspondante du serveur. Le mécanisme est donc éprouvé par simulation et non avec un capteur réel.
 
+\subsection{Scénarios d'interaction}
+
+Trois scénarios résument le comportement du système. Les diagrammes de séquence qui suivent en détaillent les échanges, à partir du code du serveur.
+
+Le premier (figure~\ref{fig:seq1}) est celui d'un résident qui se présente devant la caméra. Le serveur reçoit les images, détecte la personne, calcule le vecteur de son visage et le compare à ceux des profils. Si la distance est inférieure au seuil, l'événement est enregistré et le tableau de bord reçoit l'identité et le score. Lorsque l'authentification multifacteur est activée, le tableau de bord affiche le geste demandé, que la personne exécute devant la caméra.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>={Stealth[length=2mm]}]
+  \seqhead{A}{0}{Résident}
+  \seqhead{B}{2.9}{Caméra}
+  \seqhead{C}{6.0}{Serveur}
+  \seqhead{D}{9.0}{Base\\SQLite}
+  \seqhead{E}{12.0}{Tableau\\de bord}
+  \seqlife{A}{-8.8}\seqlife{B}{-8.8}\seqlife{C}{-8.8}\seqlife{D}{-8.8}\seqlife{E}{-8.8}
+  \seqmsg{0}{2.9}{-1.3}{se présente de face}{}
+  \seqmsg{2.9}{6.0}{-2.0}{images}{}
+  \seqself{6.0}{-2.6}{identification du visage (distance $<$ 0,35)}{2.2cm}
+  \seqmsg{6.0}{9.0}{-4.0}{journalise VIP\_ENTRY}{}
+  \seqmsg{6.0}{12.0}{-4.7}{identité et score de confiance}{}
+  \draw[dashed] (-0.7,-5.1) rectangle (12.9,-8.5);
+  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-5.1) {alt [MFA activée]};
+  \seqmsg{6.0}{12.0}{-5.9}{geste demandé}{}
+  \seqmsg{0}{2.9}{-6.5}{exécute le geste}{}
+  \seqmsg{2.9}{6.0}{-7.1}{images}{}
+  \seqself{6.0}{-7.5}{geste vérifié : accès accordé (85 \%)}{2.2cm}
+\end{tikzpicture}
+\caption{Diagramme de séquence : reconnaissance d'un résident}\label{fig:seq1}
+\end{figure}
+
+Le deuxième scénario (figure~\ref{fig:seq2}) est celui d'un visage inconnu. Une seconde après l'apparition du visage, l'individu devient un intrus provisoire et une photo est prise. Pendant les 60 secondes de la fenêtre de grâce, la reconnaissance d'un résident annule l'alerte et supprime la photo. Sinon, l'intrus est confirmé, l'événement est enregistré et le message part vers Telegram avec la photo.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>={Stealth[length=2mm]}]
+  \seqhead{A}{0}{Inconnu}
+  \seqhead{B}{2.7}{Caméra}
+  \seqhead{C}{5.5}{Serveur}
+  \seqhead{D}{8.3}{Base\\SQLite}
+  \seqhead{E}{10.9}{Service\\Telegram}
+  \seqhead{F}{13.5}{Propriétaire}
+  \seqlife{A}{-9.3}\seqlife{B}{-9.3}\seqlife{C}{-9.3}\seqlife{D}{-9.3}\seqlife{E}{-9.3}\seqlife{F}{-9.3}
+  \seqmsg{0}{2.7}{-1.3}{se présente}{}
+  \seqmsg{2.7}{5.5}{-2.0}{images}{}
+  \seqself{5.5}{-2.6}{visage inconnu après 1 s : intrus provisoire, photo}{2.0cm}
+  \seqmsg{5.5}{8.3}{-4.1}{journalise INTRUDER\_PENDING}{}
+  \draw[dashed] (-0.7,-4.7) rectangle (14.4,-9.0);
+  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-4.7) {alt [résident reconnu dans les 60 s]};
+  \seqself{5.5}{-5.7}{alerte annulée, photo supprimée}{2.0cm}
+  \draw[dashed] (-0.7,-6.7) -- (14.4,-6.7);
+  \node[font=\tiny, anchor=north west] at (-0.6,-6.7) {[sinon, 60 s écoulées]};
+  \seqmsg{5.5}{8.3}{-7.5}{INTRUDER\_CONFIRMED}{}
+  \seqmsg{5.5}{10.9}{-8.1}{message et photo}{}
+  \seqmsg{10.9}{13.5}{-8.7}{notification}{}
+\end{tikzpicture}
+\caption{Diagramme de séquence : détection d'un visage inconnu et alerte}\label{fig:seq2}
+\end{figure}
+
+Le troisième (figure~\ref{fig:seq3}) est l'enrichissement d'un profil. Pendant l'attente du second facteur, le serveur met de côté le vecteur du visage reconnu. Si l'empreinte est validée, ce vecteur est ajouté au profil, au plus 30 par profil, puis la mémoire des vecteurs est rechargée. Dans le prototype, la validation de l'empreinte est simulée.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>={Stealth[length=2mm]}]
+  \seqhead{A}{0}{Résident}
+  \seqhead{B}{3.3}{Serveur}
+  \seqhead{C}{6.8}{Lecteur d'empreinte\\(simulé)}
+  \seqhead{D}{10.2}{Base\\SQLite}
+  \seqlife{A}{-7.3}\seqlife{B}{-7.3}\seqlife{C}{-7.3}\seqlife{D}{-7.3}
+  \seqmsg{0}{3.3}{-1.3}{visage présenté}{}
+  \seqself{3.3}{-1.9}{visage reconnu : vecteur mis de côté}{2.3cm}
+  \seqmsg{3.3}{6.8}{-3.4}{attente du doigt}{}
+  \seqmsg{0}{6.8}{-4.1}{pose le doigt}{}
+  \seqmsg{6.8}{3.3}{-4.8}{empreinte validée}{dashed}
+  \seqmsg{3.3}{10.2}{-5.5}{ajoute le vecteur (30 au plus)}{}
+  \seqself{3.3}{-6.1}{recharge les vecteurs en mémoire}{2.3cm}
+\end{tikzpicture}
+\caption{Diagramme de séquence : apprentissage continu confirmé par l'empreinte}\label{fig:seq3}
+\end{figure}
+
 \section{Modèle de données et protection de la vie privée}
 
-La base est un fichier SQLite~\cite{sqlite_about} local, exclu du dépôt de code. Elle contient cinq tables, décrites dans le tableau~\ref{tab:donnees}. Le journal peut enregistrer les événements suivants : entrée d'un résident, accès refusé, intrus provisoire, intrus confirmé, test de vivacité réussi, empreinte acceptée ou refusée, alerte de fuite (un visage a été vu puis l'individu a disparu avant le verdict), passage sans visage et simple détection. Un intrus reçoit une ligne dans la table des profils, sous un nom comme \og Intrus\_001 \fg{}, afin que le journal puisse s'y rattacher, mais son vecteur n'est jamais conservé.
+La base est un fichier SQLite~\cite{sqlite_about} local, exclu du dépôt de code. Elle contient cinq tables, dont la structure et les liens sont représentés sur la figure~\ref{fig:donnees}. Un profil peut avoir plusieurs vecteurs biométriques, au plus 30, et plusieurs événements au journal. Les tables de configuration et des caméras sont indépendantes des autres. Le journal peut enregistrer les événements suivants : entrée d'un résident, accès refusé, intrus provisoire, intrus confirmé, test de vivacité réussi, empreinte acceptée ou refusée, alerte de fuite (un visage a été vu puis l'individu a disparu avant le verdict), passage sans visage et simple détection. Un intrus reçoit une ligne dans la table des profils, sous un nom comme \og Intrus\_001 \fg{}, afin que le journal puisse s'y rattacher, mais son vecteur n'est jamais conservé.
 
-\begin{table}[H]
+\begin{figure}[H]
 \centering
-\caption{Tables de la base de données}\label{tab:donnees}
-\small
-\begin{tabularx}{\textwidth}{@{}p{2.6cm}>{\raggedright\arraybackslash}X@{}}
-\toprule
-\textbf{Table} & \textbf{Champs principaux} \\
-\midrule
-\texttt{profiles} & identifiant, nom (unique), rôle (résident ou intrus), date de création \\
-\texttt{embeddings} & identifiant, profil rattaché, vecteur de 512 nombres au format JSON, date de création \\
-\texttt{event\_logs} & identifiant, profil rattaché, confiance, type d'événement, chemin de la photo, horodatage \\
-\texttt{system\_config} & clé, valeur, date de mise à jour \\
-\texttt{cameras} & identifiant, nom, type (USB, MJPEG, RTSP), adresse, indice USB, zone, active ou non \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\begin{tikzpicture}[>={Stealth[length=2mm]},
+  tbl/.style={draw, rectangle split, rectangle split parts=2, font=\scriptsize, align=left, minimum width=4.2cm, rectangle split part fill={gray!15, white}}]
+  \node[tbl] (P) at (0,0) {\textbf{profiles}\nodepart{two}\underline{id}\\name (unique)\\role (VIP ou INTRUS)\\created\_at};
+  \node[tbl] (E) at (-5.4,0) {\textbf{embeddings}\nodepart{two}\underline{id}\\profile\_id (réf.)\\vector\_json (512 nombres)\\created\_at};
+  \node[tbl] (L) at (5.4,0) {\textbf{event\_logs}\nodepart{two}\underline{id}\\profile\_id (réf.)\\confidence\\event\_type\\snapshot\_path\\timestamp};
+  \node[tbl] (C) at (-3,-4) {\textbf{cameras}\nodepart{two}\underline{id}\\cam\_id (unique)\\name, type (usb, mjpeg, rtsp)\\url, usb\_index, zone\\active, created\_at};
+  \node[tbl] (S) at (3,-4) {\textbf{system\_config}\nodepart{two}\underline{key}\\value\\updated\_at};
+  \draw[->] (E) -- node[above, font=\tiny] {$*$} node[below, font=\tiny] {$1$} (P);
+  \draw[->] (L) -- node[above, font=\tiny] {$*$} node[below, font=\tiny] {$1$} (P);
+\end{tikzpicture}
+\caption{Modèle de données de BioGate (tables SQLite)}\label{fig:donnees}
+\end{figure}
 
 À ce stade, les vecteurs ne sont pas chiffrés dans la base : c'est une limite discutée au chapitre~\ref{chap:3}.
 
