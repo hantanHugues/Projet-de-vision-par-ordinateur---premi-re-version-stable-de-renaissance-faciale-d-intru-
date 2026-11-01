@@ -52,7 +52,16 @@ uv venv --python 3.11 .venv-deepface
 
 # 3. Installer les dépendances
 uv pip install -r requirements.txt
+
+# 4. Télécharger le modèle MediaPipe (test de vivacité et second avis contre les faux visages)
+python telecharger_modeles.py
 ```
+
+`requirements.txt` fixe les versions des essais. Les deux paquets OpenCV (`opencv-python` et
+`opencv-contrib-python`) doivent garder la même version : ils installent le même dossier `cv2`.
+Le modèle de l'étape 4 n'est pas dans le dépôt ; sans lui, le test de vivacité ne démarre pas et
+un pli de vêtement peut de nouveau être pris pour un visage. Les poids de YOLOv8 et de FaceNet512
+se téléchargent seuls au premier lancement.
 
 ## Utilisation
 

@@ -72,7 +72,9 @@ Pour récupérer le code à jour : `git fetch origin && git merge origin/main` (
 - Page Configuration : bouton **Modifier** par caméra ; l'adresse d'une caméra IP s'affiche avec la clé masquée (`********`) ; la clé
   est conservée côté serveur quand la valeur masquée est renvoyée.
 
-### Tests : 167 réussis sur `main` (175 une fois les 8 tests de vivacité de la branche fusionnés ; à relancer après fusion)
+### Tests : 172 réussis sur `main` (180 une fois les 8 tests de vivacité de la branche fusionnés ; à relancer après fusion)
+La branche actuelle (175 tests) a été vérifiée le 01/11 dans un environnement neuf : tout passe, à condition que le modèle MediaPipe soit présent
+(voir « Installation »). Sans lui, `test_a_shirt_is_never_judged_as_an_unknown_face` échoue.
 Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\python.exe -m unittest discover -s tests -t .`
 
 ### Installation (`requirements.txt` corrigé le 01/11)
@@ -83,6 +85,10 @@ Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\
   principales aux versions des essais. Vérifié dans un environnement neuf (`uv venv` puis installation du fichier tel quel) : un seul cv2 cohérent et
   les 167 tests réussis. `torch` n'est pas fixé (essais avec la 2.11.0, tests vérifiés aussi avec la 2.15.0).
 - Python 3.11 est exigé (la 3.13 pose des incompatibilités).
+- **Modèle MediaPipe** : `models/face_landmarker.task` (3,6 Mo) est ignoré par git et rien ne le téléchargeait. Sans lui, le test de vivacité ne démarre pas
+  et le second avis contre les faux visages disparaît (la chemise est de nouveau prise pour un visage). Le script `telecharger_modeles.py` le télécharge
+  depuis l'adresse officielle de Google et vérifie son empreinte SHA-256 (identique au fichier des essais) ; l'étape est dans le README.
+  Procédure complète vérifiée : environnement neuf, `requirements.txt`, modèle, puis tous les tests réussis.
 
 ### Mesures
 - Faites : filtre de visage (Haar), apprentissage continu, temps de traitement (voir `docs/lab_journal.md`).
@@ -194,7 +200,7 @@ Ce document s'organise en trois chapitres :
 \end{itemize}
 ```
 
-## Annexe B — Tests automatiques par domaine (167 sur `main`, 175 avec les 8 tests de vivacité de la branche)
+## Annexe B — Tests automatiques par domaine (172 sur `main`, 180 avec les 8 tests de vivacité de la branche)
 
 | Domaine | Cas | Fichiers |
 |---|---|---|
@@ -204,8 +210,9 @@ Ce document s'organise en trois chapitres :
 | Purge des photos | 25 | `test_rgpd_purge.py` |
 | Sources vidéo et caméras (flux, affichage, routes) | 37 | `test_camera_sources.py` (7), `test_camera_display.py` (12), `test_camera_api.py` (18) |
 | Logique des intrus | 20 | `test_intruder_logic.py` |
+| Téléchargement du modèle MediaPipe | 5 | `test_telecharger_modeles.py` |
 | Réglage de vivacité (branche) | 8 | `test_liveness_toggle.py` |
-| **Total** | **175** | |
+| **Total** | **180** | |
 
 ## Annexe C — Versions utilisées (environnement `.venv-deepface`)
 
