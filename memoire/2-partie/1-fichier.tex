@@ -67,8 +67,8 @@ BioGate sépare l'acquisition des images, l'intelligence artificielle et la supe
 \midrule
 Caméra BW21-CBV & Capture et diffusion du flux MJPEG protégé & Réalisé et testé : flux reçu par le serveur, reconnexion automatique après une coupure \\
 Serveur local & Analyse des images, authentification, base de données, alertes & Réalisé, exécuté sur un ordinateur personnel \\
-Tableau de bord & Supervision, enrôlement, configuration, alertes & Réalisé ; le flux de la caméra y est affiché \\
-Alertes à distance & Notification d'intrusion avec photo & Réalisé (Telegram, e-mail) \\
+Tableau de bord & Supervision, enrôlement, configuration, alertes & Réalisé et testé ; le flux de la caméra et les alertes s'y affichent \\
+Alertes à distance & Notification d'intrusion avec photo & Réalisé ; Telegram testé en conditions réelles, e-mail testé seulement avec un serveur simulé \\
 Lecteur d'empreinte & Second facteur d'authentification & Conçu et simulé \\
 Gâche et éclairage & Ouverture et éclairage d'accueil ou d'alerte & Conçus et simulés \\
 Écran LCD sur la caméra & Affichage des consignes du test de vivacité & Prévu, non réalisé \\
@@ -76,7 +76,7 @@ Gâche et éclairage & Ouverture et éclairage d'accueil ou d'alerte & Conçus e
 \end{tabularx}
 \end{table}
 
-Le serveur est conçu pour s'exécuter à terme sur un micro-ordinateur monocarte de type Raspberry Pi ou sur un ordinateur sous Linux. Le prototype tourne sur un ordinateur personnel et a été optimisé en conséquence : réduction de l'image avant la détection, vecteurs des profils gardés en mémoire, analyse lourde du visage effectuée une seule fois par individu suivi.
+Le serveur est conçu pour s'exécuter à terme sur un micro-ordinateur monocarte de type Raspberry Pi ou sur un ordinateur sous Linux. Le prototype tourne sur un ordinateur personnel et a été optimisé en conséquence : réduction de l'image avant la détection, vecteurs des profils gardés en mémoire, analyse du visage espacée, avec une revérification toutes les 0,8 seconde une fois la personne identifiée.
 
 \subsection{Caméra Ai-Thinker BW21-CBV}
 
@@ -95,24 +95,28 @@ Ces mesures ont des limites que le code signale lui-même : la bibliothèque uti
 
 Le serveur est une application Python bâtie avec FastAPI. Il expose une trentaine de routes de type \gls{api}, regroupées par fonction : analyse des images et enrôlement, configuration, journal et statistiques, second facteur et pilotage des actionneurs, alertes, gestion des caméras, couplage du tableau de bord. Il gère plusieurs caméras (USB, MJPEG, RTSP), chacune dans son propre fil d'exécution, et diffuse au tableau de bord un flux annoté des boîtes, des identités et du score de confiance.
 
+\subsection{Tableau de bord}
+
+Le tableau de bord est une application de bureau développée avec Electron et React. Il comporte sept pages : la surveillance, avec le flux annoté de la caméra, l'état de chaque individu suivi, son score de confiance et la progression du test de vivacité ; le journal d'accès, filtrable, exportable et doté d'un bouton de purge ; les profils des résidents, avec l'enrôlement par photo ou par capture de la caméra ; les statistiques du jour ; la configuration, qui regroupe les sources vidéo, les profils de sécurité, les paramètres et l'état de la purge automatique ; les alertes, où l'on règle et teste les canaux Telegram et e-mail ; et l'écran de couplage. Il affiche aussi une notification native du système lorsqu'une intrusion est confirmée.
+
 \subsection{Sécurité des échanges avec le tableau de bord}
 
-Le tableau de bord, application de bureau développée avec Electron et React, est couplé au serveur à la manière d'un appareil domestique. Au premier lancement, le serveur tire au hasard un code à six chiffres et l'affiche dans son propre terminal. L'utilisateur le saisit dans le tableau de bord. Le code est valable cinq minutes et limité à cinq essais. Le serveur renvoie alors un jeton aléatoire opaque, valable trente jours, que l'application conserve chiffré par le système d'exploitation. Les routes qui lisent ou modifient un état sensible (configuration, journal, profils, caméras, actionneurs) exigent ce jeton. Les origines autorisées à appeler le serveur sont restreintes à celles du tableau de bord.
+Le tableau de bord est couplé au serveur à la manière d'un appareil domestique. Au premier lancement, le serveur tire au hasard un code à six chiffres et l'affiche dans son propre terminal. L'utilisateur le saisit dans le tableau de bord. Le code est valable cinq minutes et limité à cinq essais. Le serveur renvoie alors un jeton aléatoire opaque, valable trente jours, que l'application conserve chiffré par le système d'exploitation. Les routes qui lisent ou modifient un état sensible (configuration, journal, profils, caméras, actionneurs) exigent ce jeton. Les origines autorisées à appeler le serveur sont restreintes à celles du tableau de bord.
 
 Cette protection reste limitée : les échanges ne sont pas chiffrés (pas de HTTPS), le jeton du flux vidéo passe dans l'adresse de la requête, et plusieurs routes appelées par le client de test ne sont pas protégées. Ces points sont repris dans les limites au chapitre~\ref{chap:3}.
 
 \section{Pipeline de traitement par intelligence artificielle}
 
-Le serveur applique à chaque image la chaîne suivante.
+Le serveur applique à chaque image la chaîne suivante. Les raisons de chaque étape sont celles consignées dans le journal de bord du projet.
 \begin{enumerate}
-  \item \textbf{Détection des personnes} : le modèle \gls{yolo}v8 dans sa version nano détecte les silhouettes humaines~\cite{ultralytics_yolov8docs}. L'image est réduite à 320 pixels pour alléger le calcul, et les boîtes qui se superposent sont fusionnées.
-  \item \textbf{Suivi} : un suivi par centroïde attribue un identifiant stable à chaque individu. Il s'appuie aussi sur la signature de couleur des vêtements en espace \gls{hsv}, ce qui permet de retrouver une personne après une occlusion brève.
-  \item \textbf{Photo forensique} : une photo de l'individu est prise une seule fois, pour le journal d'un éventuel intrus.
-  \item \textbf{Filtre de visage de face} : une cascade de Haar~\cite{viola2001rapid} vérifie qu'un visage de face est visible avant de lancer le modèle lourd. Un second avis du modèle de points du visage de MediaPipe écarte les faux visages détectés sur des vêtements.
-  \item \textbf{Correction du contraste} : la méthode \gls{clahe} est appliquée à la luminosité du visage pour limiter l'effet du contre-jour.
-  \item \textbf{Représentation du visage} : le modèle FaceNet512, utilisé par la bibliothèque DeepFace, transforme le visage en un vecteur de 512 nombres~\cite{schroff2015facenet,serengil2020lightface}.
-  \item \textbf{Comparaison} : ce vecteur est comparé, par distance cosinus, à ceux des profils enrôlés, tenus en mémoire.
-  \item \textbf{Décision et journalisation} : l'identité retenue est revérifiée toutes les 0,8 seconde. Trois échecs consécutifs sont nécessaires avant de la remettre en question, afin qu'un changement d'expression ou de lumière ne produise pas un faux intrus. L'événement est enregistré dans la base.
+  \item \textbf{Détection des personnes} : le modèle \gls{yolo}v8 dans sa version nano repère les silhouettes humaines~\cite{ultralytics_yolov8docs}. Il a été retenu pour sa légèreté : il traite environ 15 images par seconde sur le processeur d'un ordinateur sous Windows (1\,800 images en 118 secondes). L'image est réduite à 320 pixels pour alléger encore le calcul. Un seuil de recouvrement de 0,35 fusionne les boîtes superposées, car deux boîtes sur une même personne (corps et tête) créaient des intrus fantômes ; une seconde fusion à 0,30 traite le cas des boîtes adjacentes.
+  \item \textbf{Suivi} : un suivi par centroïde attribue un identifiant stable à chaque individu. Il garde en mémoire une personne disparue pendant 60 images, soit environ deux secondes, contre 20 au départ, et refuse de lui rattacher une détection située à plus de 150 pixels, car une réapparition aussi lointaine est impossible pour la même personne. Une signature de couleur des vêtements en espace \gls{hsv}, comparée par la distance de Bhattacharyya entre histogrammes, permet de retrouver quelqu'un après une occlusion sans relancer l'analyse lourde du visage.
+  \item \textbf{Photo forensique} : une photo est prise à l'apparition d'un individu soupçonné d'être un intrus, jamais pour un résident reconnu. Elle conserve une preuve visuelle même lorsque le visage ne peut pas être analysé (visage masqué, passage rapide) et elle est soumise à la purge de 72 heures.
+  \item \textbf{Filtre de visage de face} : le modèle lourd n'est jamais appelé sur une personne de dos, de profil ou la tête baissée. Une cascade de Haar~\cite{viola2001rapid}, appliquée à une image en niveaux de gris dont l'histogramme est égalisé, réagit plus vite aux faux profils. Un second avis du modèle de points du visage de MediaPipe a été ajouté parce que le détecteur de Haar prenait le col et un bouton d'une chemise pour un visage : sur les essais, la chemise est rejetée et les trois portraits de test sont acceptés.
+  \item \textbf{Correction du contraste} : la méthode \gls{clahe} est appliquée à la luminosité du visage (espace LAB). Elle rétablit les traits en contre-jour et stabilise la distance mesurée d'une image à l'autre.
+  \item \textbf{Représentation du visage} : le modèle FaceNet512, utilisé par la bibliothèque DeepFace, transforme le visage aligné (yeux redressés) en un vecteur de 512 nombres~\cite{schroff2015facenet,serengil2020lightface}. Il a été choisi après l'essai de VGG-Face associé à une détection basique, trop imprécis sous la lumière d'une webcam.
+  \item \textbf{Comparaison} : le vecteur est comparé, par distance cosinus, à ceux des profils enrôlés. Ces vecteurs sont tenus en mémoire : interroger la base à chaque image formait un goulot d'étranglement, si bien qu'ils sont chargés au démarrage et rechargés seulement après un enrôlement ou un apprentissage.
+  \item \textbf{Décision et journalisation} : un visage inconnu est jugé une seconde après son apparition. Une fois la personne identifiée, son identité est revérifiée toutes les 0,8 seconde : un résident ne peut ainsi pas être remplacé par un intrus, ni mettre un masque après avoir été validé. Trois échecs consécutifs sont nécessaires avant de la remettre en question, afin qu'un changement d'expression ou de lumière ne produise pas un faux intrus. Un résident déjà reconnu qui retombe en analyse dispose de cinq secondes au lieu d'une, car une image de travers suffisait à le classer intrus, et une correspondance très forte (distance inférieure à 0,25) le reclasse immédiatement. L'événement est enregistré dans la base.
 \end{enumerate}
 
 Le tableau~\ref{tab:parametres} rassemble les principaux paramètres.
@@ -153,11 +157,11 @@ Par défaut, le visage seul suffit pour ouvrir. Lorsque l'authentification multi
 
 \subsection{Test de vivacité}
 
-Le test de vivacité s'appuie sur le modèle de points du visage de MediaPipe, qui fournit 52 coefficients décrivant l'expression du visage~\cite{google_facelandmarker}. À chaque tentative, le système tire au sort un seul geste, un sourire ou des clignements des yeux, ainsi que ses paramètres : deux à quatre clignements, ou un sourire tenu de une à deux secondes. L'objectif est de rendre le rejeu d'une vidéo préparée à l'avance plus difficile, car un visage filmé en boucle peut cligner au hasard. L'efficacité de ce test contre des attaques réelles n'a pas été mesurée (chapitre~\ref{chap:3}).
+Le test de vivacité s'appuie sur le modèle de points du visage de MediaPipe, qui fournit 52 coefficients décrivant l'expression du visage~\cite{google_facelandmarker}. À chaque tentative, le système tire au sort un seul geste, un sourire ou des clignements des yeux, ainsi que ses paramètres : deux à quatre clignements, ou un sourire tenu de une à deux secondes. Une première version exigeait une validation faciale ininterrompue de cinq à six secondes. Elle a été écartée : une webcam 2D ne mesure pas la profondeur, et une photo immobile la franchirait même plus facilement. Le défi actif la remplace. L'objectif du tirage au sort est de rendre le rejeu d'une vidéo préparée à l'avance plus difficile, car un visage filmé en boucle peut cligner au hasard. L'efficacité de ce test contre des attaques réelles n'a pas été mesurée (chapitre~\ref{chap:3}).
 
 \subsection{Adaptation des profils par apprentissage continu}
 
-L'enrôlement initial d'une personne se fait uniquement par une action volontaire du propriétaire. Ensuite, le profil peut s'enrichir. Pendant l'attente du second facteur, le système met de côté le vecteur du visage courant. Si l'empreinte confirme l'identité, ce vecteur est ajouté au profil. Chaque profil conserve au plus 30 vecteurs, les plus récents. L'ajout n'a lieu que sur confirmation par un second facteur, pour que le système n'apprenne pas de ses propres erreurs et ne dérive pas. Les vecteurs des intrus ne sont jamais conservés.
+L'enrôlement initial d'une personne se fait uniquement par une action volontaire du propriétaire. Ensuite, le profil peut s'enrichir. Pendant l'attente du second facteur, le système met de côté le vecteur du visage courant. Si l'empreinte confirme l'identité, ce vecteur est ajouté au profil. Chaque profil conserve au plus 30 vecteurs, les plus récents. L'ajout n'a lieu que sur confirmation par un second facteur. Une première version ajoutait des vecteurs sans supervision ; elle a été abandonnée, car le modèle pouvait apprendre de ses propres erreurs, c'est-à-dire dériver. Hors de ce mécanisme, la base est en lecture seule : l'enrôlement par le propriétaire est le seul autre moyen d'y ajouter un visage. Les vecteurs des intrus ne sont jamais conservés.
 
 Dans le prototype, le lecteur d'empreinte n'existe pas : la confirmation est simulée, par une commande envoyée à la route correspondante du serveur. Le mécanisme est donc éprouvé par simulation et non avec un capteur réel.
 
@@ -170,7 +174,7 @@ Plusieurs mesures limitent la conservation des données :
   \item les photos forensiques sont supprimées automatiquement après 72 heures, au démarrage du serveur puis toutes les heures ; seul le chemin de la photo est effacé, les lignes du journal restent pour l'historique et les statistiques ;
   \item la photo d'un intrus provisoire qui ne sera jamais confirmé est supprimée immédiatement ;
   \item un événement du journal peut être supprimé avec sa photo ;
-  \item les identifiants des canaux d'alerte sont stockés dans la base locale et ne sont jamais renvoyés en clair par l'interface.
+  \item les identifiants des canaux d'alerte sont stockés dans la base locale et ne sont jamais renvoyés en clair par l'interface, mais ils sont enregistrés en clair dans la base, protégée seulement par le système de fichiers.
 \end{itemize}
 Cette durée limitée de conservation des photos répond au principe de limitation de la conservation du \gls{rgpd}~\cite{ue2016rgpd} et aux articles 383 et 433 du Code du numérique béninois~\cite{apdp2018codenumerique}, vus au chapitre~\ref{chap:1}.
 
