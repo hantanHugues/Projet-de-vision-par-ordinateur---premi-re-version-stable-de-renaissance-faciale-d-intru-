@@ -26,7 +26,7 @@ Le système doit répondre aux besoins suivants :
   \item \textbf{Confidentialité} : l'analyse des images se fait en local et les photos d'intrus sont supprimées automatiquement après 72 heures ;
   \item \textbf{Réactivité} : la fenêtre d'identification d'un visage inconnu est d'une seconde par défaut ;
   \item \textbf{Sobriété} : les modèles retenus sont légers, l'image est réduite avant la détection et les vecteurs des profils sont gardés en mémoire pour éviter d'interroger la base à chaque image ;
-  \item \textbf{Résilience} : la caméra se reconnecte seule au réseau Wi-Fi et la purge des photos s'exécute aussi au démarrage du serveur, ce qui rattrape les coupures de courant ;
+  \item \textbf{Résilience} : la caméra se reconnecte seule au dernier réseau Wi-Fi enregistré et la purge des photos s'exécute aussi au démarrage du serveur, ce qui rattrape les coupures de courant ;
   \item \textbf{Fiabilité des alertes} : une fenêtre de grâce, de 60 secondes par défaut, évite d'alerter à tort pour un résident pas encore identifié ;
   \item \textbf{Contrôle des accès au système} : la caméra et le tableau de bord sont protégés par une clé ou par un code de couplage.
 \end{itemize}
@@ -143,10 +143,10 @@ BioGate sépare l'acquisition des images, l'intelligence artificielle et la supe
 \toprule
 \textbf{Composant} & \textbf{Rôle} & \textbf{État dans le prototype} \\
 \midrule
-Caméra BW21-CBV & Capture et diffusion du flux MJPEG protégé & Réalisé et testé : flux reçu par le serveur, reconnexion automatique après une coupure \\
+Caméra BW21-CBV & Capture et diffusion du flux MJPEG protégé & Réalisé et testé : flux reçu par le serveur, reconnexion au réseau enregistré après un redémarrage \\
 Serveur local & Analyse des images, authentification, base de données, alertes & Réalisé, exécuté sur un ordinateur personnel \\
 Tableau de bord & Supervision, enrôlement, configuration, alertes & Réalisé et testé ; le flux de la caméra et les alertes s'y affichent \\
-Alertes à distance & Notification d'intrusion avec photo & Réalisé avec Telegram, testé en conditions réelles ; courrier électronique et WhatsApp laissés en perspectives \\
+Alertes à distance & Notification d'intrusion avec photo & Réalisé avec Telegram, testé en conditions réelles, avec suppression des messages après 24 heures ; courrier électronique et WhatsApp laissés en perspectives \\
 Lecteur d'empreinte & Second facteur d'authentification & Conçu et simulé \\
 Gâche et éclairage & Ouverture et éclairage d'accueil ou d'alerte & Conçus et simulés \\
 Écran LCD sur la caméra & Affichage des consignes du test de vivacité & Prévu, non réalisé \\
@@ -158,22 +158,22 @@ Le serveur est conçu pour s'exécuter à terme sur un micro-ordinateur monocart
 
 \subsection{Caméra Ai-Thinker BW21-CBV}
 
-La caméra est une carte BW21-CBV de la société Ai-Thinker (figure~\ref{fig:carte}). Selon sa fiche technique, elle offre un Wi-Fi bi-bande (2,4~GHz ou 5~GHz), le Bluetooth basse consommation 5.1 et une programmation avec l'environnement Arduino~\cite{aithinker_bw21_spec}. Elle a été retenue pour cette connectivité bi-bande.
+La caméra est une carte BW21-CBV de la société Ai-Thinker (figure~\ref{fig:carte}). Selon sa fiche technique, elle est bâtie sur la puce RTL8735B de Realtek et offre un Wi-Fi bi-bande (2,4~GHz ou 5~GHz), le Bluetooth basse consommation 5.1 et une programmation avec l'environnement Arduino~\cite{aithinker_bw21_spec}. Elle a été retenue pour cette connectivité bi-bande.
 
 \imageouplace{bw21_carte.jpg}{0.5\textwidth}{Carte Ai-Thinker BW21-CBV utilisée dans le prototype}{fig:carte}
 
 Le micrologiciel diffuse l'image en format \gls{mjpeg}, en 640 par 480 pixels, taille analysée par le serveur. Quatre mesures protègent le flux :
 \begin{itemize}
-  \item \textbf{Authentification} : l'accès exige un identifiant et une clé aléatoire de 192 bits, générée par un script et non versionnée ;
+  \item \textbf{Authentification} : l'accès exige un identifiant et une clé de 12 à 32 caractères alphanumériques, choisie par l'auteur. La clé est saisie, avec le réseau Wi-Fi, sur le port série au premier démarrage, puis mémorisée dans la mémoire flash de la carte ;
   \item \textbf{Comparaison en temps constant} : la durée de la réponse ne révèle pas à partir de quel caractère la clé diffère ;
-  \item \textbf{Requête bornée} : la lecture est limitée en taille et en durée, ce qui empêche un client silencieux de bloquer la caméra ;
+  \item \textbf{Requête bornée} : la lecture est limitée à 1\,024 octets et à 3 secondes, ce qui empêche un client silencieux de bloquer la caméra ;
   \item \textbf{Verrouillage} : après cinq refus de suite, la caméra refuse toute connexion pendant trente secondes.
 \end{itemize}
-Les échanges ne sont pas chiffrés : la bibliothèque utilisée n'offre ni HTTPS ni filtrage par adresse. La protection repose donc aussi sur un réseau Wi-Fi chiffré et sur la longueur de la clé. La caméra se reconnecte d'elle-même au réseau après une coupure.
+Les échanges ne sont pas chiffrés : la bibliothèque de la carte n'offre ni HTTPS ni filtrage par adresse. La protection repose donc aussi sur un réseau Wi-Fi chiffré. Les réglages mémorisés dans la carte ne sont pas chiffrés. Au redémarrage, la carte se reconnecte seule au dernier réseau enregistré, ce qui a été vérifié. Si le Wi-Fi tombe, une boucle du programme relance la connexion ; cette reprise n'a pas été éprouvée par une coupure provoquée.
 
 \subsection{Serveur et interface de programmation}
 
-Le serveur est une application Python bâtie avec FastAPI~\cite{fastapi_docs}. Il expose 36 routes de type \gls{api}, regroupées par fonction dans le tableau~\ref{tab:routes}. Il lit lui-même les caméras, selon le fonctionnement suivant :
+Le serveur est une application Python bâtie avec FastAPI~\cite{fastapi_docs}. Il expose 37 routes de type \gls{api}, regroupées par fonction dans le tableau~\ref{tab:routes}. Il lit lui-même les caméras, selon le fonctionnement suivant :
 \begin{itemize}
   \item \textbf{Sources} : un gestionnaire ouvre chaque source (USB, flux MJPEG ou RTSP) dans un fil d'exécution distinct ;
   \item \textbf{File d'attente} : les images sont déposées dans une file de quatre places, et une image est abandonnée si la file est pleine, ce qui évite l'accumulation de retard ;
@@ -201,7 +201,7 @@ Analyse et enrôlement & \texttt{/analyze\_frame}, \texttt{/enroll} & non \\
 Second facteur (simulé) & \texttt{/access\_status}, \texttt{/fingerprint\_result}, \texttt{/request\_liveness}, \texttt{/liveness\_result} & non \\
 Configuration & \texttt{/config} (lecture et modification) & oui \\
  & \texttt{/config/templates}, \texttt{/config/apply\_template} & non \\
-Alertes & \texttt{/alerts/test}, \texttt{/alerts/telegram/detect} & oui \\
+Alertes & \texttt{/alerts/test}, \texttt{/alerts/telegram/detect}, \texttt{/alerts/telegram/purge} & oui \\
 Journal et vie privée & \texttt{/logs}, \texttt{/logs/stats}, \texttt{/logs/purge}, \texttt{/logs/\{id\}}, \texttt{/rgpd/status} & oui \\
 Profils & \texttt{/profiles} (lecture), \texttt{/profiles/\{nom\}} (suppression) & oui \\
 Actionneurs (simulés) & \texttt{/iot/door}, \texttt{/iot/fingerprint}, \texttt{/iot/light}, \texttt{/iot/door/open}, \texttt{/iot/door/lock} & oui \\
@@ -212,7 +212,7 @@ Couplage et santé & \texttt{/pair/request}, \texttt{/auth/token}, \texttt{/heal
 \end{tabularx}
 \end{table}
 
-Vingt-cinq routes exigent le jeton du tableau de bord. Onze n'en exigent pas : trois par conception (le couplage et la vérification de santé) et huit utilisées par le programme client ou pour le choix des modèles de configuration. La protection de ces huit routes n'est pas encore traitée dans le prototype (chapitre~\ref{chap:3}).
+Vingt-six routes exigent le jeton du tableau de bord. Onze n'en exigent pas : trois par conception (le couplage et la vérification de santé) et huit utilisées par le programme client ou pour le choix des modèles de configuration. La protection de ces huit routes n'est pas encore traitée dans le prototype (chapitre~\ref{chap:3}).
 
 \subsection{Tableau de bord}
 
@@ -238,7 +238,7 @@ Le tableau de bord est couplé au serveur comme un appareil domestique :
   \item l'utilisateur saisit ce code dans le tableau de bord ; il est valable cinq minutes et limité à cinq essais ;
   \item le serveur renvoie un jeton aléatoire, valable trente jours, que l'application conserve chiffré par le système d'exploitation.
 \end{enumerate}
-Ce jeton est exigé par 25 routes, dont les deux flux vidéo, où il passe dans l'adresse de la requête. Les origines autorisées à appeler le serveur sont limitées à celles du tableau de bord. Les échanges ne sont pas chiffrés : le prototype n'utilise pas HTTPS.
+Ce jeton est exigé par 26 routes, dont les deux flux vidéo, où il passe dans l'adresse de la requête. Les origines autorisées à appeler le serveur sont limitées à celles du tableau de bord. Les échanges ne sont pas chiffrés : le prototype n'utilise pas HTTPS.
 
 \section{Pipeline de traitement par intelligence artificielle}
 
@@ -363,7 +363,7 @@ Ce pourcentage mesure la proximité de deux vecteurs et non la probabilité que 
 
 \subsection{Activer et utiliser le second facteur}
 
-Un seul réglage commande le second facteur : \emph{MFA obligatoire}, dans la page de configuration. Il active l'authentification multifacteur (\gls{mfa}). Il est désactivé dans le profil par défaut (domicile) et activé dans les profils bureau et haute sécurité. Le tableau~\ref{tab:mfa} compare les deux états.
+Un seul réglage commande le second facteur : \emph{MFA obligatoire}, dans la page de configuration. Il active l'\gls{mfa}. Il est désactivé dans le profil par défaut (domicile) et activé dans les profils bureau et haute sécurité. Le tableau~\ref{tab:mfa} compare les deux états.
 
 \begin{table}[H]
 \centering
@@ -516,7 +516,7 @@ Le troisième (figure~\ref{fig:seq3}) concerne l'enrichissement d'un profil. Si 
 
 Cette section décrit la base de données et les mesures qui limitent la conservation des données.
 
-La base est un fichier SQLite~\cite{sqlite_about} local, exclu du dépôt de code. Elle contient cinq tables (figure~\ref{fig:donnees}). Un profil peut avoir plusieurs vecteurs, au plus 30, et plusieurs événements au journal. Les tables de configuration et des caméras sont indépendantes des autres.
+La base est un fichier SQLite~\cite{sqlite_about} local, exclu du dépôt de code. Elle contient six tables (figure~\ref{fig:donnees}). Un profil peut avoir plusieurs vecteurs, au plus 30, et plusieurs événements au journal. Les tables de configuration, des caméras et des messages Telegram sont indépendantes des autres.
 
 \begin{figure}[H]
 \centering
@@ -524,8 +524,9 @@ La base est un fichier SQLite~\cite{sqlite_about} local, exclu du dépôt de cod
   \node[tbl] (P) at (0,0) {\textbf{profiles}\nodepart{two}\underline{id}\\name (unique)\\role (VIP ou INTRUS)\\created\_at};
   \node[tbl] (E) at (-5.6,0) {\textbf{embeddings}\nodepart{two}\underline{id}\\profile\_id (FK)\\vector\_json (512 nombres)\\created\_at};
   \node[tbl] (L) at (5.6,0) {\textbf{event\_logs}\nodepart{two}\underline{id}\\profile\_id (FK)\\confidence\\event\_type\\snapshot\_path\\timestamp};
-  \node[tbl] (C) at (-3,-4) {\textbf{cameras}\nodepart{two}\underline{id}\\cam\_id (unique)\\name, type (usb, mjpeg, rtsp)\\url, usb\_index, zone\\active, created\_at};
-  \node[tbl] (S) at (3,-4) {\textbf{system\_config}\nodepart{two}\underline{key}\\value\\updated\_at};
+  \node[tbl] (C) at (-5.6,-4) {\textbf{cameras}\nodepart{two}\underline{id}\\cam\_id (unique)\\name, type (usb, mjpeg, rtsp)\\url, usb\_index, zone\\active, created\_at};
+  \node[tbl] (S) at (0,-4) {\textbf{system\_config}\nodepart{two}\underline{key}\\value\\updated\_at};
+  \node[tbl] (T) at (5.6,-4) {\textbf{telegram\_messages}\nodepart{two}\underline{id}\\chat\_id\\message\_id\\sent\_at};
   \draw (E.east) -- node[above, pos=0.12, font=\tiny] {0..*} node[above, pos=0.88, font=\tiny] {1} (P.west);
   \draw (L.west) -- node[above, pos=0.12, font=\tiny] {0..*} node[above, pos=0.88, font=\tiny] {1} (P.east);
 \end{tikzpicture}
@@ -543,6 +544,7 @@ Plusieurs mesures limitent la conservation des données :
 \begin{itemize}
   \item les photos sont supprimées automatiquement après 72 heures, au démarrage du serveur puis toutes les heures ; seul le chemin de la photo est effacé, les lignes du journal restent pour l'historique et les statistiques ;
   \item la photo d'un intrus provisoire qui ne sera jamais confirmé est supprimée immédiatement ;
+  \item les messages d'alerte envoyés par Telegram sont supprimés de la conversation après 24 heures par défaut ;
   \item un événement du journal peut être supprimé avec sa photo ;
   \item les identifiants des canaux d'alerte ne sont jamais renvoyés en clair par l'interface, mais ils sont enregistrés en clair dans la base, protégée seulement par le système de fichiers.
 \end{itemize}
@@ -561,7 +563,14 @@ La fenêtre de grâce dure 60 secondes dans le profil par défaut, et de 5 à 12
 
 Le courrier électronique et WhatsApp sont des perspectives. Le module d'envoi par courrier est fonctionnel : il joint la photo au message, après négociation d'une connexion chiffrée~\cite{rfc3207}, et ses tests automatiques utilisent un serveur simulé. Il n'a pas été essayé avec un vrai serveur de messagerie.
 
-La photo envoyée par Telegram quitte le traitement local et transite par un service extérieur. La purge de 72 heures ne concerne que le disque du serveur. La suppression automatique des photos envoyées, trois jours après l'envoi, est une perspective prévue avant la soutenance.
+La photo envoyée par Telegram quitte le traitement local et transite par un service extérieur. Les messages envoyés sont donc supprimés de la conversation après un délai, de 24 heures par défaut :
+\begin{itemize}
+  \item chaque message envoyé est enregistré dans une table, avec l'identifiant de la conversation et celui du message ;
+  \item la tâche de purge, au démarrage du serveur puis toutes les heures, supprime ceux qui ont dépassé le délai ;
+  \item le délai est plafonné à 47 heures, car l'interface des robots ne supprime qu'un message de moins de 48 heures~\cite{telegram_botapi} ;
+  \item une route protégée par le jeton permet de lancer cette suppression à la main.
+\end{itemize}
+Un essai réel a supprimé un message de test. Le chemin d'une alerte avec photo n'est couvert que par des tests automatiques, et les messages envoyés avant cette version restent dans la conversation.
 
 \section{Paramètres et profils de sécurité}
 
@@ -636,7 +645,8 @@ Fenêtre de grâce & Délai avant de confirmer un intrus provisoire. Plus long :
 Délai minimal entre deux alertes & Évite l'envoi de nombreux messages pour une même personne. & 30 s & Fichier \\
 Canaux d'alerte & Activent l'envoi par Telegram et par courrier électronique. & désactivés & Page Alertes, profil \\
 Conservation des photos & Durée avant la suppression automatique des photos. & 72 h & Curseur, de 24 à 720 h \\
-Période de la purge & Fréquence du contrôle des photos à supprimer. & 60 min & Fichier \\
+Période de la purge & Fréquence du contrôle des photos et des messages à supprimer. & 60 min & Fichier \\
+Suppression des messages Telegram & Délai avant la suppression d'un message d'alerte dans la conversation. Plafonné à 47 h ; 0 désactive la suppression. & 24 h & Fichier \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -646,7 +656,7 @@ Période de la purge & Fréquence du contrôle des photos à supprimer. & 60 min
 Cette section décrit le comportement du système face aux défaillances. L'échec d'un élément périphérique ne doit pas bloquer l'analyse. Le comportement prévu face aux principales défaillances, tel qu'il est écrit dans le code, est le suivant :
 
 \begin{itemize}
-  \item \textbf{Flux vidéo interrompu} : le serveur libère la source et tente de la rouvrir, toutes les secondes après une lecture ratée et toutes les trois secondes si l'ouverture échoue. La caméra BW21-CBV se reconnecte de son côté au réseau Wi-Fi ;
+  \item \textbf{Flux vidéo interrompu} : le serveur libère la source et tente de la rouvrir, toutes les secondes après une lecture ratée et toutes les trois secondes si l'ouverture échoue. La caméra BW21-CBV se reconnecte de son côté au dernier réseau enregistré ;
   \item \textbf{Analyse plus lente que la caméra} : les images attendent dans une file de quatre places. Si elle est pleine, l'image est abandonnée, et le fil de capture ne se bloque jamais ;
   \item \textbf{Second avis de MediaPipe indisponible} : un avertissement est journalisé et le détecteur de Haar décide seul. Le risque de prendre un pli de vêtement pour un visage réapparaît alors ;
   \item \textbf{Envoi d'alerte impossible} (délai dépassé, service injoignable, requête refusée) : l'envoi se fait dans un fil séparé, qui ne ralentit pas l'analyse. L'erreur est journalisée avec un message explicite, dans lequel le jeton Telegram est masqué. Il n'y a pas de nouvelle tentative ;
