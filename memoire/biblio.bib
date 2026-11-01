@@ -1,5 +1,5 @@
-% Références vérifiées par recherche web (métadonnées recoupées sur plusieurs sites).
-% Textes complets non relus : voir les notes dans la conversation avec l'assistant.
+% Références vérifiées (rapport de vérification du 1er novembre 2026, niveaux A ou B uniquement).
+% Le style abbrv n'imprime ni url ni doi : ils sont placés dans howpublished ou note.
 
 @inproceedings{schroff2015facenet,
   author    = {Schroff, Florian and Kalenichenko, Dmitry and Philbin, James},
@@ -7,7 +7,7 @@
   booktitle = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
   pages     = {815--823},
   year      = {2015},
-  doi       = {10.1109/CVPR.2015.7298682}
+  note      = {DOI : 10.1109/CVPR.2015.7298682}
 }
 
 @inproceedings{redmon2016yolo,
@@ -16,7 +16,7 @@
   booktitle = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
   pages     = {779--788},
   year      = {2016},
-  doi       = {10.1109/CVPR.2016.91}
+  note      = {DOI : 10.1109/CVPR.2016.91}
 }
 
 @article{shi2016edge,
@@ -27,7 +27,7 @@
   number  = {5},
   pages   = {637--646},
   year    = {2016},
-  doi     = {10.1109/JIOT.2016.2579198}
+  note    = {DOI : 10.1109/JIOT.2016.2579198}
 }
 
 @inproceedings{serengil2020lightface,
@@ -36,7 +36,7 @@
   booktitle = {2020 Innovations in Intelligent Systems and Applications Conference (ASYU)},
   publisher = {IEEE},
   year      = {2020},
-  doi       = {10.1109/ASYU50717.2020.9259802}
+  note      = {DOI : 10.1109/ASYU50717.2020.9259802}
 }
 
 @misc{iso30107,
@@ -48,31 +48,52 @@
 
 @misc{ftc2023ring,
   author       = {{Federal Trade Commission}},
-  title        = {{FTC} Says {Ring} Employees Illegally Surveilled Customers, Failed to Stop Hackers from Taking Control of Users' Cameras},
+  title        = {{FTC v. Ring LLC}, Complaint for Permanent Injunction and Other Relief, Case No. 1:23-cv-1549},
+  howpublished = {U.S. District Court for the District of Columbia, d\'epos\'ee le 31 mai 2023. \url{https://www.ftc.gov/system/files/ftc_gov/pdf/complaint_ring.pdf}},
   year         = {2023},
-  howpublished = {Communiqu\'e de presse, mai 2023}
+  note         = {Consult\'e le 1\textsuperscript{er} novembre 2026}
 }
 
-@misc{rgpd2016,
+@misc{ftc2023ringpr,
+  author       = {{Federal Trade Commission}},
+  title        = {{FTC} Says {Ring} Employees Illegally Surveilled Customers, Failed to Stop Hackers from Taking Control of Users' Cameras},
+  howpublished = {Communiqu\'e de presse. \url{https://www.ftc.gov/news-events/news/press-releases/2023/05/ftc-says-ring-employees-illegally-surveilled-customers-failed-stop-hackers-taking-control-users}},
+  year         = {2023},
+  note         = {Consult\'e le 1\textsuperscript{er} novembre 2026}
+}
+
+@misc{ue2016rgpd,
   author       = {{Parlement europ\'een et Conseil de l'Union europ\'eenne}},
   title        = {R\`eglement (UE) 2016/679 du 27 avril 2016 relatif \`a la protection des personnes physiques \`a l'\'egard du traitement des donn\'ees \`a caract\`ere personnel et \`a la libre circulation de ces donn\'ees (RGPD)},
-  year         = {2016},
-  howpublished = {Journal officiel de l'Union europ\'eenne, L 119, 4 mai 2016. \url{https://eur-lex.europa.eu/eli/reg/2016/679/oj/fra}}
+  howpublished = {Journal officiel de l'Union europ\'eenne, L 119, p. 1--88. \url{https://eur-lex.europa.eu/legal-content/FR/TXT/HTML/?uri=CELEX:32016R0679}},
+  year         = {2016}
 }
 
-@misc{benin2018code,
+@misc{benin2018codenumerique,
   author       = {{R\'epublique du B\'enin}},
-  title        = {Loi n\textdegree{} 2017-20 portant code du num\'erique en R\'epublique du B\'enin, Livre~V : protection des donn\'ees \`a caract\`ere personnel},
+  title        = {Loi n\textdegree{} 2017-20 du 20 avril 2018 portant code du num\'erique en R\'epublique du B\'enin},
+  howpublished = {Secr\'etariat g\'en\'eral du Gouvernement. \url{https://sgg.gouv.bj/upload/files/documentheque/0246712001524573416.pdf}},
   year         = {2018},
-  howpublished = {\url{https://sgg.gouv.bj/doc/loi-2017-20/download}}
+  note         = {Consult\'e le 1\textsuperscript{er} novembre 2026}
 }
 
-@article{bestrowden2017longitudinal,
+@article{bestrowden2018longitudinal,
   author  = {Best-Rowden, Lacey and Jain, Anil K.},
   title   = {Longitudinal Study of Automatic Face Recognition},
   journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
-  year    = {2017},
-  doi     = {10.1109/TPAMI.2017.2652466}
+  volume  = {40},
+  number  = {1},
+  pages   = {148--162},
+  year    = {2018},
+  note    = {DOI : 10.1109/TPAMI.2017.2652466}
+}
+
+@inproceedings{deb2017aging,
+  author    = {Deb, Debayan and Best-Rowden, Lacey and Jain, Anil K.},
+  title     = {Face Recognition Performance Under Aging},
+  booktitle = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) Workshops},
+  pages     = {46--54},
+  year      = {2017}
 }
 
 @inproceedings{viola2001rapid,
@@ -80,7 +101,7 @@
   title     = {Rapid Object Detection using a Boosted Cascade of Simple Features},
   booktitle = {Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition (CVPR)},
   year      = {2001},
-  doi       = {10.1109/CVPR.2001.990517}
+  note      = {DOI : 10.1109/CVPR.2001.990517}
 }
 
 @article{turk1991eigenfaces,
@@ -91,7 +112,7 @@
   number  = {1},
   pages   = {71--86},
   year    = {1991},
-  doi     = {10.1162/jocn.1991.3.1.71}
+  note    = {DOI : 10.1162/jocn.1991.3.1.71}
 }
 
 @techreport{huang2007lfw,
@@ -108,21 +129,76 @@
   booktitle = {Proceedings of the IEEE International Conference on Computer Vision (ICCV)},
   pages     = {1--8},
   year      = {2007},
-  doi       = {10.1109/ICCV.2007.4409068}
+  note      = {DOI : 10.1109/ICCV.2007.4409068}
 }
 
-@misc{apple2023faceid,
-  author       = {{Apple}},
-  title        = {About Face ID advanced technology},
-  year         = {2023},
-  howpublished = {Assistance Apple. \url{https://support.apple.com/102381}. Consult\'e le \textcolor{red}{\textbf{[date \`a renseigner]}}}
+@misc{apple2026faceid,
+  author       = {{Apple Inc.}},
+  title        = {About {Face ID} advanced technology},
+  howpublished = {Apple Support, article 102381, publi\'e le 18 septembre 2026. \url{https://support.apple.com/en-us/102381}},
+  year         = {2026},
+  note         = {Consult\'e le 1\textsuperscript{er} novembre 2026}
 }
 
-@misc{google2024nestfaces,
+@misc{google2026familiarface,
   author       = {{Google}},
   title        = {Learn about familiar face detection},
-  year         = {2024},
-  howpublished = {Aide Google Nest. \url{https://support.google.com/googlenest/answer/9268625}. Consult\'e le \textcolor{red}{\textbf{[date \`a renseigner]}}}
+  howpublished = {Google Home and Nest Help, r\'eponse 9268625. \url{https://support.google.com/googlenest/answer/9268625}},
+  year         = {2026},
+  note         = {Consult\'e le 1\textsuperscript{er} novembre 2026}
+}
+
+@misc{frigate_face_recognition,
+  author       = {{Frigate}},
+  title        = {Face Recognition},
+  howpublished = {Documentation officielle de Frigate. \url{https://docs.frigate.video/configuration/face_recognition}},
+  year         = {2026},
+  note         = {Consult\'e le 1\textsuperscript{er} novembre 2026}
+}
+
+@misc{cnil2019reglementtype,
+  author       = {{CNIL}},
+  title        = {D\'elib\'eration n\textdegree{} 2019-001 du 10 janvier 2019 portant r\`eglement type relatif \`a la mise en \oe{}uvre de dispositifs ayant pour finalit\'e le contr\^ole d'acc\`es par authentification biom\'etrique aux locaux, aux appareils et aux applications informatiques sur les lieux de travail},
+  howpublished = {\url{https://www.cnil.fr/sites/default/files/atoms/files/deliberation-2019-001-10-01-2019-reglement-type-controle-dacces-biometrique.pdf}},
+  year         = {2019}
+}
+
+@misc{widjaya2023challenge,
+  author       = {Widjaya, Christian and Wicaksana, Arya},
+  title        = {Liveness Detection with Randomized Challenge-Response for Face Recognition Anti-Spoofing},
+  howpublished = {International Journal of Innovative Computing, Information and Control, 19(2), pp. 419--430. \url{http://www.ijicic.org/ijicic-190208.pdf}},
+  year         = {2023}
+}
+
+@article{chakraborty2014overview,
+  author  = {Chakraborty, Saptarshi and Das, Dhrubajyoti},
+  title   = {An Overview of Face Liveness Detection},
+  journal = {International Journal on Information Theory},
+  volume  = {3},
+  number  = {2},
+  pages   = {11--25},
+  year    = {2014},
+  note    = {DOI : 10.5121/ijit.2014.3202}
+}
+
+@article{raheem2019insight,
+  author  = {Raheem, Enas A. and Syed Ahmad, Sharifah Mumtazah and Wan Adnan, Wan Azizun},
+  title   = {Insight on face liveness detection: A systematic literature review},
+  journal = {International Journal of Electrical and Computer Engineering (IJECE)},
+  volume  = {9},
+  number  = {6},
+  pages   = {5165--5175},
+  year    = {2019},
+  note    = {DOI : 10.11591/ijece.v9i6.pp5165-5175}
+}
+
+@techreport{grother2019nistir8280,
+  author      = {Grother, Patrick and Ngan, Mei and Hanaoka, Kayee},
+  title       = {Face Recognition Vendor Test ({FRVT}) Part 3: Demographic Effects},
+  institution = {National Institute of Standards and Technology},
+  number      = {NISTIR 8280},
+  year        = {2019},
+  note        = {DOI : 10.6028/NIST.IR.8280}
 }
 
 @mastersthesis{ayiwahoun2025pointage,
@@ -131,4 +207,47 @@
   school = {Institut de Formation et de Recherche en Informatique, Universit\'e d'Abomey-Calavi},
   type   = {M\'emoire de Licence en Informatique},
   year   = {2025}
+}
+
+% ---- Références vérifiées, pas encore citées (chapitres 2 et 3) ----
+
+@misc{serengil_deepface_thresholds,
+  author       = {Serengil, Sefik Ilkin},
+  title        = {deepface : deepface/config/threshold.py},
+  howpublished = {GitHub, branche master. \url{https://github.com/serengil/deepface/blob/master/deepface/config/threshold.py}},
+  year         = {2026},
+  note         = {Consult\'e le 1\textsuperscript{er} novembre 2026}
+}
+
+@misc{benin2021loi202035,
+  author       = {{R\'epublique du B\'enin}},
+  title        = {Loi n\textdegree{} 2020-35 du 6 janvier 2021 modifiant la loi n\textdegree{} 2017-20 du 20 avril 2018 portant code du num\'erique en R\'epublique du B\'enin},
+  howpublished = {Secr\'etariat g\'en\'eral du Gouvernement. \url{https://sgg.gouv.bj/doc/loi-2020-35/download}},
+  year         = {2021}
+}
+
+@article{terhorst2022biases,
+  author  = {Terh{\"o}rst, Philipp and Kolf, Jan Niklas and Huber, Marco and Kirchbuchner, Florian and Damer, Naser and Morales, Aythami and Fierrez, Julian and Kuijper, Arjan},
+  title   = {A Comprehensive Study on Face Recognition Biases Beyond Demographics},
+  journal = {IEEE Transactions on Technology and Society},
+  volume  = {3},
+  number  = {1},
+  pages   = {16--30},
+  year    = {2022},
+  note    = {DOI : 10.1109/TTS.2021.3111823}
+}
+
+@inproceedings{soukupova2016eyeblink,
+  author    = {Soukupov{\'a}, Tereza and {\v{C}}ech, Jan},
+  title     = {Real-Time Eye Blink Detection using Facial Landmarks},
+  booktitle = {Computer Vision Winter Workshop (CVWW), Rimske Toplice, Slov\'enie},
+  year      = {2016},
+  note      = {\url{https://vision.fe.uni-lj.si/cvww2016/proceedings/papers/05.pdf}}
+}
+
+@misc{kartynnik2019facemesh,
+  author       = {Kartynnik, Yury and Ablavatski, Artsiom and Grishchenko, Ivan and Grundmann, Matthias},
+  title        = {Real-time Facial Surface Geometry from Monocular Video on Mobile GPUs},
+  howpublished = {CVPR Workshop on Computer Vision for Augmented and Virtual Reality, Long Beach. arXiv:1907.06724},
+  year         = {2019}
 }

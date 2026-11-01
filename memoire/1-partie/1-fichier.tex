@@ -23,9 +23,9 @@ Une fois les vecteurs obtenus, l'identification revient à comparer le vecteur d
 
 \subsection{Anti-usurpation et test de vivacité}
 
-Une attaque de présentation consiste à présenter au capteur une reproduction du visage d'une personne autorisée, par exemple une photographie imprimée ou affichée sur un écran\glsadd{antispoofing}. La norme ISO/IEC~30107-3, publiée par l'Organisation internationale de normalisation et la Commission électrotechnique internationale, définit comment évaluer et rapporter les performances des mécanismes de détection de ces attaques et classe les attaques connues, sans imposer de technique particulière~\cite{iso30107}.
+Une attaque de présentation consiste à présenter au capteur une reproduction du visage d'une personne autorisée, par exemple une photographie imprimée ou affichée sur un écran\glsadd{antispoofing}. La norme ISO/IEC~30107-3, publiée par l'Organisation internationale de normalisation et la Commission électrotechnique internationale, définit comment évaluer et rapporter les performances des mécanismes de détection de ces attaques et classe les attaques connues, sans imposer de technique particulière~\cite{iso30107}. Une simple photographie de portrait est un moyen facile d'usurper un système de reconnaissance faciale~\cite{chakraborty2014overview}.
 
-Parmi les techniques, le test de vivacité (\emph{liveness})\glsadd{liveness} vérifie que le visage présenté appartient à une personne vivante. Pan et ses collègues s'appuient sur les clignements spontanés des yeux, détectés avec une caméra ordinaire et sans matériel supplémentaire~\cite{pan2007eyeblink}. Cette approche est passive. Une approche active demande au contraire à l'utilisateur d'accomplir un geste, comme sourire ou cligner des yeux : c'est celle qu'adopte BioGate (chapitre~\ref{chap:2}).
+Parmi les techniques, le test de vivacité (\emph{liveness})\glsadd{liveness} vérifie que le visage présenté appartient à une personne vivante. Pan et ses collègues s'appuient sur les clignements spontanés des yeux, détectés avec une caméra ordinaire et sans matériel supplémentaire~\cite{pan2007eyeblink}. Cette approche est passive. Une approche active, dite par défi-réponse, demande au contraire à l'utilisateur d'accomplir un geste : Widjaya et Wicaksana tirent au hasard un défi parmi l'ouverture de la bouche, le clignement des yeux et la rotation de la tête~\cite{widjaya2023challenge}. C'est le principe qu'adopte BioGate (chapitre~\ref{chap:2}). Une revue systématique de 65 articles recense les méthodes de détection de vivacité~\cite{raheem2019insight}.
 
 \subsection{Edge Computing}
 
@@ -33,25 +33,29 @@ L'Edge Computing\glsadd{edge} déplace le traitement des données vers la périp
 
 \subsection{Évolution du visage dans le temps}
 
-Le visage d'une personne change avec le temps : vieillissement, rides, barbe. Best-Rowden et Jain ont étudié l'effet de l'écart de temps sur la reconnaissance, à partir des photographies de 23~600 personnes arrêtées à plusieurs reprises. D'après leur étude, la précision commence à baisser lorsque plus de six ans séparent les images comparées, et le rythme du vieillissement varie d'une personne à l'autre~\cite{bestrowden2017longitudinal}.
+Le visage d'une personne change avec le temps, par vieillissement ou par modification de la pilosité faciale. Best-Rowden et Jain ont étudié l'effet de l'écart de temps sur la reconnaissance, à partir de deux bases de photographies d'identité judiciaire qui comptent au total 23~643 sujets (5~636 et 18~007). D'après leur résumé, 99~\% des sujets restent reconnus, avec un taux de fausse acceptation de 0,01~\%, jusqu'à environ six ans d'écart ; la proportion de sujets reconnus diminue ensuite~\cite{bestrowden2018longitudinal}. Ce seuil dépend de l'algorithme : avec d'autres systèmes commerciaux, Deb et ses collègues obtiennent le même taux de reconnaissance jusqu'à 10,5 ans ou 8,5 ans selon la base, et constatent une perte de précision significative au-delà de 8,5 ans~\cite{deb2017aging}.
 
-Les systèmes grand public en tiennent compte. Face ID s'adapte automatiquement aux changements d'apparence tels que le maquillage ou la pousse d'une barbe, et demande le code de l'appareil avant de mettre à jour les données du visage pour un changement plus important, comme le rasage d'une barbe complète~\cite{apple2023faceid}.
+Les systèmes grand public en tiennent compte. Face ID s'adapte automatiquement aux changements d'apparence tels que le maquillage ou la pousse d'une barbe, et demande le code de l'appareil avant de mettre à jour les données du visage pour un changement plus important, comme le rasage d'une barbe complète~\cite{apple2026faceid}.
 
 \section{Solutions existantes}
 
 \subsection{Caméras connectées reliées à un service en ligne}
 
-Les caméras connectées grand public confient en général leurs vidéos à un service du fabricant. En 2023, la \gls{ftc}, autorité américaine de protection des consommateurs, a reproché à Ring d'avoir donné à ses employés un accès étendu aux vidéos de ses clients, et de ne pas avoir empêché des pirates de prendre le contrôle de caméras d'utilisateurs~\cite{ftc2023ring}.
+Les caméras connectées grand public confient en général leurs vidéos à un service du fabricant. En 2023, la \gls{ftc}, autorité américaine de protection des consommateurs, a accusé Ring d'avoir donné à tous ses employés, ainsi qu'à des sous-traitants, un accès complet aux vidéos de ses clients~\cite{ftc2023ring}, et de ne pas avoir empêché des pirates de prendre le contrôle de caméras d'utilisateurs~\cite{ftc2023ringpr}.
 
-Google Nest propose une détection de visages familiers dont le traitement est partagé. La caméra calcule une empreinte du visage et effectue l'identification, tandis que la bibliothèque d'images est gérée par Nest Aware, le service en ligne de Google. La fonction exige un abonnement et n'est proposée que dans quelques pays : États-Unis, Canada, Japon et Australie~\cite{google2024nestfaces}.
+Google Nest propose une détection de visages familiers. Selon les modèles, les données de ces visages sont conservées dans le service en ligne, où elles sont chiffrées, ou dans la mémoire interne de la caméra. La page d'aide ne précise pas où la comparaison est calculée. La fonction exige un abonnement, et la version française de la page indique qu'elle n'est disponible qu'en Australie, au Canada, aux États-Unis et au Japon~\cite{google2026familiarface}.
 
 \subsection{Face ID}
 
-Face ID est la solution de reconnaissance faciale d'Apple. Les données du visage, y compris leurs représentations mathématiques, sont chiffrées et protégées par le Secure Enclave\glsadd{secureenclave}, un composant sécurisé de l'appareil, où se fait aussi la comparaison. Le système vérifie que les yeux sont ouverts et que l'attention est dirigée vers l'appareil, et utilise des réseaux de neurones contre l'usurpation~\cite{apple2023faceid}.
+Face ID est la solution de reconnaissance faciale d'Apple. Les données du visage, y compris leurs représentations mathématiques, sont chiffrées et protégées par le Secure Enclave\glsadd{secureenclave}, un composant sécurisé de l'appareil, où se fait aussi la comparaison. Le système vérifie que les yeux sont ouverts et que l'attention est dirigée vers l'appareil, et utilise des réseaux de neurones contre l'usurpation~\cite{apple2026faceid}.
+
+\subsection{Frigate}
+
+Frigate est un enregistreur vidéo réseau dont la documentation décrit une fonction de reconnaissance faciale. Tous les traitements s'exécutent localement sur le système de l'utilisateur. Une connexion Internet n'est nécessaire qu'une seule fois, pour télécharger les modèles, qui fonctionnent ensuite hors ligne~\cite{frigate_face_recognition}.
 
 \subsection{Tableau comparatif}
 
-Le tableau~\ref{tab:comparatif} compare ces solutions à BioGate selon les trois critères retenus. Les cellules des solutions externes reprennent uniquement ce que disent les pages d'aide des fabricants ; la mention « non précisé » signifie que la source consultée n'en parle pas, et non que la fonction n'existe pas.
+Le tableau~\ref{tab:comparatif} compare ces solutions à BioGate selon les trois critères retenus. Les cellules des solutions externes reprennent uniquement ce que disent les pages d'aide des fabricants ; la mention « non mentionné » signifie que la page consultée n'en parle pas, et non que la fonction n'existe pas ; « non examiné » signifie que ce critère n'a pas été étudié dans ce travail.
 
 \begin{table}[H]
 \centering
@@ -61,8 +65,9 @@ Le tableau~\ref{tab:comparatif} compare ces solutions à BioGate selon les trois
 \toprule
 \textbf{Solution} & \textbf{Traitement des données} & \textbf{Vivacité} & \textbf{Adaptation au visage} \\
 \midrule
-Google Nest~\cite{google2024nestfaces} & Empreinte et identification sur la caméra, images gérées par un service en ligne & Non précisé & Non précisé \\
-Face ID~\cite{apple2023faceid} & Sur l'appareil, dans le Secure Enclave & Attention du regard et réseaux de neurones anti-usurpation & Adaptation automatique, code demandé pour les grands changements \\
+Google Nest~\cite{google2026familiarface} & Données de visages dans le service en ligne (chiffrées) ou dans la caméra selon le modèle ; lieu de la comparaison non précisé & Non mentionné & Décrite en termes généraux (la reconnaissance s'améliore avec le temps) \\
+Face ID~\cite{apple2026faceid} & Sur l'appareil, dans le Secure Enclave & Attention du regard et réseaux de neurones anti-usurpation & Adaptation automatique, code demandé pour les grands changements \\
+Frigate~\cite{frigate_face_recognition} & En local ; téléchargement unique des modèles & Non examiné & Non examiné \\
 BioGate & En local sur le serveur Edge & Défi actif (sourire, clignement) & Apprentissage continu confirmé par une authentification complémentaire \\
 \bottomrule
 \end{tabularx}
@@ -70,9 +75,13 @@ BioGate & En local sur le serveur Edge & Défi actif (sourire, clignement) & App
 
 \section{Cadre légal et éthique des données biométriques}
 
-Le \gls{rgpd} range les données biométriques traitées pour identifier une personne de manière unique parmi les catégories particulières de données : leur traitement est interdit en principe, sauf exception, dont le consentement explicite de la personne concernée~\cite{rgpd2016}. Le règlement pose aussi des principes de minimisation des données et de limitation de leur durée de conservation.
+Le \gls{rgpd} définit les données biométriques (article 4, point 14) comme les données résultant d'un traitement technique spécifique, relatives aux caractéristiques physiques d'une personne et qui permettent ou confirment son identification unique, telles que des images faciales. Il interdit leur traitement aux fins d'identifier une personne de manière unique (article 9, paragraphe 1), sauf exception, dont le consentement explicite de la personne concernée (article 9, paragraphe 2, point a). Il pose aussi des principes de minimisation des données et de limitation de leur conservation (article 5, paragraphe 1, points c et e). Selon le considérant 51, les photographies ne relèvent de la définition des données biométriques que lorsqu'elles sont traitées par un moyen technique spécifique permettant l'identification ou l'authentification unique d'une personne~\cite{ue2016rgpd}.
 
-Au Bénin, le Livre~V du Code du numérique, institué par la loi n\textsuperscript{o}~2017-20, encadre la protection des données à caractère personnel. Il a remplacé la loi n\textsuperscript{o}~2009-9 et son application relève de l'\gls{apdp}~\cite{benin2018code}.
+Au Bénin, le Livre~V du Code du numérique, issu de la loi n\textsuperscript{o}~2017-20 du 20 avril 2018, encadre la protection des données à caractère personnel~\cite{benin2018codenumerique}. Il interdit en principe le traitement de données sensibles, dont les données biométriques (article 394), exige une déclaration préalable pour les traitements de données à caractère personnel (article 405) et soumet à l'autorisation préalable de l'\gls{apdp} les traitements comportant des données biométriques (article 407, 3\textsuperscript{o}). \adonner{Articles 394, 405 et 407 à contrôler sur le scan officiel : le texte lu est une reconnaissance de caractères dégradée}
+
+À titre de comparaison, le règlement type de la CNIL sur le contrôle d'accès biométrique vise les employeurs et les lieux de travail, et n'a pas force de loi au Bénin. Il demande que les enregistrements bruts, comme les photographies, ne soient traités que le temps nécessaire au calcul des gabarits, et que les gabarits soient conservés sous forme chiffrée~\cite{cnil2019reglementtype}. Il sert ici de référence de bonnes pratiques.
+
+Sur le plan éthique, le rapport 8280 du NIST mesure l'effet de l'origine, du sexe et de l'âge sur les erreurs de plusieurs algorithmes : les fausses acceptations sont plus fréquentes chez les femmes que chez les hommes, ainsi que chez les personnes âgées et les enfants, et les écarts selon l'origine peuvent atteindre un facteur 100 mais varient fortement d'un algorithme à l'autre~\cite{grother2019nistir8280}. Les modèles utilisés par BioGate n'ont pas fait l'objet d'une telle évaluation dans ce travail.
 
 Pour un système comme BioGate, il en résulte deux exigences : recueillir le consentement explicite des personnes enrôlées et limiter la conservation des images. Le chapitre~\ref{chap:2} présente les mesures retenues, dont la purge automatique des photos d'intrus.
 
@@ -80,7 +89,7 @@ Pour un système comme BioGate, il en résulte deux exigences : recueillir le co
 
 \subsection{Ce que les solutions existantes offrent et que BioGate n'offre pas}
 
-Face ID et Google Nest sont des produits finis. Face ID protège les données du visage dans un composant matériel dédié, vérifie l'attention de l'utilisateur et emploie des réseaux de neurones spécialisés contre l'usurpation~\cite{apple2023faceid}. BioGate ne dispose d'aucun de ces éléments : il s'exécute sur du matériel ordinaire (ordinateur personnel ou micro-ordinateur monocarte de type Raspberry Pi) et sa vérification de vivacité repose sur un geste demandé à l'utilisateur. Face ID, produit industriel mature, offre vraisemblablement de meilleures performances que BioGate ; ce travail ne cherche ni à les égaler ni à les mesurer.
+Face ID et Google Nest sont des produits finis. Face ID protège les données du visage dans un composant matériel dédié, vérifie l'attention de l'utilisateur et emploie des réseaux de neurones spécialisés contre l'usurpation~\cite{apple2026faceid}. BioGate ne dispose d'aucun de ces éléments : il s'exécute sur du matériel ordinaire (ordinateur personnel ou micro-ordinateur monocarte de type Raspberry Pi) et sa vérification de vivacité repose sur un geste demandé à l'utilisateur. Face ID, produit industriel mature, offre vraisemblablement de meilleures performances que BioGate ; ce travail ne cherche ni à les égaler ni à les mesurer.
 
 Ces produits bénéficient en outre d'une industrialisation et d'une maintenance suivies. BioGate, de son côté, n'a été évalué que sur un nombre limité de cas (chapitre~\ref{chap:3}) et n'a fait l'objet d'aucun audit de sécurité.
 
@@ -89,7 +98,7 @@ Ces produits bénéficient en outre d'une industrialisation et d'une maintenance
 Les solutions qui dépendent d'un service en ligne présentent trois limites.
 \begin{itemize}
   \item \textbf{Dépendance au réseau} : elles exigent une connexion Internet de qualité suffisante pour transmettre les flux vidéo, alors que le traitement local réduit justement le coût en bande passante~\cite{shi2016edge}.
-  \item \textbf{Coût} : certaines fonctions sont soumises à un abonnement payant, comme la détection de visages familiers de Google Nest~\cite{google2024nestfaces}.
+  \item \textbf{Coût} : certaines fonctions sont soumises à un abonnement payant, comme la détection de visages familiers de Google Nest~\cite{google2026familiarface}.
   \item \textbf{Sécurité et confidentialité} : elles confient des images de l'intérieur des foyers à un tiers. Le cas de Ring montre qu'un service de ce type peut donner à ses employés un accès excessif aux vidéos et ne pas empêcher des pirates de prendre le contrôle de caméras~\cite{ftc2023ring}. Un service centralisé qui héberge les images de nombreux foyers constitue en outre une cible plus intéressante qu'un système local isolé.
 \end{itemize}
 
@@ -113,4 +122,4 @@ La modularité ouvre des usages au-delà du domicile. Le système de pointage de
 \addcontentsline{toc}{section}{Conclusion}
 \section*{Conclusion}
 
-Ce chapitre a posé les notions de base du contrôle d'accès par reconnaissance faciale et montré que les solutions examinées ne réunissent pas, dans un système ouvert, le traitement local, la vérification de vivacité et l'adaptation aux évolutions du visage. Il a aussi précisé le statut de BioGate : un prototype, qui n'égale pas les produits aboutis mais qui démontre la faisabilité de cette combinaison. Il a aussi rappelé le cadre légal qui s'impose aux données biométriques. Le chapitre suivant présente l'analyse des besoins, l'architecture de BioGate et les choix techniques qui répondent à ces constats.
+Ce chapitre a posé les notions de base du contrôle d'accès par reconnaissance faciale et montré que, dans la documentation consultée, le traitement local, la vérification de vivacité et l'adaptation aux évolutions du visage ne sont pas documentés ensemble pour les solutions examinées ; Frigate n'a toutefois été examiné que sur son traitement local. Il a aussi précisé le statut de BioGate : un prototype, qui n'égale pas les produits aboutis mais qui démontre la faisabilité de cette combinaison. Il a aussi rappelé le cadre légal qui s'impose aux données biométriques. Le chapitre suivant présente l'analyse des besoins, l'architecture de BioGate et les choix techniques qui répondent à ces constats.
