@@ -408,6 +408,33 @@ Un visage inconnu est d'abord classé intrus provisoire. Une fenêtre de grâce 
 
 L'envoi par Telegram a une conséquence pour la vie privée : la photo de l'intrus quitte le traitement local et transite par un service extérieur pour atteindre le téléphone du propriétaire. La purge de 72 heures ne s'applique qu'au disque du serveur. La suppression automatique des photos déjà envoyées, trois jours après l'envoi, est prévue avant la soutenance mais n'est pas encore mise en œuvre : c'est une perspective.
 
+\section{Gestion des erreurs et des pannes}
+
+Le système est conçu pour que l'échec d'un élément périphérique ne bloque pas l'analyse. Le tableau~\ref{tab:pannes} décrit le comportement prévu face aux principales défaillances, tel qu'il est écrit dans le code.
+
+\begin{table}[H]
+\centering
+\caption{Comportement du système face aux défaillances}\label{tab:pannes}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{4.1cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Défaillance} & \textbf{Comportement} \\
+\midrule
+Flux vidéo interrompu & Le serveur libère la source et tente de la rouvrir, toutes les secondes après une lecture ratée, toutes les trois secondes si l'ouverture échoue. La caméra BW21-CBV se reconnecte de son côté au réseau Wi-Fi. \\
+Analyse plus lente que la caméra & Les images attendent dans une file de quatre places. Si elle est pleine, l'image est abandonnée, et le fil de capture ne se bloque jamais. \\
+Second avis MediaPipe indisponible ou en échec & Un avertissement est journalisé et le détecteur de Haar décide seul. Le risque de prendre un pli de vêtement pour un visage réapparaît alors. \\
+Envoi d'alerte impossible (délai dépassé, service injoignable, requête refusée) & L'envoi se fait dans un fil séparé qui ne ralentit pas l'analyse. L'erreur est journalisée avec un message explicite, dans lequel le jeton Telegram est masqué. Il n'y a pas de nouvelle tentative automatique. \\
+Photo absente au moment de l'alerte & Le message est envoyé sans photo. \\
+Actionneur injoignable & La requête a un délai d'une seconde et part dans un fil séparé. Dans le prototype, les actionneurs sont simulés. \\
+Second facteur non fourni à temps & L'accès est refusé après 15 secondes. L'échec du seul test de vivacité ferme ce canal sans refuser l'accès. \\
+Individu disparu avant le verdict & Une alerte de fuite est journalisée si un visage avait été vu. Un passage sans visage laisse seulement une trace discrète. \\
+Arrêt puis redémarrage du serveur & Les caméras et la configuration enregistrées sont rechargées, et la purge des photos s'exécute au démarrage pour rattraper l'arrêt. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Trois pannes ne sont pas traitées. Une coupure d'électricité arrête le serveur : les états de suivi et les tests de vivacité en cours, tenus en mémoire, sont perdus, et le jeton du tableau de bord, également en mémoire, impose un nouveau couplage. Une alerte qui échoue n'est pas renvoyée. Enfin, la perte de la connexion Internet interdit seulement l'alerte à distance, mais celle-ci n'est pas mise en file pour un envoi ultérieur. Ces limites sont reprises au chapitre~\ref{chap:3}.
+
 \section{Justification des choix techniques}
 
 Les choix ci-dessous reprennent les raisons consignées dans le journal de bord du projet.
