@@ -50,6 +50,17 @@ Le développement a suivi une démarche itérative et incrémentale, consignée 
 \end{itemize}
 Chaque défaut découvert est noté avec sa cause et sa correction. Ces notes fournissent les raisons des choix présentés dans ce chapitre.
 
+\subsection{Notation des schémas}
+
+Les schémas de ce chapitre suivent la notation UML. Les conventions de traits et de flèches sont les suivantes :
+\begin{itemize}
+  \item \textbf{Cas d'utilisation} : une ligne pleine relie un acteur à un cas d'utilisation. Une flèche pointillée marquée \guillemotleft{} extend \guillemotright{} relie un cas qui en complète un autre, sous condition ;
+  \item \textbf{Séquence} : une flèche pleine à pointe pleine est un appel synchrone, dont l'émetteur attend la réponse. Une flèche pleine à pointe ouverte est un message asynchrone, envoyé sans attendre. Une flèche pointillée est une réponse. Une boucle sur une même ligne de vie est un traitement interne, et un rectangle étroit sur une ligne de vie marque la période d'activité. Un cadre \emph{alt} regroupe des cas exclusifs, chacun précédé de sa condition entre crochets ;
+  \item \textbf{États} : un rond plein marque l'état initial. Une flèche relie deux états et porte l'événement qui déclenche le passage, avec sa condition entre crochets ;
+  \item \textbf{Données} : un trait relie deux tables, avec la multiplicité à chaque extrémité (1 ou 0..*) ;
+  \item \textbf{Architecture} : un cadre ou une flèche en pointillés désigne un élément simulé dans le prototype.
+\end{itemize}
+
 \subsection{Acteurs et cas d'utilisation}
 
 Cinq acteurs interagissent avec le système :
@@ -92,8 +103,8 @@ La figure~\ref{fig:usecase} représente les cas d'utilisation. La reconnaissance
   \draw (Pro) -- (U5); \draw (Pro) -- (U6); \draw (Pro) -- (U7); \draw (Pro) -- (U8);
   \draw (Tel) -- (U4);
   % extensions
-  \draw[->, dashed] (U2.north) -- node[ext, right] {\guillemotleft{} extend \guillemotright{}} (U1.south);
-  \draw[->, dashed] (U3.west) to[bend left=35] node[ext, left] {\guillemotleft{} extend \guillemotright{}} (U1.west);
+  \draw[dashed, -{Straight Barb[length=2mm]}] (U2.north) -- node[ext, right] {\guillemotleft{} extend \guillemotright{}} (U1.south);
+  \draw[dashed, -{Straight Barb[length=2mm]}] (U3.west) to[bend left=35] node[ext, left] {\guillemotleft{} extend \guillemotright{}} (U1.west);
 \end{tikzpicture}
 \caption{Diagramme de cas d'utilisation de BioGate}\label{fig:usecase}
 \end{figure}
@@ -319,26 +330,28 @@ Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etat
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[>={Stealth[length=2mm]},
+\begin{tikzpicture}[>={Straight Barb[length=2mm]},
   st/.style={draw, rounded corners, align=center, minimum height=1cm, inner sep=3pt, font=\scriptsize},
   lab/.style={font=\tiny, align=center, fill=white, inner sep=1pt}]
-  \node[st, minimum width=1.6cm] (idle) at (0,0) {IDLE};
-  \node[st, minimum width=2.4cm] (ana) at (3.1,0) {ANALYZING};
-  \node[st, minimum width=3.6cm] (grant) at (8.4,2.6) {GRANTED\\accès accordé};
-  \node[st, minimum width=3.6cm] (fp) at (8.4,0) {FINGERPRINT\_PENDING\\second facteur};
-  \node[st, minimum width=2.6cm] (den) at (13.8,0) {DENIED\\accès refusé};
-  \node[st, minimum width=3.6cm] (ip) at (8.4,-2.6) {INTRUDER\_PENDING\\intrus provisoire};
-  \node[st, minimum width=3.6cm] (ic) at (13.8,-2.6) {INTRUDER\_CONFIRMED\\alerte envoyée};
-  \draw[->] (idle) -- (ana);
-  \draw[->] (ana.north) -- node[lab, above left] {visage reconnu,\\MFA désactivée} (grant.west);
-  \draw[->] (ana) -- node[lab, above] {visage reconnu,\\MFA activée} (fp);
+  \node[circle, fill, inner sep=2.5pt] (init) at (0,0) {};
+  \node[st, minimum width=1.6cm] (idle) at (2.0,0) {IDLE};
+  \node[st, minimum width=2.4cm] (ana) at (4.9,0) {ANALYZING};
+  \node[st, minimum width=3.6cm] (grant) at (10.0,2.6) {GRANTED\\accès accordé};
+  \node[st, minimum width=3.6cm] (fp) at (10.0,0) {FINGERPRINT\_PENDING\\second facteur};
+  \node[st, minimum width=2.6cm] (den) at (14.9,0) {DENIED\\accès refusé};
+  \node[st, minimum width=3.6cm] (ip) at (10.0,-2.6) {INTRUDER\_PENDING\\intrus provisoire};
+  \node[st, minimum width=3.6cm] (ic) at (14.9,-2.6) {INTRUDER\_CONFIRMED\\alerte envoyée};
+  \draw[->] (init) -- (idle);
+  \draw[->] (idle) -- node[lab, above] {individu\\détecté} (ana);
+  \draw[->] (ana.north) -- node[lab, above left] {visage reconnu\\{[}MFA désactivée{]}} (grant.west);
+  \draw[->] (ana) -- node[lab, above] {visage reconnu\\{[}MFA activée{]}} (fp);
   \draw[->] (fp) -- node[lab, right] {empreinte ou\\vivacité réussie} (grant);
-  \draw[->] (fp) -- node[lab, above] {échec ou\\15 s} (den);
-  \draw[->] (ana.south) -- node[lab, above right, pos=0.55] {visage inconnu\\après 1 s} (ip.west);
+  \draw[->] (fp) -- node[lab, above] {échec ou\\{[}15 s{]}} (den);
+  \draw[->] (ana.south) -- node[lab, above right, pos=0.55] {visage inconnu\\{[}après 1 s{]}} (ip.west);
   \draw[->] (ip) -- node[lab, above] {grâce\\écoulée} (ic);
-  \draw[->] (ip.south) -- ++(0,-0.7) -| node[lab, pos=0.25, below] {résident reconnu : alerte annulée} (ana.south west);
+  \draw[->] (ip.south) -- ++(0,-0.7) -| node[lab, pos=0.25, below] {résident reconnu / alerte annulée} (ana.south west);
 \end{tikzpicture}
-\caption{Machine à états d'un individu suivi}\label{fig:etats}
+\caption{Diagramme d'états d'un individu suivi}\label{fig:etats}
 \end{figure}
 
 Le score de confiance accompagne chaque état :
@@ -415,18 +428,23 @@ Le premier (figure~\ref{fig:seq1}) concerne un résident qui se présente devant
   \seqhead{C}{6.0}{Serveur}
   \seqhead{D}{9.0}{Base\\SQLite}
   \seqhead{E}{12.0}{Tableau\\de bord}
-  \seqlife{A}{-8.8}\seqlife{B}{-8.8}\seqlife{C}{-8.8}\seqlife{D}{-8.8}\seqlife{E}{-8.8}
-  \seqmsg{0}{2.9}{-1.3}{se présente de face}{}
-  \seqmsg{2.9}{6.0}{-2.0}{images}{}
+  \seqlife{A}{-9.9}\seqlife{B}{-9.9}\seqlife{C}{-9.9}\seqlife{D}{-9.9}\seqlife{E}{-9.9}
+  \seqactiv{6.0}{-2.0}{-5.4}
+  \seqactiv{9.0}{-4.0}{-4.5}
+  \seqactiv{6.0}{-6.5}{-9.2}
+  \seqasync{0}{2.9}{-1.3}{se présente de face}
+  \seqasync{2.9}{6.0}{-2.0}{images}
   \seqself{6.0}{-2.6}{identification du visage (distance $<$ 0,35)}{2.2cm}
-  \seqmsg{6.0}{9.0}{-4.0}{journalise VIP\_ENTRY}{}
-  \seqmsg{6.0}{12.0}{-4.7}{identité et score de confiance}{}
-  \draw[dashed] (-0.7,-5.1) rectangle (12.9,-8.5);
-  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-5.1) {alt [MFA activée]};
-  \seqmsg{6.0}{12.0}{-5.9}{geste demandé}{}
-  \seqmsg{0}{2.9}{-6.5}{exécute le geste}{}
-  \seqmsg{2.9}{6.0}{-7.1}{images}{}
-  \seqself{6.0}{-7.5}{geste vérifié : accès accordé (85 \%)}{2.2cm}
+  \seqsync{6.0}{9.0}{-4.0}{journalise VIP\_ENTRY}
+  \seqret{9.0}{6.0}{-4.5}{ok}
+  \seqasync{6.0}{12.0}{-5.1}{identité et score de confiance}
+  \draw[dashed] (-0.7,-5.8) rectangle (12.9,-9.6);
+  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-5.8) {alt {[}MFA activée{]}};
+  \seqasync{6.0}{12.0}{-6.5}{geste demandé}
+  \seqasync{0}{2.9}{-7.1}{exécute le geste}
+  \seqasync{2.9}{6.0}{-7.7}{images}
+  \seqself{6.0}{-8.1}{geste vérifié (85 \%)}{2.2cm}
+  \seqasync{6.0}{12.0}{-9.0}{accès accordé}
 \end{tikzpicture}
 \caption{Diagramme de séquence : reconnaissance d'un résident}\label{fig:seq1}
 \end{figure}
@@ -442,19 +460,29 @@ Le deuxième (figure~\ref{fig:seq2}) concerne un visage inconnu. Une seconde apr
   \seqhead{D}{8.3}{Base\\SQLite}
   \seqhead{E}{10.9}{Service\\Telegram}
   \seqhead{F}{13.5}{Propriétaire}
-  \seqlife{A}{-9.3}\seqlife{B}{-9.3}\seqlife{C}{-9.3}\seqlife{D}{-9.3}\seqlife{E}{-9.3}\seqlife{F}{-9.3}
-  \seqmsg{0}{2.7}{-1.3}{se présente}{}
-  \seqmsg{2.7}{5.5}{-2.0}{images}{}
+  \seqlife{A}{-11.8}\seqlife{B}{-11.8}\seqlife{C}{-11.8}\seqlife{D}{-11.8}\seqlife{E}{-11.8}\seqlife{F}{-11.8}
+  \seqactiv{5.5}{-2.0}{-4.8}
+  \seqactiv{8.3}{-4.2}{-4.7}
+  \seqactiv{5.5}{-6.0}{-6.9}
+  \seqactiv{5.5}{-7.6}{-8.8}
+  \seqactiv{5.5}{-9.9}{-11.2}
+  \seqactiv{8.3}{-9.9}{-10.3}
+  \seqasync{0}{2.7}{-1.3}{se présente}
+  \seqasync{2.7}{5.5}{-2.0}{images}
   \seqself{5.5}{-2.6}{visage inconnu après 1 s : intrus provisoire, photo}{2.0cm}
-  \seqmsg{5.5}{8.3}{-4.1}{journalise INTRUDER\_PENDING}{}
-  \draw[dashed] (-0.7,-4.7) rectangle (14.4,-9.0);
-  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-4.7) {alt [résident reconnu pendant la grâce]};
-  \seqself{5.5}{-5.7}{alerte annulée, photo supprimée}{2.0cm}
-  \draw[dashed] (-0.7,-6.7) -- (14.4,-6.7);
-  \node[font=\tiny, anchor=north west] at (-0.6,-6.7) {[sinon, grâce écoulée]};
-  \seqmsg{5.5}{8.3}{-7.5}{INTRUDER\_CONFIRMED}{}
-  \seqmsg{5.5}{10.9}{-8.1}{message et photo}{}
-  \seqmsg{10.9}{13.5}{-8.7}{notification}{}
+  \seqsync{5.5}{8.3}{-4.2}{journalise INTRUDER\_PENDING}
+  \seqret{8.3}{5.5}{-4.7}{ok}
+  \draw[dashed] (-0.7,-5.2) rectangle (14.4,-11.5);
+  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-5.2) {alt {[}résident reconnu pendant la grâce{]}};
+  \seqself{5.5}{-6.0}{alerte annulée, photo supprimée}{2.0cm}
+  \draw[dashed] (-0.7,-7.2) -- (14.4,-7.2);
+  \node[font=\tiny, anchor=north west] at (-0.6,-7.2) {{[}individu hors du champ{]}};
+  \seqself{5.5}{-7.6}{minuteur annulé, photo supprimée, aucune alerte}{2.0cm}
+  \draw[dashed] (-0.7,-9.3) -- (14.4,-9.3);
+  \node[font=\tiny, anchor=north west] at (-0.6,-9.3) {{[}sinon, grâce écoulée{]}};
+  \seqsync{5.5}{8.3}{-9.9}{INTRUDER\_CONFIRMED}
+  \seqasync{5.5}{10.9}{-10.5}{message et photo}
+  \seqasync{10.9}{13.5}{-11.1}{notification}
 \end{tikzpicture}
 \caption{Diagramme de séquence : détection d'un visage inconnu et alerte}\label{fig:seq2}
 \end{figure}
@@ -468,14 +496,18 @@ Le troisième (figure~\ref{fig:seq3}) concerne l'enrichissement d'un profil. Si 
   \seqhead{B}{3.3}{Serveur}
   \seqhead{C}{6.8}{Lecteur d'empreinte\\(simulé)}
   \seqhead{D}{10.2}{Base\\SQLite}
-  \seqlife{A}{-7.3}\seqlife{B}{-7.3}\seqlife{C}{-7.3}\seqlife{D}{-7.3}
-  \seqmsg{0}{3.3}{-1.3}{visage présenté}{}
+  \seqlife{A}{-7.4}\seqlife{B}{-7.4}\seqlife{C}{-7.4}\seqlife{D}{-7.4}
+  \seqactiv{3.3}{-1.9}{-6.6}
+  \seqactiv{6.8}{-3.2}{-4.4}
+  \seqactiv{10.2}{-5.0}{-5.5}
+  \seqasync{0}{3.3}{-1.3}{visage présenté}
   \seqself{3.3}{-1.9}{visage reconnu : vecteur mis de côté}{2.3cm}
-  \seqmsg{3.3}{6.8}{-3.4}{attente du doigt}{}
-  \seqmsg{0}{6.8}{-4.1}{pose le doigt}{}
-  \seqmsg{6.8}{3.3}{-4.8}{empreinte validée}{dashed}
-  \seqmsg{3.3}{10.2}{-5.5}{ajoute le vecteur (30 au plus)}{}
-  \seqself{3.3}{-6.1}{recharge les vecteurs en mémoire}{2.3cm}
+  \seqsync{3.3}{6.8}{-3.2}{attend le doigt}
+  \seqasync{0}{6.8}{-3.8}{pose le doigt}
+  \seqret{6.8}{3.3}{-4.4}{empreinte validée}
+  \seqsync{3.3}{10.2}{-5.0}{ajoute le vecteur (30 au plus)}
+  \seqret{10.2}{3.3}{-5.5}{ok}
+  \seqself{3.3}{-6.0}{recharge les vecteurs en mémoire}{2.3cm}
 \end{tikzpicture}
 \caption{Diagramme de séquence : apprentissage continu confirmé par l'empreinte}\label{fig:seq3}
 \end{figure}
@@ -488,17 +520,16 @@ La base est un fichier SQLite~\cite{sqlite_about} local, exclu du dépôt de cod
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[>={Stealth[length=2mm]},
-  tbl/.style={draw, rectangle split, rectangle split parts=2, font=\scriptsize, align=left, minimum width=4.2cm, rectangle split part fill={gray!15, white}}]
+\begin{tikzpicture}[tbl/.style={draw, rectangle split, rectangle split parts=2, font=\scriptsize, align=left, minimum width=4.2cm, rectangle split part fill={gray!15, white}}]
   \node[tbl] (P) at (0,0) {\textbf{profiles}\nodepart{two}\underline{id}\\name (unique)\\role (VIP ou INTRUS)\\created\_at};
-  \node[tbl] (E) at (-5.4,0) {\textbf{embeddings}\nodepart{two}\underline{id}\\profile\_id (réf.)\\vector\_json (512 nombres)\\created\_at};
-  \node[tbl] (L) at (5.4,0) {\textbf{event\_logs}\nodepart{two}\underline{id}\\profile\_id (réf.)\\confidence\\event\_type\\snapshot\_path\\timestamp};
+  \node[tbl] (E) at (-5.6,0) {\textbf{embeddings}\nodepart{two}\underline{id}\\profile\_id (FK)\\vector\_json (512 nombres)\\created\_at};
+  \node[tbl] (L) at (5.6,0) {\textbf{event\_logs}\nodepart{two}\underline{id}\\profile\_id (FK)\\confidence\\event\_type\\snapshot\_path\\timestamp};
   \node[tbl] (C) at (-3,-4) {\textbf{cameras}\nodepart{two}\underline{id}\\cam\_id (unique)\\name, type (usb, mjpeg, rtsp)\\url, usb\_index, zone\\active, created\_at};
   \node[tbl] (S) at (3,-4) {\textbf{system\_config}\nodepart{two}\underline{key}\\value\\updated\_at};
-  \draw[->] (E) -- node[above, font=\tiny] {$*$} node[below, font=\tiny] {$1$} (P);
-  \draw[->] (L) -- node[above, font=\tiny] {$*$} node[below, font=\tiny] {$1$} (P);
+  \draw (E.east) -- node[above, pos=0.12, font=\tiny] {0..*} node[above, pos=0.88, font=\tiny] {1} (P.west);
+  \draw (L.west) -- node[above, pos=0.12, font=\tiny] {0..*} node[above, pos=0.88, font=\tiny] {1} (P.east);
 \end{tikzpicture}
-\caption{Modèle de données de BioGate (tables SQLite)}\label{fig:donnees}
+\caption{Modèle de données de BioGate (tables SQLite ; \underline{souligné} : clé primaire, FK : clé étrangère)}\label{fig:donnees}
 \end{figure}
 
 Le journal enregistre dix types d'événements : entrée d'un résident, accès refusé, intrus provisoire, intrus confirmé, test de vivacité réussi, empreinte acceptée, empreinte refusée, alerte de fuite, passage sans visage et simple détection. Deux d'entre eux demandent une précision :
