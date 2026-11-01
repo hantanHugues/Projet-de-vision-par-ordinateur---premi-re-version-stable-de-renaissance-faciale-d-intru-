@@ -122,7 +122,7 @@ Couplage et santé & \texttt{/pair/request}, \texttt{/auth/token}, \texttt{/heal
 \end{tabularx}
 \end{table}
 
-Onze routes n'exigent aucun jeton. Trois le font par conception : le couplage, qui sert justement à obtenir le jeton, et la vérification de santé. Les huit autres sont celles du mode client et de la configuration par modèles. Parmi elles, \texttt{/enroll} permet d'ajouter un visage de résident et \texttt{/fingerprint\_result} de déclarer une empreinte validée. La documentation de démarrage du projet lance le serveur sur toutes ses interfaces réseau, ce qui rend ces routes accessibles à toute machine du réseau local. Cette limite est reprise au chapitre~\ref{chap:3}.
+Vingt-cinq routes exigent le jeton du tableau de bord : ce sont celles qui lisent ou modifient la configuration, le journal, les profils, les caméras et les actionneurs. Onze n'en exigent pas. Trois le font par conception : le couplage, qui sert justement à obtenir le jeton, et la vérification de santé. Les huit autres sont les routes du mode client et de mise au point, ainsi que le choix des modèles de configuration. Le projet étant à l'état de prototype, leur protection n'a pas encore été traitée ; l'étendre à ces routes fait partie des suites prévues (chapitre~\ref{chap:3}).
 
 \subsection{Tableau de bord}
 
@@ -132,7 +132,7 @@ Le tableau de bord est une application de bureau développée avec Electron~\cit
 
 Le tableau de bord est couplé au serveur à la manière d'un appareil domestique. Au premier lancement, le serveur tire au hasard un code à six chiffres et l'affiche dans son propre terminal. L'utilisateur le saisit dans le tableau de bord. Le code est valable cinq minutes et limité à cinq essais. Le serveur renvoie alors un jeton aléatoire opaque, valable trente jours, que l'application conserve chiffré par le système d'exploitation. Vingt-cinq routes exigent ce jeton : la configuration, le journal, les profils, les caméras, les actionneurs et les flux vidéo, où il passe dans l'adresse de la requête. Les origines autorisées à appeler le serveur sont restreintes à celles du tableau de bord.
 
-Cette protection reste limitée : les échanges ne sont pas chiffrés (pas de HTTPS), le jeton du flux vidéo passe dans l'adresse de la requête, et les onze routes sans jeton du tableau~\ref{tab:routes} restent ouvertes. Ces points sont repris dans les limites au chapitre~\ref{chap:3}.
+Cette protection est celle d'un prototype : les échanges ne sont pas chiffrés (pas de HTTPS), le jeton du flux vidéo passe dans l'adresse de la requête, et les routes du mode client ne sont pas encore protégées (tableau~\ref{tab:routes}). Ces points sont repris au chapitre~\ref{chap:3}.
 
 \section{Pipeline de traitement par intelligence artificielle}
 
