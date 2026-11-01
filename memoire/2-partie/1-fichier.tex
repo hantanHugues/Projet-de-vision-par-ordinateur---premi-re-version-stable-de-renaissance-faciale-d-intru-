@@ -192,6 +192,7 @@ Quatre profils de sécurité regroupent des jeux de valeurs prêts à l'emploi :
 \midrule
 Fenêtre de grâce avant l'alerte (s) & 120 & 60 & 30 & 5 \\
 Authentification multifacteur & non & non & oui & oui \\
+Test de vivacité dans le second facteur & oui & oui & oui & non \\
 Alerte Telegram activée & oui & oui & non & oui \\
 Alerte par courrier activée & oui & oui & non & oui \\
 Durée d'analyse d'un visage inconnu (s) & 1,5 & 1 & 1 & 0,8 \\
@@ -239,6 +240,7 @@ Taille de l'image de détection & Réduction de l'image avant la détection. Plu
 \textbf{Réglage} & \textbf{Rôle, et effet d'une hausse} & \textbf{Défaut} & \textbf{Où} \\
 \midrule
 MFA obligatoire & Exige un second facteur après la reconnaissance du visage. & non & Interrupteur, profil \\
+Vivacité activée & Inclut le test de vivacité dans le second facteur. Désactivé, seule l'empreinte reste possible. & oui & Interrupteur, profil \\
 Délai de l'empreinte & Temps accordé pour valider l'empreinte, au-delà duquel l'accès est refusé. & 15 s & Curseur, de 5 à 60 s \\
 Durée du défi de vivacité & Temps accordé pour exécuter le geste demandé. & 10 s & Paramètre \\
 Scores après vivacité et après empreinte & Niveaux de confiance affichés lorsqu'un second facteur réussit. & 85~\% et 100~\% & Paramètre \\
@@ -324,7 +326,7 @@ Un intrus est défini comme un visage inconnu et non comme une silhouette sans v
 
 \subsection{Machine à états}
 
-Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etats}). Il est d'abord en analyse. Si un résident est reconnu, il est soit admis directement, soit placé en attente d'un second facteur, selon un paramètre : l'authentification multifacteur (\gls{mfa}). Lorsqu'elle est désactivée, le visage seul suffit. Lorsqu'elle est activée, l'empreinte et le test de vivacité démarrent ensemble, et le premier qui réussit accorde l'accès. Le paramètre est désactivé dans le profil de sécurité par défaut (domicile) et activé dans les profils bureau et haute sécurité ; le propriétaire peut le modifier depuis le tableau de bord. Si le visage reste inconnu au bout d'une seconde, l'individu devient un intrus provisoire, ce qui ouvre la fenêtre de grâce, de 60 secondes dans le profil par défaut. Un état « visage reconnu » est défini dans le code, mais il est traversé instantanément.
+Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etats}). Il est d'abord en analyse. Si un résident est reconnu, il est soit admis directement, soit placé en attente d'un second facteur, selon un paramètre : l'authentification multifacteur (\gls{mfa}). Lorsqu'elle est désactivée, le visage seul suffit. Lorsqu'elle est activée, l'empreinte et le test de vivacité démarrent ensemble, et le premier qui réussit accorde l'accès ; si le test de vivacité est désactivé par son propre réglage, l'empreinte devient le seul second facteur. Le paramètre est désactivé dans le profil de sécurité par défaut (domicile) et activé dans les profils bureau et haute sécurité ; le propriétaire peut le modifier depuis le tableau de bord. Si le visage reste inconnu au bout d'une seconde, l'individu devient un intrus provisoire, ce qui ouvre la fenêtre de grâce, de 60 secondes dans le profil par défaut. Un état « visage reconnu » est défini dans le code, mais il est traversé instantanément.
 
 \begin{figure}[H]
 \centering
@@ -375,7 +377,7 @@ Enrichissement du profil & Impossible & Possible : le vecteur du visage est ajou
 \end{tabularx}
 \end{table}
 
-Le dernier point est important : l'adaptation du profil à l'évolution du visage n'a lieu que lorsque le second facteur est exigé et que l'empreinte confirme l'identité. Un interrupteur \emph{vivacité activée} figure aussi dans la page de configuration. Dans la version actuelle, il n'agit que sur la demande manuelle d'un test de vivacité, et non sur le second facteur automatique, ce qui est relevé parmi les limites au chapitre~\ref{chap:3}.
+Le dernier point est important : l'adaptation du profil à l'évolution du visage n'a lieu que lorsque le second facteur est exigé et que l'empreinte confirme l'identité. Un second interrupteur, \emph{vivacité activée}, figure dans la page de configuration. Désactivé, il retire le test de vivacité du second facteur : l'empreinte est alors la seule voie, comme dans le profil haute sécurité. Il est lu à chaque individu en attente du second facteur, si bien qu'un changement prend effet sans redémarrage du serveur.
 
 \subsection{Test de vivacité}
 

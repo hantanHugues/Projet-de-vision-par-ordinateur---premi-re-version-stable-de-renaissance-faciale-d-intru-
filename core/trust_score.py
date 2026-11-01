@@ -29,6 +29,20 @@ STATE_INTRUDER_PENDING     = "INTRUDER_PENDING"    # Intrus provisoire, grâce e
 STATE_INTRUDER_CONFIRMED   = "INTRUDER_CONFIRMED"  # Alerte envoyée
 
 
+def liveness_channel_active(state):
+    """
+    Vrai si le test de vivacité doit tourner pour un individu dans cet état.
+
+    Il tourne pendant l'attente du second facteur, en parallèle de l'empreinte, SEULEMENT
+    si le réglage LIVENESS_ENABLED est actif. Lu à chaque appel : un changement fait depuis
+    le tableau de bord (ou par un profil de sécurité) prend effet sans redémarrage.
+    Sans vivacité, l'empreinte reste le seul second facteur (le profil « haute sécurité »
+    fonctionne ainsi). Avant ce correctif, ce réglage n'était lu que par la demande manuelle
+    request_liveness() : les deux pipelines de api.py lançaient le défi dans tous les cas.
+    """
+    return bool(config.LIVENESS_ENABLED) and state in (STATE_FINGERPRINT_PENDING, STATE_LIVENESS_PENDING)
+
+
 class TrustScore:
     """État MFA pour UN individu tracké (un object_id)."""
 

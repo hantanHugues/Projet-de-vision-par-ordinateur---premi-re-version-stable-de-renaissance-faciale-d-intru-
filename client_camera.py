@@ -519,8 +519,11 @@ def start_client():
         # en parallèle (le premier qui réussit fait entrer) : l'état reste
         # FINGERPRINT_PENDING tout du long, il ne bascule plus automatiquement
         # vers LIVENESS_PENDING (qui reste un mode explicite "mains occupées").
+        # Le serveur ne renvoie liveness_progress que si le défi tourne réellement (réglage
+        # LIVENESS_ENABLED actif) : sans lui, inutile de charger MediaPipe sur ce poste.
         any_liveness = any(
             (obj.get("trust") or {}).get("state") in ("FINGERPRINT_PENDING", "LIVENESS_PENDING")
+            and (obj.get("trust") or {}).get("liveness_progress")
             for obj in data.get("detections", [])
         )
         if any_liveness and not _live["active"]:

@@ -23,7 +23,7 @@ from core.logger import VisualLogger
 from core.yolo_detector import YoloDetector
 from core.centroid_tracker import CentroidTracker
 from core.face_recognizer import FaceRecognizer
-from core.trust_score import TrustScoreManager, STATE_LIVENESS_PENDING, STATE_FINGERPRINT_PENDING, STATE_INTRUDER_PENDING
+from core.trust_score import TrustScoreManager, STATE_LIVENESS_PENDING, STATE_FINGERPRINT_PENDING, STATE_INTRUDER_PENDING, liveness_channel_active
 from core.iot_controller import IoTController
 from core.notifier import Notifier, NotifierError, mask_secrets, drop_masked
 from core.liveness_detector import LivenessDetector, LIVENESS_SUCCESS, LIVENESS_TIMEOUT, LIVENESS_FAILED
@@ -301,7 +301,7 @@ def _run_pipeline_and_annotate(frame_bgr: np.ndarray, cam_id: str = "") -> list:
                     # Même logique que le mode push (/analyze_frame) : le premier
                     # facteur qui réussit fait entrer, un timeout du seul canal
                     # liveness n'entraîne pas de refus (voir check_mfa_timeout).
-                    if current_state in (STATE_FINGERPRINT_PENDING, STATE_LIVENESS_PENDING):
+                    if liveness_channel_active(current_state):
                         x1_c, y1_c, x2_c, y2_c = [int(v) for v in bbox_xyxy]
                         face_crop = frame_bgr[max(0, y1_c):y2_c, max(0, x1_c):x2_c]
 
@@ -541,7 +541,7 @@ async def analyze_frame(
             # _is_second_factor_pending). Un timeout sur le seul canal liveness
             # ne refuse pas l'accès : la personne peut toujours poser le doigt
             # jusqu'à l'expiration du délai global (check_mfa_timeout ci-dessus).
-            if current_state in (STATE_FINGERPRINT_PENDING, STATE_LIVENESS_PENDING):
+            if liveness_channel_active(current_state):
                 if object_id not in _liveness_sessions:
                     _liveness_sessions[object_id] = LivenessDetector()
                     logger.info(f"[LIVENESS] Challenge démarré pour ID={object_id}")
