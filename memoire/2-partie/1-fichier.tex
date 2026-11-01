@@ -93,7 +93,36 @@ Ces mesures ont des limites que le code signale lui-même : la bibliothèque uti
 
 \subsection{Serveur et interface de programmation}
 
-Le serveur est une application Python bâtie avec FastAPI~\cite{fastapi_docs}. Il expose une trentaine de routes de type \gls{api}, regroupées par fonction : analyse des images et enrôlement, configuration, journal et statistiques, second facteur et pilotage des actionneurs, alertes, gestion des caméras, couplage du tableau de bord. Il gère plusieurs caméras (USB, MJPEG, RTSP), chacune dans son propre fil d'exécution, et diffuse au tableau de bord un flux annoté des boîtes, des identités et du score de confiance.
+Le serveur est une application Python bâtie avec FastAPI~\cite{fastapi_docs}. Il expose 36 routes de type \gls{api}, regroupées par fonction dans le tableau~\ref{tab:routes}. Il reçoit les images de deux façons.
+
+Dans le premier mode, le serveur va chercher lui-même les images. Un gestionnaire de caméras ouvre chaque source (USB, flux MJPEG ou RTSP) dans un fil d'exécution distinct et dépose les images dans une file d'attente de quatre places. Un seul fil d'analyse consomme cette file. Si elle est pleine, l'image est abandonnée : le retard ne s'accumule donc pas. Chaque caméra possède son propre suiveur, et les identifiants d'individus sont préfixés par le nom de la caméra, de sorte que deux caméras n'attribuent jamais le même identifiant à deux personnes. Le dessin des boîtes et des noms est fait à la cadence de la caméra, avec les dernières annotations calculées, si bien que la vidéo reste fluide même lorsque l'analyse, de l'ordre de deux à cinq images par seconde sur processeur seul selon les notes du code, est plus lente. C'est le mode utilisé avec la caméra BW21-CBV et le tableau de bord.
+
+Dans le second mode, un programme client (\texttt{client\_camera.py}) capture la webcam de l'ordinateur et envoie chaque image à la route \texttt{/analyze\_frame}. Il exécute localement le modèle de points du visage de MediaPipe, à environ 30 images par seconde, pour le test de vivacité, et transmet au serveur les scores d'expression obtenus. Ce mode sert d'outil autonome de mise au point. Il a une conséquence de sécurité : le serveur accepte les scores de clignement et de sourire que le client lui envoie, sans pouvoir les vérifier.
+
+\begin{table}[H]
+\centering
+\caption{Routes de l'interface de programmation, regroupées par fonction}\label{tab:routes}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{2.4cm}@{}}
+\toprule
+\textbf{Fonction} & \textbf{Routes} & \textbf{Jeton exigé} \\
+\midrule
+Analyse et enrôlement & \texttt{/analyze\_frame}, \texttt{/enroll} & non \\
+Second facteur (simulé) & \texttt{/access\_status}, \texttt{/fingerprint\_result}, \texttt{/request\_liveness}, \texttt{/liveness\_result} & non \\
+Configuration & \texttt{/config} (lecture et modification) & oui \\
+ & \texttt{/config/templates}, \texttt{/config/apply\_template} & non \\
+Alertes & \texttt{/alerts/test}, \texttt{/alerts/telegram/detect} & oui \\
+Journal et vie privée & \texttt{/logs}, \texttt{/logs/stats}, \texttt{/logs/purge}, \texttt{/logs/\{id\}}, \texttt{/rgpd/status} & oui \\
+Profils & \texttt{/profiles} (lecture), \texttt{/profiles/\{nom\}} (suppression) & oui \\
+Actionneurs (simulés) & \texttt{/iot/door}, \texttt{/iot/fingerprint}, \texttt{/iot/light}, \texttt{/iot/door/open}, \texttt{/iot/door/lock} & oui \\
+Caméras & \texttt{/cameras} (4 routes), \texttt{/cameras/scan/usb}, \texttt{/snapshot}, \texttt{/snapshot/\{cam\_id\}} & oui \\
+Flux vidéo & \texttt{/stream}, \texttt{/stream/\{cam\_id\}} & oui, dans l'adresse \\
+Couplage et santé & \texttt{/pair/request}, \texttt{/auth/token}, \texttt{/health} & non, par conception \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Onze routes n'exigent aucun jeton. Trois le font par conception : le couplage, qui sert justement à obtenir le jeton, et la vérification de santé. Les huit autres sont celles du mode client et de la configuration par modèles. Parmi elles, \texttt{/enroll} permet d'ajouter un visage de résident et \texttt{/fingerprint\_result} de déclarer une empreinte validée. La documentation de démarrage du projet lance le serveur sur toutes ses interfaces réseau, ce qui rend ces routes accessibles à toute machine du réseau local. Cette limite est reprise au chapitre~\ref{chap:3}.
 
 \subsection{Tableau de bord}
 
@@ -101,22 +130,43 @@ Le tableau de bord est une application de bureau développée avec Electron~\cit
 
 \subsection{Sécurité des échanges avec le tableau de bord}
 
-Le tableau de bord est couplé au serveur à la manière d'un appareil domestique. Au premier lancement, le serveur tire au hasard un code à six chiffres et l'affiche dans son propre terminal. L'utilisateur le saisit dans le tableau de bord. Le code est valable cinq minutes et limité à cinq essais. Le serveur renvoie alors un jeton aléatoire opaque, valable trente jours, que l'application conserve chiffré par le système d'exploitation. Les routes qui lisent ou modifient un état sensible (configuration, journal, profils, caméras, actionneurs) exigent ce jeton. Les origines autorisées à appeler le serveur sont restreintes à celles du tableau de bord.
+Le tableau de bord est couplé au serveur à la manière d'un appareil domestique. Au premier lancement, le serveur tire au hasard un code à six chiffres et l'affiche dans son propre terminal. L'utilisateur le saisit dans le tableau de bord. Le code est valable cinq minutes et limité à cinq essais. Le serveur renvoie alors un jeton aléatoire opaque, valable trente jours, que l'application conserve chiffré par le système d'exploitation. Vingt-cinq routes exigent ce jeton : la configuration, le journal, les profils, les caméras, les actionneurs et les flux vidéo, où il passe dans l'adresse de la requête. Les origines autorisées à appeler le serveur sont restreintes à celles du tableau de bord.
 
-Cette protection reste limitée : les échanges ne sont pas chiffrés (pas de HTTPS), le jeton du flux vidéo passe dans l'adresse de la requête, et plusieurs routes appelées par le client de test ne sont pas protégées. Ces points sont repris dans les limites au chapitre~\ref{chap:3}.
+Cette protection reste limitée : les échanges ne sont pas chiffrés (pas de HTTPS), le jeton du flux vidéo passe dans l'adresse de la requête, et les onze routes sans jeton du tableau~\ref{tab:routes} restent ouvertes. Ces points sont repris dans les limites au chapitre~\ref{chap:3}.
 
 \section{Pipeline de traitement par intelligence artificielle}
 
-Le serveur applique à chaque image la chaîne suivante. Les raisons de chaque étape sont celles consignées dans le journal de bord du projet.
+Les raisons de chaque étape sont celles consignées dans le journal de bord du projet.
+Le serveur applique cette chaîne, représentée sur la figure~\ref{fig:pipeline}, à chaque image.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>={Stealth[length=2mm]},
+  box/.style={draw, rounded corners, align=center, minimum height=1.2cm, minimum width=3cm, inner sep=3pt, font=\scriptsize},
+  ext/.style={box, dashed}]
+  \node[box] (a) at (0,0) {1. Détection\\des personnes\\(YOLOv8n)};
+  \node[box] (b) at (3.6,0) {2. Suivi\\par centroïde\\et couleurs};
+  \node[box] (c) at (7.2,0) {3. Filtre de visage\\(Haar, puis\\second avis MediaPipe)};
+  \node[box] (d) at (10.8,0) {4. Contraste\\(CLAHE)};
+  \node[box] (e) at (10.8,-2.2) {5. Vecteur de 512\\nombres\\(FaceNet512)};
+  \node[box] (f) at (7.2,-2.2) {6. Comparaison\\(distance cosinus,\\seuil 0,35)};
+  \node[box] (g) at (3.6,-2.2) {7. Décision\\et revérification};
+  \node[ext] (h) at (0,-2.2) {Score, journal,\\photo, alerte};
+  \draw[->] (a) -- (b); \draw[->] (b) -- (c); \draw[->] (c) -- (d);
+  \draw[->] (d) -- (e); \draw[->] (e) -- (f); \draw[->] (f) -- (g); \draw[->] (g) -- (h);
+\end{tikzpicture}
+\caption{Chaîne de traitement d'une image (pas de visage de face : l'analyse s'arrête à l'étape~3)}\label{fig:pipeline}
+\end{figure}
+
 \begin{enumerate}
-  \item \textbf{Détection des personnes} : le modèle \gls{yolo}v8 dans sa version nano repère les silhouettes humaines~\cite{ultralytics_yolov8docs}. Il a été retenu pour sa légèreté : il traite environ 15 images par seconde sur le processeur d'un ordinateur sous Windows (1\,800 images en 118 secondes). L'image est réduite à 320 pixels pour alléger encore le calcul. Un seuil de recouvrement de 0,35 fusionne les boîtes superposées, car deux boîtes sur une même personne (corps et tête) créaient des intrus fantômes ; une seconde fusion à 0,30 traite le cas des boîtes adjacentes.
-  \item \textbf{Suivi} : un suivi par centroïde attribue un identifiant stable à chaque individu. Il garde en mémoire une personne disparue pendant 60 images, soit environ deux secondes, contre 20 au départ, et refuse de lui rattacher une détection située à plus de 150 pixels, car une réapparition aussi lointaine est impossible pour la même personne. Une signature de couleur des vêtements en espace \gls{hsv}, comparée par la distance de Bhattacharyya entre histogrammes, permet de retrouver quelqu'un après une occlusion sans relancer l'analyse lourde du visage.
-  \item \textbf{Photo forensique} : une photo est prise à l'apparition d'un individu soupçonné d'être un intrus, jamais pour un résident reconnu. Elle conserve une preuve visuelle même lorsque le visage ne peut pas être analysé (visage masqué, passage rapide) et elle est soumise à la purge de 72 heures.
-  \item \textbf{Filtre de visage de face} : le modèle lourd n'est jamais appelé sur une personne de dos, de profil ou la tête baissée. Une cascade de Haar~\cite{viola2001rapid,opencv_cascade}, appliquée à une image en niveaux de gris dont l'histogramme est égalisé, réagit plus vite aux faux profils. Un second avis du modèle de points du visage de MediaPipe a été ajouté parce que le détecteur de Haar prenait le col et un bouton d'une chemise pour un visage : sur les essais, la chemise est rejetée et les trois portraits de test sont acceptés.
+  \item \textbf{Détection des personnes} : le modèle \gls{yolo}v8 dans sa version nano repère les silhouettes humaines~\cite{ultralytics_yolov8docs}. Il a été retenu pour sa légèreté : il traite environ 15 images par seconde sur le processeur d'un ordinateur sous Windows (1\,800 images en 118 secondes). L'image est réduite à 320 pixels pour alléger encore le calcul. Le seuil de confiance est de 0,5~\cite{ultralytics_predict}. Un seuil de recouvrement de 0,35 fusionne les boîtes superposées, car deux boîtes sur une même personne (corps et tête) créaient des intrus fantômes ; une seconde fusion à 0,30 traite le cas des boîtes adjacentes.
+  \item \textbf{Suivi} : un suivi par centroïde attribue un identifiant stable à chaque individu. Il garde en mémoire une personne disparue pendant 60 images, soit environ deux secondes, contre 20 au départ, et refuse de lui rattacher une détection située à plus de 150 pixels, car une réapparition aussi lointaine est impossible pour la même personne. Une signature de couleur des vêtements, un histogramme de la teinte en espace \gls{hsv} sur 16 classes qui ignore les pixels sombres ou peu colorés, aide à retrouver quelqu'un : quand une détection réapparaît à plus de 150 pixels, elle n'est rattachée à l'ancien identifiant que si la corrélation entre les deux histogrammes dépasse 0,85. Ainsi, une personne cachée un instant derrière un obstacle garde son identité sans relancer l'analyse lourde du visage.
+  \item \textbf{Filtre de visage de face} : le modèle lourd n'est jamais appelé sur une personne de dos, de profil ou la tête baissée. Une cascade de Haar~\cite{viola2001rapid,opencv_cascade}, appliquée à une image en niveaux de gris dont l'histogramme est égalisé (facteur d'échelle de 1,1, cinq voisins, taille minimale de 30 par 30 pixels), réagit plus vite aux faux profils. Un second avis du modèle de points du visage de MediaPipe a été ajouté parce que le détecteur de Haar prenait le col et un bouton d'une chemise pour un visage : sur les essais, la chemise est rejetée et les trois portraits de test sont acceptés.
   \item \textbf{Correction du contraste} : la méthode \gls{clahe}~\cite{zuiderveld1994clahe,opencv_clahe} est appliquée à la luminosité du visage (espace LAB). Elle rétablit les traits en contre-jour et stabilise la distance mesurée d'une image à l'autre.
-  \item \textbf{Représentation du visage} : le modèle FaceNet512, utilisé par la bibliothèque DeepFace, transforme le visage aligné (yeux redressés) en un vecteur de 512 nombres~\cite{schroff2015facenet,serengil2020lightface}. Il a été choisi après l'essai de VGG-Face associé à une détection basique, trop imprécis sous la lumière d'une webcam.
+  \item \textbf{Représentation du visage} : le modèle FaceNet512, utilisé par la bibliothèque DeepFace, transforme le visage aligné (yeux redressés), détecté avec le détecteur d'OpenCV, en un vecteur de 512 nombres~\cite{schroff2015facenet,serengil2020lightface}. Il a été choisi après l'essai de VGG-Face associé à une détection basique, trop imprécis sous la lumière d'une webcam.
   \item \textbf{Comparaison} : le vecteur est comparé, par distance cosinus, à ceux des profils enrôlés. Ces vecteurs sont tenus en mémoire : interroger la base à chaque image formait un goulot d'étranglement, si bien qu'ils sont chargés au démarrage et rechargés seulement après un enrôlement ou un apprentissage.
-  \item \textbf{Décision et journalisation} : un visage inconnu est jugé une seconde après son apparition. Une fois la personne identifiée, son identité est revérifiée toutes les 0,8 seconde : un résident ne peut ainsi pas être remplacé par un intrus, ni mettre un masque après avoir été validé. Trois échecs consécutifs sont nécessaires avant de la remettre en question, afin qu'un changement d'expression ou de lumière ne produise pas un faux intrus. Un résident déjà reconnu qui retombe en analyse dispose de cinq secondes au lieu d'une, car une image de travers suffisait à le classer intrus, et une correspondance très forte (distance inférieure à 0,25) le reclasse immédiatement. L'événement est enregistré dans la base.
+  \item \textbf{Décision et journalisation} : un résident est accepté dès la première correspondance sous le seuil, tandis qu'un visage inconnu n'est jugé qu'une seconde après son apparition, pour laisser à la reconnaissance le temps d'aboutir. Une fois la personne identifiée, son identité est revérifiée toutes les 0,8 seconde : un résident ne peut ainsi pas être remplacé par un intrus, ni mettre un masque après avoir été validé. Trois échecs consécutifs sont nécessaires avant de la remettre en question, afin qu'un changement d'expression ou de lumière ne produise pas un faux intrus. Un résident déjà reconnu qui retombe en analyse dispose de cinq secondes au lieu d'une, car une image de travers suffisait à le classer intrus, Inversement, un individu classé intrus provisoire qui est reconnu comme résident avec une distance inférieure à 0,25 est reclassé aussitôt, sans attendre trois confirmations, et son alerte provisoire est annulée. L'événement est enregistré dans la base.
+  \item \textbf{Photo de l'intrus présumé} : lorsqu'un individu devient intrus provisoire, une photo de sa silhouette est rattachée à l'événement et à l'alerte, de sorte que le journal et le message envoyé contiennent une image vérifiable et que la photo entre dans le périmètre de la purge de 72 heures. Seul un individu soupçonné est photographié, jamais un résident reconnu. Dans le mode client, la silhouette de chaque nouvel individu est d'abord enregistrée à son apparition, résidents compris ; seules celles des intrus sont rattachées au journal, et les autres, devenues orphelines, sont supprimées par la purge.
 \end{enumerate}
 
 Le tableau~\ref{tab:parametres} rassemble les principaux paramètres.
@@ -132,12 +182,12 @@ Le tableau~\ref{tab:parametres} rassemble les principaux paramètres.
 Confiance minimale de la détection des personnes & 0,5 \\
 Taille de l'image pour la détection & 320 pixels \\
 Seuil de reconnaissance (distance cosinus, FaceNet512) & 0,35 \\
-Distance de correspondance forte (reclassement immédiat) & 0,25 \\
+Distance de correspondance forte (reclassement d'un intrus provisoire) & 0,25 \\
 Fenêtre d'identification d'un visage inconnu & 1 s \\
 Fenêtre de réanalyse d'un résident déjà reconnu & 5 s \\
 Intervalle de revérification & 0,8 s \\
 Échecs consécutifs avant remise en question & 3 \\
-Similarité de couleur pour retrouver une personne & 0,85 \\
+Corrélation des couleurs de vêtements pour retrouver une personne & 0,85 \\
 Fenêtre de grâce avant une alerte & 60 s \\
 \bottomrule
 \end{tabularx}
@@ -151,13 +201,43 @@ Un intrus est défini comme un visage inconnu et non comme une silhouette sans v
 
 \subsection{Machine à états}
 
-Chaque individu suivi est géré par une machine à états : analyse, visage reconnu, attente d'un second facteur (empreinte ou vivacité), accès accordé, accès refusé, intrus provisoire, intrus confirmé. Le score de confiance accompagne ces états : 60~\% lorsque le visage est reconnu, 85~\% après un test de vivacité réussi, 100~\% après une empreinte validée.
+Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etats}). Il est d'abord en analyse. Si un résident est reconnu, il est soit admis directement, soit placé en attente d'un second facteur selon que l'authentification multifacteur (\gls{mfa}) est désactivée ou activée ; elle est désactivée par défaut, le visage seul suffit alors. Si le visage reste inconnu au bout d'une seconde, l'individu devient un intrus provisoire, ce qui ouvre la fenêtre de grâce de 60 secondes. Un état « visage reconnu » est défini dans le code, mais il est traversé instantanément.
 
-Par défaut, le visage seul suffit pour ouvrir. Lorsque l'authentification multifacteur (\gls{mfa}) est activée, un second facteur est exigé. L'empreinte et le test de vivacité sont alors deux voies concurrentes : la première qui réussit accorde l'accès. L'empreinte dispose de 15 secondes et le test de vivacité de 10 secondes. Quatre profils de sécurité (portail, domicile, bureau, haute sécurité) regroupent les paramètres correspondants.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>={Stealth[length=2mm]},
+  st/.style={draw, rounded corners, align=center, minimum height=1cm, inner sep=3pt, font=\scriptsize},
+  lab/.style={font=\tiny, align=center, fill=white, inner sep=1pt}]
+  \node[st, minimum width=1.6cm] (idle) at (0,0) {IDLE};
+  \node[st, minimum width=2.4cm] (ana) at (3.1,0) {ANALYZING};
+  \node[st, minimum width=3.6cm] (grant) at (8.4,2.6) {GRANTED\\accès accordé};
+  \node[st, minimum width=3.6cm] (fp) at (8.4,0) {FINGERPRINT\_PENDING\\second facteur};
+  \node[st, minimum width=2.6cm] (den) at (13.8,0) {DENIED\\accès refusé};
+  \node[st, minimum width=3.6cm] (ip) at (8.4,-2.6) {INTRUDER\_PENDING\\intrus provisoire};
+  \node[st, minimum width=3.6cm] (ic) at (13.8,-2.6) {INTRUDER\_CONFIRMED\\alerte envoyée};
+  \draw[->] (idle) -- (ana);
+  \draw[->] (ana.north) -- node[lab, above left] {visage reconnu,\\MFA désactivée} (grant.west);
+  \draw[->] (ana) -- node[lab, above] {visage reconnu,\\MFA activée} (fp);
+  \draw[->] (fp) -- node[lab, right] {empreinte ou\\vivacité réussie} (grant);
+  \draw[->] (fp) -- node[lab, above] {échec ou\\15 s} (den);
+  \draw[->] (ana.south) -- node[lab, above right, pos=0.55] {visage inconnu\\après 1 s} (ip.west);
+  \draw[->] (ip) -- node[lab, above] {60 s} (ic);
+  \draw[->] (ip.south) -- ++(0,-0.7) -| node[lab, pos=0.25, below] {résident reconnu : alerte annulée} (ana.south west);
+\end{tikzpicture}
+\caption{Machine à états d'un individu suivi}\label{fig:etats}
+\end{figure}
+
+Le score de confiance affiché est d'abord la confiance de la reconnaissance du visage, $(1 - d) \times 100$ où $d$ est la distance mesurée. Il est remis à jour à chaque revérification. Il passe à 85~\% après un test de vivacité réussi et à 100~\% après une empreinte validée ; ces deux valeurs sont des paramètres de configuration. Quatre profils de sécurité (portail, domicile, bureau, haute sécurité) regroupent les réglages correspondants.
+
+Lorsque le second facteur est exigé, l'empreinte et le test de vivacité sont deux voies concurrentes : la première qui réussit accorde l'accès. L'empreinte dispose de 15 secondes ; passé ce délai, ou en cas d'empreinte refusée, l'accès est refusé. Le test de vivacité tourne en parallèle et dispose de 10 secondes. S'il échoue ou expire, son canal se ferme sans refuser l'accès : l'empreinte reste possible jusqu'à la fin des 15 secondes.
 
 \subsection{Test de vivacité}
 
-Le test de vivacité s'appuie sur le modèle de points du visage de MediaPipe, qui fournit 52 coefficients décrivant l'expression du visage~\cite{google_facelandmarker}. À chaque tentative, le système tire au sort un seul geste, un sourire ou des clignements des yeux, ainsi que ses paramètres : deux à quatre clignements, ou un sourire tenu de une à deux secondes. Une première version exigeait une validation faciale ininterrompue de cinq à six secondes. Elle a été écartée : une webcam 2D ne mesure pas la profondeur, et une photo immobile la franchirait même plus facilement. Le défi actif la remplace. L'objectif du tirage au sort est de rendre le rejeu d'une vidéo préparée à l'avance plus difficile, car un visage filmé en boucle peut cligner au hasard. L'efficacité de ce test contre des attaques réelles n'a pas été mesurée (chapitre~\ref{chap:3}).
+Le test de vivacité s'appuie sur le modèle de points du visage de MediaPipe, qui fournit 52 coefficients d'expression compris entre 0 et 1~\cite{google_facelandmarker,mediapipe_blendshape_card}. Les coefficients utilisés sont la fermeture de chaque œil et le sourire de chaque côté de la bouche, moyennés. Un clignement est compté lorsque la fermeture des yeux dépasse 0,35. Un sourire est validé lorsque son coefficient dépasse 0,40 pendant la durée demandée, et la mesure n'est remise à zéro que si le coefficient redescend sous 0,25, pour ne pas pénaliser une légère variation. Le seuil de sourire a été abaissé de 0,45 à 0,40 après l'enregistrement de séances réelles, où les pics du sourire atteignent 0,60 à 0,75.
+
+À chaque tentative, le système tire au sort un seul geste, un sourire ou des clignements des yeux, ainsi que ses paramètres : deux à quatre clignements, ou un sourire tenu de une à deux secondes. La personne dispose de dix secondes. Le tirage au sort se justifie par un raisonnement : un geste demandé au hasard ne peut pas être connu à l'avance. Une photographie ne peut exécuter aucun geste, et une vidéo préparée doit contenir précisément le geste demandé ; la variété des gestes et de leurs paramètres oblige l'attaquant à disposer de la bonne séquence. Le principe d'un défi tiré au hasard est celui de Widjaya et Wicaksana, qui l'appliquent à d'autres gestes (ouvrir la bouche, cligner des yeux, tourner la tête)~\cite{widjaya2023challenge}.
+
+Une première version exigeait une validation faciale ininterrompue de cinq à six secondes. Elle a été écartée : une webcam ordinaire ne mesure pas la profondeur, et une photo immobile la franchirait même plus facilement. Le défi actif la remplace. L'efficacité du test contre des attaques réelles, photo, vidéo rejouée ou masque, n'a pas été mesurée (chapitre~\ref{chap:3}).
 
 \subsection{Adaptation des profils par apprentissage continu}
 
@@ -167,7 +247,26 @@ Dans le prototype, le lecteur d'empreinte n'existe pas : la confirmation est sim
 
 \section{Modèle de données et protection de la vie privée}
 
-La base est un fichier SQLite~\cite{sqlite_about} local, exclu du dépôt de code. Elle contient cinq tables : les profils (nom et rôle), les vecteurs biométriques de 512 nombres, le journal des événements (confiance, type, chemin de la photo, date), la configuration et les caméras. À ce stade, les vecteurs ne sont pas chiffrés dans la base : c'est une limite discutée au chapitre~\ref{chap:3}.
+La base est un fichier SQLite~\cite{sqlite_about} local, exclu du dépôt de code. Elle contient cinq tables, décrites dans le tableau~\ref{tab:donnees}. Le journal peut enregistrer les événements suivants : entrée d'un résident, accès refusé, intrus provisoire, intrus confirmé, test de vivacité réussi, empreinte acceptée ou refusée, alerte de fuite (un visage a été vu puis l'individu a disparu avant le verdict), passage sans visage et simple détection. Un intrus reçoit une ligne dans la table des profils, sous un nom comme \og Intrus\_001 \fg{}, afin que le journal puisse s'y rattacher, mais son vecteur n'est jamais conservé.
+
+\begin{table}[H]
+\centering
+\caption{Tables de la base de données}\label{tab:donnees}
+\small
+\begin{tabularx}{\textwidth}{@{}p{2.6cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Table} & \textbf{Champs principaux} \\
+\midrule
+\texttt{profiles} & identifiant, nom (unique), rôle (résident ou intrus), date de création \\
+\texttt{embeddings} & identifiant, profil rattaché, vecteur de 512 nombres au format JSON, date de création \\
+\texttt{event\_logs} & identifiant, profil rattaché, confiance, type d'événement, chemin de la photo, horodatage \\
+\texttt{system\_config} & clé, valeur, date de mise à jour \\
+\texttt{cameras} & identifiant, nom, type (USB, MJPEG, RTSP), adresse, indice USB, zone, active ou non \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+À ce stade, les vecteurs ne sont pas chiffrés dans la base : c'est une limite discutée au chapitre~\ref{chap:3}.
 
 Plusieurs mesures limitent la conservation des données :
 \begin{itemize}
@@ -180,7 +279,9 @@ Cette durée limitée de conservation des photos répond au principe de limitati
 
 \section{Alertes à distance}
 
-Un visage inconnu est d'abord classé intrus provisoire. Une fenêtre de grâce de 60 secondes s'ouvre : si un résident est reconnu dans ce délai, l'alerte est annulée en silence et la photo supprimée. Sinon, l'intrus est confirmé et le serveur envoie, avec la photo jointe, un message par Telegram, selon la configuration saisie dans le tableau de bord. Le courrier électronique et WhatsApp sont des perspectives (chapitre~\ref{chap:3}). Un délai minimal de 30 secondes sépare deux alertes, pour éviter une avalanche lorsque le suivi attribue plusieurs identités à la même personne. Ces envois sont les seuls échanges avec l'extérieur ; ils sont désactivés par défaut.
+Un visage inconnu est d'abord classé intrus provisoire. Une fenêtre de grâce de 60 secondes s'ouvre : si un résident est reconnu dans ce délai, l'alerte est annulée en silence et la photo supprimée. Sinon, l'intrus est confirmé et le serveur envoie, avec la photo jointe, un message par Telegram, selon la configuration saisie dans le tableau de bord. Le courrier électronique et WhatsApp sont des perspectives (chapitre~\ref{chap:3}). Un délai minimal de 30 secondes sépare deux alertes, pour éviter une avalanche lorsque le suivi attribue plusieurs identités à la même personne. Ces envois sont les seuls échanges avec l'extérieur ; ils sont désactivés par défaut. Un module d'envoi par courrier électronique est écrit, mais il n'a été éprouvé qu'avec un serveur simulé ; il est donc rangé parmi les perspectives.
+
+L'envoi par Telegram a une conséquence pour la vie privée : la photo de l'intrus quitte le traitement local et transite par un service extérieur pour atteindre le téléphone du propriétaire. La purge de 72 heures ne s'applique qu'au disque du serveur. La suppression automatique des photos déjà envoyées, trois jours après l'envoi, est prévue avant la soutenance mais n'est pas encore mise en œuvre : c'est une perspective.
 
 \section{Justification des choix techniques}
 
