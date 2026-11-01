@@ -33,7 +33,7 @@ L'Edge Computing\glsadd{edge} déplace le traitement des données vers la périp
 
 \subsection{Évolution du visage dans le temps}
 
-Le visage d'une personne change avec le temps, par vieillissement ou par modification de la pilosité faciale. Best-Rowden et Jain ont étudié l'effet de l'écart de temps sur la reconnaissance, à partir de deux bases de photographies d'identité judiciaire qui comptent au total 23~643 sujets (5~636 et 18~007). D'après leur résumé, 99~\% des sujets restent reconnus, avec un taux de fausse acceptation de 0,01~\%, jusqu'à environ six ans d'écart ; la proportion de sujets reconnus diminue ensuite~\cite{bestrowden2018longitudinal}. Ce seuil dépend de l'algorithme : avec d'autres systèmes commerciaux, Deb et ses collègues obtiennent le même taux de reconnaissance jusqu'à 10,5 ans ou 8,5 ans selon la base, et constatent une perte de précision significative au-delà de 8,5 ans~\cite{deb2017aging}.
+Le visage d'une personne change avec le temps, par vieillissement ou par modification de la pilosité faciale. Best-Rowden et Jain ont étudié l'effet de l'écart de temps sur la reconnaissance, à partir de deux bases de photographies d'identité judiciaire qui comptent au total 23~643 sujets (5~636 et 18~007). D'après leur résumé, 99~\% des sujets restent reconnus, avec un taux de fausse acceptation de 0,01~\%, jusqu'à environ six ans d'écart ; la proportion de sujets reconnus diminue ensuite~\cite{bestrowden2018longitudinal}. Ce seuil dépend de l'algorithme : avec d'autres systèmes commerciaux, Deb et ses collègues obtiennent le même taux de reconnaissance jusqu'à 10,5 ans ou 8,5 ans selon la base, et constatent une perte de précision significative au-delà de 8,5 ans~\cite{deb2017aging}. Ces résultats portent sur le vieillissement, mesuré sur des photographies d'identité dont les conditions de prise de vue diffèrent de celles d'une caméra d'entrée ; ils ne couvrent pas les changements plus rapides d'apparence, comme la pousse ou le rasage d'une barbe.
 
 Les systèmes grand public en tiennent compte. Face ID s'adapte automatiquement aux changements d'apparence tels que le maquillage ou la pousse d'une barbe, et demande le code de l'appareil avant de mettre à jour les données du visage pour un changement plus important, comme le rasage d'une barbe complète~\cite{apple2026faceid}.
 
@@ -55,7 +55,7 @@ Frigate est un enregistreur vidéo réseau dont la documentation décrit une fon
 
 \subsection{Tableau comparatif}
 
-Le tableau~\ref{tab:comparatif} compare ces solutions à BioGate selon les trois critères retenus. Les cellules des solutions externes reprennent uniquement ce que disent les pages d'aide des fabricants ; la mention « non mentionné » signifie que la page consultée n'en parle pas, et non que la fonction n'existe pas ; « non examiné » signifie que ce critère n'a pas été étudié dans ce travail.
+Le tableau~\ref{tab:comparatif} compare ces solutions à BioGate selon les trois critères retenus. Les cellules des solutions externes reprennent uniquement ce que disent les pages d'aide des fabricants ; la mention « non mentionné » signifie que la page consultée n'en parle pas, et non que la fonction n'existe pas ; Frigate, décrit plus haut, ne figure pas dans le tableau : sa documentation n'a été examinée que pour le traitement local.
 
 \begin{table}[H]
 \centering
@@ -67,7 +67,6 @@ Le tableau~\ref{tab:comparatif} compare ces solutions à BioGate selon les trois
 \midrule
 Google Nest~\cite{google2026familiarface} & Données de visages dans le service en ligne (chiffrées) ou dans la caméra selon le modèle ; lieu de la comparaison non précisé & Non mentionné & Décrite en termes généraux (la reconnaissance s'améliore avec le temps) \\
 Face ID~\cite{apple2026faceid} & Sur l'appareil, dans le Secure Enclave & Attention du regard et réseaux de neurones anti-usurpation & Adaptation automatique, code demandé pour les grands changements \\
-Frigate~\cite{frigate_face_recognition} & En local ; téléchargement unique des modèles & Non examiné & Non examiné \\
 BioGate & En local sur le serveur Edge & Défi actif (sourire, clignement) & Apprentissage continu confirmé par une authentification complémentaire \\
 \bottomrule
 \end{tabularx}
@@ -77,7 +76,7 @@ BioGate & En local sur le serveur Edge & Défi actif (sourire, clignement) & App
 
 Le \gls{rgpd} définit les données biométriques (article 4, point 14) comme les données résultant d'un traitement technique spécifique, relatives aux caractéristiques physiques d'une personne et qui permettent ou confirment son identification unique, telles que des images faciales. Il interdit leur traitement aux fins d'identifier une personne de manière unique (article 9, paragraphe 1), sauf exception, dont le consentement explicite de la personne concernée (article 9, paragraphe 2, point a). Il pose aussi des principes de minimisation des données et de limitation de leur conservation (article 5, paragraphe 1, points c et e). Selon le considérant 51, les photographies ne relèvent de la définition des données biométriques que lorsqu'elles sont traitées par un moyen technique spécifique permettant l'identification ou l'authentification unique d'une personne~\cite{ue2016rgpd}.
 
-Au Bénin, le Livre~V du Code du numérique, issu de la loi n\textsuperscript{o}~2017-20 du 20 avril 2018, encadre la protection des données à caractère personnel~\cite{benin2018codenumerique}. Il interdit en principe le traitement de données sensibles, dont les données biométriques (article 394), exige une déclaration préalable pour les traitements de données à caractère personnel (article 405) et soumet à l'autorisation préalable de l'\gls{apdp} les traitements comportant des données biométriques (article 407, 3\textsuperscript{o}). \adonner{Articles 394, 405 et 407 à contrôler sur le scan officiel : le texte lu est une reconnaissance de caractères dégradée}
+Au Bénin, le Livre~V du Code du numérique, issu de la loi n\textsuperscript{o}~2017-20 du 20 avril 2018, encadre la protection des données à caractère personnel~\cite{benin2018codenumerique}. Il interdit en principe le traitement de données sensibles, dont les données biométriques (article 394), exige une déclaration préalable pour les traitements de données à caractère personnel (article 405) et soumet à l'autorisation préalable de l'\gls{apdp} les traitements comportant des données biométriques (article 407, 3\textsuperscript{o}).
 
 À titre de comparaison, le règlement type de la CNIL sur le contrôle d'accès biométrique vise les employeurs et les lieux de travail, et n'a pas force de loi au Bénin. Il demande que les enregistrements bruts, comme les photographies, ne soient traités que le temps nécessaire au calcul des gabarits, et que les gabarits soient conservés sous forme chiffrée~\cite{cnil2019reglementtype}. Il sert ici de référence de bonnes pratiques.
 
@@ -117,7 +116,7 @@ BioGate répond à ces limites par les choix suivants.
 
 BioGate est un prototype et non un produit fini. Il s'appuie sur des modèles pré-entraînés existants plutôt que sur des modèles développés pour ce travail : les performances de ces modèles ne sont donc pas des résultats de ce travail. L'apport propre de BioGate est l'intégration de ces composants dans une architecture cohérente, la logique d'authentification (score de confiance, vérification de vivacité, apprentissage continu confirmé) et l'évaluation du montage. La comparaison avec les produits aboutis porte pour cette raison sur les propriétés de l'architecture, et non sur la performance.
 
-La modularité ouvre des usages au-delà du domicile. Le système de pointage de Ayiwahoun~\cite{ayiwahoun2025pointage} associe par exemple un badge RFID et la reconnaissance faciale ; son auteur relève l'absence de détection de vivacité parmi les limites observées et cite l'anti-usurpation comme piste d'amélioration (section~3.3). Le module de vivacité de BioGate pourrait répondre à ce besoin : ce point est repris dans les perspectives.
+La modularité ouvre des usages au-delà du domicile, comme le pointage de présence par reconnaissance faciale.
 
 \addcontentsline{toc}{section}{Conclusion}
 \section*{Conclusion}
