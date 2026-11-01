@@ -1,0 +1,3 @@
+# Seul le PDF final est versionné dans build/
+build/*
+!build/memoire.pdf
