@@ -27,7 +27,7 @@ from core.trust_score import TrustScoreManager, STATE_LIVENESS_PENDING, STATE_FI
 from core.iot_controller import IoTController
 from core.notifier import Notifier, NotifierError, mask_secrets, drop_masked
 from core.liveness_detector import LivenessDetector, LIVENESS_SUCCESS, LIVENESS_TIMEOUT, LIVENESS_FAILED
-from core.camera_manager import CameraManager
+from core.camera_manager import CameraManager, mask_url_password, restore_url_password
 from database.db_manager import DatabaseManager
 
 
@@ -116,6 +116,7 @@ known_snapshot_ids = set()
 # celui-ci met FACE_RECHECK_INTERVAL en cache dans __init__, donc l'ordre compte.
 DatabaseManager(logger=logger).load_persisted_config()
 face_recognizer    = FaceRecognizer(logger=logger, trust_mgr=trust_mgr)
+notifier.store     = face_recognizer.db  # garde les messages Telegram envoyés, pour les supprimer
 
 # Set des object_ids dont la porte a déjà été ouverte (évite de rouvrir à chaque frame)
 _door_triggered_ids: set = set()
@@ -158,7 +159,7 @@ def _attach_intruder_snapshot(ts_obj, frame_bgr, bbox_xyxy, tag, known_path=None
 
 
 # ── Purge RGPD automatique des photos d'intrus ────────────────────────
-_rgpd_status = {"last_run": None, "photos": 0, "orphans": 0, "error": None}
+_rgpd_status = {"last_run": None, "photos": 0, "orphans": 0, "telegram": 0, "error": None}
 _rgpd_task = None
 
 
@@ -167,21 +168,26 @@ async def _rgpd_purge_loop():
     Supprime les photos plus vieilles que la rétention : une fois au démarrage (rattrape
     un arrêt prolongé, coupure de courant incluse), puis toutes les
     RGPD_PURGE_INTERVAL_MINUTES. Ne touche qu'aux photos, jamais aux lignes du journal.
+    Retire aussi de la conversation Telegram les messages envoyés depuis trop longtemps.
     """
     while True:
         try:
             result = await asyncio.to_thread(
                 face_recognizer.db.purge_expired_snapshots, None, SNAPSHOT_DIR
             )
+            telegram = await asyncio.to_thread(notifier.purge_telegram_messages)
             _rgpd_status.update(
                 last_run=datetime.now().isoformat(timespec="seconds"),
-                photos=result["photos"], orphans=result["orphans"], error=None,
+                photos=result["photos"], orphans=result["orphans"],
+                telegram=telegram["deleted"], error=None,
             )
             if result["photos"] or result["orphans"]:
                 logger.info(
                     f"[RGPD] Purge automatique : {result['photos']} photo(s) expirée(s), "
                     f"{result['orphans']} orpheline(s) supprimée(s)."
                 )
+            if telegram["deleted"]:
+                logger.info(f"[RGPD] {telegram['deleted']} message(s) Telegram supprimé(s) de la conversation.")
         except Exception as exc:
             _rgpd_status["error"] = exc.__class__.__name__
             logger.warning(f"[RGPD] Purge automatique échouée : {exc}")
@@ -715,6 +721,17 @@ async def alerts_telegram_detect(authorization: Optional[str] = Header(None)):
     return {"success": True, "chat_id": chat_id, "label": label}
 
 
+@app.post("/alerts/telegram/purge")
+async def alerts_telegram_purge(older_than_hours: Optional[float] = Query(None, ge=0), authorization: Optional[str] = Header(None)):
+    """
+    Supprime de la conversation Telegram les messages envoyés il y a plus de older_than_hours
+    heures (0 = tous). Sans paramètre : TELEGRAM_DELETE_AFTER_HOURS, plafonné à 47 h (limite de l'API).
+    """
+    _check_token(authorization)
+    result = await asyncio.to_thread(notifier.purge_telegram_messages, older_than_hours)
+    return {"success": True, **result}
+
+
 @app.get("/config/templates")
 async def get_templates():
     """Retourne les 4 templates disponibles avec leurs valeurs."""
@@ -795,6 +812,8 @@ async def rgpd_status(authorization: Optional[str] = Header(None)):
         "last_run":              _rgpd_status["last_run"],
         "last_photos_purged":    _rgpd_status["photos"],
         "last_orphans_purged":   _rgpd_status["orphans"],
+        "telegram_delete_after_hours": config.TELEGRAM_DELETE_AFTER_HOURS,
+        "last_telegram_deleted": _rgpd_status["telegram"],
         "error":                 _rgpd_status["error"],
         "snapshots_on_disk":     count,
         "oldest_snapshot_hours": oldest_hours,
@@ -1152,6 +1171,7 @@ async def list_cameras(authorization: Optional[str] = Header(None)):
         live = live_map.get(cid, {})
         cameras.append({
             **row,
+            "url":       mask_url_password(row["url"]),     # la clé du flux ne sort jamais en clair
             "connected": live.get("connected", False),
             "fps":       live.get("fps", 0.0),
             "running":   cid in live_map,
@@ -1187,12 +1207,14 @@ async def add_camera(body: _CameraBody, authorization: Optional[str] = Header(No
 async def update_camera(cam_id: str, body: _CameraBody, authorization: Optional[str] = Header(None)):
     """Met à jour une source vidéo et la redémarre."""
     _check_token(authorization)
-    if not face_recognizer.db.get_camera(cam_id):
+    stored = face_recognizer.db.get_camera(cam_id)
+    if not stored:
         raise HTTPException(status_code=404, detail=f"Caméra '{cam_id}' introuvable.")
     cfg = {
         "name":      body.name,
         "type":      body.type,
-        "url":       body.url,
+        # la liste renvoie la clé masquée : si le dashboard la renvoie telle quelle, on garde la vraie
+        "url":       restore_url_password(body.url, stored["url"]),
         "usb_index": body.usb_index,
         "zone":      body.zone,
     }

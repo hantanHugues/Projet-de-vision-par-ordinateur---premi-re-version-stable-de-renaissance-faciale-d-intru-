@@ -90,10 +90,20 @@ class DatabaseManager:
             )
         ''')
 
+        # Table 6 — Messages Telegram envoyés (pour les supprimer de la conversation plus tard)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS telegram_messages (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                chat_id    TEXT NOT NULL,
+                message_id INTEGER NOT NULL,
+                sent_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
         conn.commit()
         conn.close()
         if self.logger:
-            self.logger.info("Base de données SQLite initialisée (5 tables).")
+            self.logger.info("Base de données SQLite initialisée (6 tables).")
 
     # ------------------------------------------------------------------ #
     #  PROFILS                                                             #
@@ -345,6 +355,37 @@ class DatabaseManager:
         conn.commit()
         conn.close()
         return {"photos": len(expired), "orphans": self._sweep_orphan_snapshots(hours, snapshot_dir)}
+
+    # ------------------------------------------------------------------ #
+    #  MESSAGES TELEGRAM                                                   #
+    # ------------------------------------------------------------------ #
+
+    def record_telegram_message(self, chat_id, message_id):
+        """Garde l'identifiant d'un message envoyé, pour le supprimer de la conversation plus tard."""
+        conn = self._get_connection()
+        conn.execute(
+            "INSERT INTO telegram_messages (chat_id, message_id) VALUES (?, ?)",
+            (str(chat_id), int(message_id)),
+        )
+        conn.commit()
+        conn.close()
+
+    def get_expired_telegram_messages(self, hours):
+        """Messages envoyés il y a plus de `hours` heures (coupure calculée par SQLite, en UTC)."""
+        conn = self._get_connection()
+        rows = conn.execute(
+            "SELECT id, chat_id, message_id FROM telegram_messages "
+            "WHERE sent_at <= datetime('now', ?) ORDER BY id",
+            (self._retention_modifier(hours),),
+        ).fetchall()
+        conn.close()
+        return rows
+
+    def forget_telegram_message(self, row_id):
+        conn = self._get_connection()
+        conn.execute("DELETE FROM telegram_messages WHERE id = ?", (row_id,))
+        conn.commit()
+        conn.close()
 
     def _sweep_orphan_snapshots(self, retention_hours, snapshot_dir=None):
         """

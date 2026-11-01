@@ -55,9 +55,19 @@ class NotifierError(Exception):
     """Échec d'un canal, avec un message lisible et sans aucun secret dedans."""
 
 
+class TelegramRefused(NotifierError):
+    """Telegram a répondu, mais a refusé la requête (par opposition à une panne réseau)."""
+
+
+# L'API des bots ne supprime que les messages de moins de 48 h : on vise 47 h au plus.
+TELEGRAM_MAX_DELETE_HOURS = 47
+
+
 class Notifier:
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, store=None):
         self.logger = logger
+        # Base qui garde les identifiants des messages envoyés (voir purge_telegram_messages).
+        self.store = store
         self._last_sent = 0.0
         self._lock = threading.Lock()
 
@@ -197,20 +207,66 @@ class Notifier:
             payload = {}
         if not resp.ok or not payload.get("ok", False):
             detail = str(payload.get("description", f"code {resp.status_code}"))
-            raise NotifierError(f"Telegram a refusé la requête : {detail.replace(token, '***')}")
+            raise TelegramRefused(f"Telegram a refusé la requête : {detail.replace(token, '***')}")
         return payload
 
     def _send_telegram(self, text, photo_path=None):
         token, chat_id = self._telegram_credentials()
         if photo_path:
             with open(photo_path, "rb") as photo:
-                self._telegram_call(
+                payload = self._telegram_call(
                     token, "sendPhoto",
                     {"chat_id": chat_id, "caption": text[:1024]},
                     files={"photo": photo},
                 )
         else:
-            self._telegram_call(token, "sendMessage", {"chat_id": chat_id, "text": text})
+            payload = self._telegram_call(token, "sendMessage", {"chat_id": chat_id, "text": text})
+        self._remember_telegram_message(chat_id, payload)
+
+    def _remember_telegram_message(self, chat_id, payload):
+        """Garde l'identifiant du message envoyé. Un échec ici ne doit jamais faire échouer l'alerte."""
+        message_id = (payload.get("result") or {}).get("message_id")
+        if self.store is None or message_id is None:
+            return
+        try:
+            self.store.record_telegram_message(chat_id, message_id)
+        except Exception as exc:
+            self._log("warning", f"[ALERTE] Telegram : identifiant du message non enregistré ({exc.__class__.__name__}).")
+
+    def purge_telegram_messages(self, older_than_hours=None):
+        """
+        Supprime de la conversation les messages envoyés il y a plus de `older_than_hours` heures
+        (par défaut TELEGRAM_DELETE_AFTER_HOURS, plafonné à 47 h : limite de l'API des bots).
+        Retourne {"deleted": n, "gone": m, "failed": k} :
+          deleted : supprimés chez Telegram ;
+          gone    : refusés par Telegram (déjà supprimés à la main, ou plus de 48 h) : on les oublie ;
+          failed  : panne réseau, ils restent en file et seront retentés à la prochaine purge.
+        """
+        result = {"deleted": 0, "gone": 0, "failed": 0}
+        if older_than_hours is None:
+            hours = float(config.TELEGRAM_DELETE_AFTER_HOURS or 0)
+            if hours <= 0:
+                return result
+            hours = min(hours, TELEGRAM_MAX_DELETE_HOURS)
+        else:
+            hours = float(older_than_hours)
+        token, _ = self._telegram_credentials()
+        if self.store is None or not token:
+            return result
+
+        for row in self.store.get_expired_telegram_messages(hours):
+            try:
+                self._telegram_call(token, "deleteMessage",
+                                    {"chat_id": row["chat_id"], "message_id": row["message_id"]})
+                result["deleted"] += 1
+            except TelegramRefused:
+                result["gone"] += 1
+            except NotifierError as exc:
+                result["failed"] += 1
+                self._log("warning", f"[ALERTE] Telegram : suppression reportée ({exc}).")
+                break  # réseau coupé : inutile d'attendre un délai par message restant
+            self.store.forget_telegram_message(row["id"])
+        return result
 
     def _send_email(self, subject, text, photo_path=None):
         s = self._email_settings()

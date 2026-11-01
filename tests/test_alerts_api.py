@@ -48,6 +48,7 @@ class ConfigSecretsTest(unittest.TestCase):
             lambda: api.update_config({}, authorization="Bearer faux"),
             lambda: api.alerts_test(api.AlertTestRequest(channel="telegram"), authorization=None),
             lambda: api.alerts_telegram_detect(authorization=None),
+            lambda: api.alerts_telegram_purge(older_than_hours=None, authorization=None),
         ):
             with self.assertRaises(HTTPException) as ctx:
                 run(call())
@@ -118,6 +119,16 @@ class AlertTestRouteTest(unittest.TestCase):
             resp = run(api.alerts_test(api.AlertTestRequest(channel="telegram"), authorization=AUTH))
         self.assertTrue(resp["success"], resp)
         post.assert_called_once()
+
+    def test_telegram_purge_route_deletes_through_the_notifier(self):
+        result = {"deleted": 2, "gone": 0, "failed": 0}
+        with mock.patch.object(api.notifier, "purge_telegram_messages", return_value=result) as purge:
+            resp = run(api.alerts_telegram_purge(older_than_hours=0, authorization=AUTH))
+        purge.assert_called_once_with(0)
+        self.assertEqual(resp, {"success": True, **result})
+
+    def test_the_server_gives_the_notifier_the_database_that_remembers_messages(self):
+        self.assertIs(api.notifier.store, api.face_recognizer.db)
 
     def test_telegram_detection_reports_a_missing_token(self):
         with mock.patch.multiple(config, TELEGRAM_BOT_TOKEN=""):

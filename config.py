@@ -133,6 +133,11 @@ ALERT_GRACE_PERIOD = 60
 ALERT_TELEGRAM_ENABLED = False
 TELEGRAM_BOT_TOKEN     = ""   # Jeton donné par @BotFather
 TELEGRAM_CHAT_ID       = ""   # Identifiant de la conversation avec le bot
+# Les messages envoyés (alertes, essais) sont supprimés de la conversation après ce délai :
+# la photo d'un intrus ne reste pas indéfiniment chez Telegram. L'API des bots ne permet de
+# supprimer qu'un message de moins de 48 h : toute valeur au-dessus de 47 est ramenée à 47.
+# 0 = ne jamais supprimer.
+TELEGRAM_DELETE_AFTER_HOURS = 24
 
 ALERT_EMAIL_ENABLED = False
 SMTP_HOST      = "smtp.gmail.com"
