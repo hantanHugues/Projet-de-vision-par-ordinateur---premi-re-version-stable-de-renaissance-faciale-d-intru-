@@ -636,20 +636,31 @@ Ces limites sont reprises au chapitre~\ref{chap:3}.
 
 \section{Justification des choix techniques}
 
-Cette section présente les choix techniques et l'avantage qui a motivé chacun.
+Cette section présente les choix techniques de BioGate en deux groupes. Les premiers ont été comparés à une autre solution au cours du développement, et la raison du choix est consignée dans le journal de bord et les notes du projet. Les seconds ont été retenus pour leurs avantages, sans comparaison.
+
+\subsection{Choix comparés à une autre solution}
+
 \begin{itemize}
-  \item \textbf{Python 3.11} : version compatible avec l'ensemble des bibliothèques de calcul et de vision utilisées, ce qui réunit la détection, la reconnaissance et le serveur dans un même langage ;
+  \item \textbf{FaceNet512 plutôt que VGG-Face} : VGG-Face, associé à une détection de visage basique, s'est révélé trop imprécis sous la lumière d'une webcam. FaceNet512, utilisé avec la bibliothèque DeepFace, a été retenu pour sa robustesse aux conditions lumineuses~\cite{schroff2015facenet,serengil_deepface} ;
+  \item \textbf{MediaPipe plutôt que le calcul à la main pour la vivacité} : une première version calculait à la main l'ouverture des yeux et de la bouche. La version actuelle utilise les 52 coefficients d'expression fournis par le modèle de points du visage de MediaPipe~\cite{google_facelandmarker}, ce qui évite ce calcul. Le modèle est publié sous licence Apache~2.0~\cite{mediapipe_blendshape_card} ;
+  \item \textbf{Pas d'analyse de la posture} : une analyse posturale en trois dimensions a été étudiée puis abandonnée, car elle était chargée sans jamais être utilisée ;
+  \item \textbf{Telegram plutôt que WhatsApp} : l'interface officielle de WhatsApp exige un portefeuille d'entreprise Meta et, depuis le 1\ier{} juillet 2025, facture au message les envois faits par l'entreprise~\cite{meta_wa_overview,meta_wa_pricing}. Un robot Telegram est gratuit par défaut~\cite{telegram_botfaq} et accepte l'envoi d'une photo de 10~Mo au plus~\cite{telegram_botapi} ;
+  \item \textbf{BW21-CBV plutôt qu'ESP32-CAM} : la BW21-CBV, envisagée après l'ESP32-CAM, offre un Wi-Fi bi-bande, alors que le module ESP32-CAM, bâti sur l'ESP32, n'émet qu'en 2,4~GHz~\cite{aithinker_bw21_spec,aithinker_esp32cam,espressif_esp32} ;
+  \item \textbf{React avec Vite plutôt que Next.js} : Next.js est conçu pour le rendu côté serveur des sites web, ce qui est inutile dans une application de bureau. Il exige un processus Node.js séparé et pose des incompatibilités avec le système de fichiers d'Electron. React avec Vite est plus simple, et son rechargement rapide facilite le développement ;
+  \item \textbf{Python 3.11 plutôt que 3.13} : la version 3.13 posait des incompatibilités entre les bibliothèques de calcul et de vision, notamment NumPy et OpenCV. La version 3.11 est compatible avec l'ensemble de celles utilisées.
+\end{itemize}
+
+\subsection{Choix retenus pour leurs avantages}
+
+\begin{itemize}
   \item \textbf{FastAPI} : cadre moderne et rapide pour construire des interfaces de programmation en Python, fondé sur les annotations de types standard~\cite{fastapi_docs}. Écrit dans le même langage que les modèles d'intelligence artificielle (YOLO, DeepFace, MediaPipe, OpenCV), il les appelle directement, sans passerelle entre deux langages ;
   \item \textbf{SQLite} : moteur de base de données intégré au programme, sans serveur et sans configuration, qui tient une base complète, avec ses tables et ses index, dans un seul fichier~\cite{sqlite_about}. Il convient à une installation locale unique, se sauvegarde en copiant ce fichier, et son code est dans le domaine public ;
   \item \textbf{YOLOv8 nano} : le plus petit modèle de la famille YOLOv8, avec 3,2 millions de paramètres, entraîné sur la base COCO qui comprend une classe \og personne \fg{}~\cite{ultralytics_yolov8docs}. Sa légèreté permet de l'exécuter sur un simple processeur, à environ 15 images par seconde ;
   \item \textbf{Suivi par centroïde} : calcul très léger, adapté à un traitement local sur un petit matériel. Il suffit de comparer les centres des boîtes et un histogramme de couleur par individu ;
   \item \textbf{Cascade de Haar} : méthode de détection d'objets efficace, proposée par Viola et Jones et fournie avec OpenCV~\cite{viola2001rapid,opencv_cascade}. Un appel ne coûte que 58 ms sur le matériel d'essai, ce qui permet de filtrer les visages de face avant le calcul lourd ;
-  \item \textbf{MediaPipe} : un même modèle rend deux services, le second avis sur le visage et les 52 coefficients d'expression du test de vivacité~\cite{google_facelandmarker}. Il évite de calculer à la main l'ouverture des yeux et de la bouche. Le modèle est publié sous licence Apache~2.0~\cite{mediapipe_blendshape_card} ;
   \item \textbf{CLAHE} : égalisation adaptative de l'histogramme qui limite le contraste~\cite{zuiderveld1994clahe,opencv_clahe}. Elle agit par zones de l'image, ce qui rétablit les traits d'un visage en contre-jour ;
-  \item \textbf{FaceNet512 avec DeepFace} : FaceNet produit un vecteur de 512 nombres par visage~\cite{schroff2015facenet}. DeepFace, publiée sous licence MIT~\cite{serengil_deepface}, propose plusieurs modèles de reconnaissance derrière une même interface et gère l'alignement du visage. Ce modèle s'est montré robuste aux conditions lumineuses d'une webcam ;
-  \item \textbf{Caméra BW21-CBV} : Wi-Fi bi-bande (2,4~GHz ou 5~GHz), Bluetooth basse consommation 5.1, programmation avec l'environnement Arduino et encodeurs vidéo intégrés~\cite{aithinker_bw21_spec}. Elle a été essayée avec le serveur : son flux est reçu et elle se reconnecte seule au réseau ;
-  \item \textbf{Electron et React} : Electron permet de maintenir une seule base de code JavaScript, HTML et CSS pour des applications qui fonctionnent sous Windows, macOS et Linux~\cite{electron_docs}. Le tableau de bord tourne ainsi sur n'importe quel ordinateur du réseau local. Electron stocke le jeton chiffré par le système d'exploitation, et un installateur se génère en une seule commande. React organise l'interface en composants, et le flux MJPEG s'affiche avec une simple balise image ;
-  \item \textbf{Telegram} : un robot est gratuit par défaut~\cite{telegram_botfaq} et accepte l'envoi d'une photo de 10~Mo au plus~\cite{telegram_botapi}. Le propriétaire reçoit l'alerte sur son téléphone, sans service payant.
+  \item \textbf{DeepFace} : bibliothèque publiée sous licence MIT~\cite{serengil_deepface}, qui propose plusieurs modèles de reconnaissance derrière une même interface et gère l'alignement du visage ;
+  \item \textbf{Electron} : il permet de maintenir une seule base de code JavaScript, HTML et CSS pour des applications qui fonctionnent sous Windows, macOS et Linux~\cite{electron_docs}. Le tableau de bord tourne ainsi sur n'importe quel ordinateur du réseau local. Electron stocke le jeton chiffré par le système d'exploitation, un installateur se génère en une seule commande, et le flux MJPEG s'affiche avec une simple balise image.
 \end{itemize}
 Ensemble, ces choix donnent un système local, léger et sans abonnement : chaque composant s'exécute sur un ordinateur ordinaire, et le seul service extérieur du fonctionnement de base est l'envoi de l'alerte.
 
