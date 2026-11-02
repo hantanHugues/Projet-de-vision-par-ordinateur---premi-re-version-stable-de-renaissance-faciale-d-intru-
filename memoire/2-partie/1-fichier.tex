@@ -130,7 +130,7 @@ BioGate sépare l'acquisition des images, l'intelligence artificielle et la supe
 Caméra BW21-CBV & Capture et diffusion du flux MJPEG protégé & Réalisé et testé : flux reçu par le serveur, reconnexion au réseau enregistré après un redémarrage \\
 Serveur local & Analyse des images, authentification, base de données, alertes & Réalisé, exécuté sur un ordinateur personnel \\
 Tableau de bord & Supervision, enrôlement, configuration, alertes & Réalisé et testé ; le flux de la caméra et les alertes s'y affichent \\
-Alertes à distance & Notification d'intrusion avec photo & Réalisé avec Telegram, testé en conditions réelles, avec suppression des messages après 24 heures ; courrier électronique et WhatsApp laissés en perspectives \\
+Alertes à distance & Notification d'intrusion avec photo & Réalisé avec Telegram et testé en conditions réelles \\
 Lecteur d'empreinte & Second facteur d'authentification & Conçu et simulé \\
 Gâche et éclairage & Ouverture et éclairage d'accueil ou d'alerte & Conçus et simulés \\
 Écran \gls{lcd} sur la caméra & Affichage des consignes du test de vivacité & Prévu, non réalisé \\
@@ -138,7 +138,7 @@ Gâche et éclairage & Ouverture et éclairage d'accueil ou d'alerte & Conçus e
 \end{tabularx}
 \end{table}
 
-Le serveur est conçu pour s'exécuter à terme sur un micro-ordinateur monocarte de type Raspberry Pi ou sous Linux. Le prototype tourne sur un ordinateur personnel. Trois choix améliorent les performances : l'image est réduite avant la détection, les vecteurs des profils sont gardés en mémoire, et une personne déjà identifiée n'est revérifiée, c'est-à-dire que son visage n'est comparé de nouveau, que toutes les 0,8 seconde. Les gains mesurés sont présentés à la section~\ref{sec:perf}.
+Trois choix améliorent les performances : l'image est réduite avant la détection, les vecteurs des profils sont gardés en mémoire, et une personne déjà identifiée n'est revérifiée, c'est-à-dire que son visage n'est comparé de nouveau, que toutes les 0,8 seconde. Les gains mesurés sont présentés à la section~\ref{sec:perf}.
 
 \begin{maj}
 La figure~\ref{fig:reseau} montre l'organisation du réseau prévue. Un routeur Wi-Fi dédié forme un réseau local fermé, séparé de la box Internet. Une alimentation de secours, par exemple une petite batterie, alimente le routeur, le serveur et la caméra pour couvrir les courtes coupures de courant. Le seul lien avec Internet part du serveur vers Telegram, pour l'alerte. Dans le prototype, l'alimentation de secours, la gâche, le lecteur d'empreinte et l'éclairage ne sont pas réalisés.
@@ -396,7 +396,6 @@ Cet ajout n'a lieu que si le second facteur est exigé et qu'il confirme l'ident
 Un ajout sans confirmation a été écarté, car le système pourrait apprendre de ses propres erreurs et dériver. Les vecteurs des intrus ne sont jamais conservés.
 \end{maj}
 
-Le lecteur d'empreinte n'existe pas dans le prototype : la confirmation est simulée par une commande envoyée à la route correspondante du serveur. Le mécanisme est donc éprouvé par simulation, non avec un capteur réel.
 
 \subsection{Scénarios d'interaction}
 
