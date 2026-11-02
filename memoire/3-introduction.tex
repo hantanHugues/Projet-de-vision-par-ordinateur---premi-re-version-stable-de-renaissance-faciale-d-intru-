@@ -21,7 +21,7 @@ Sur le plan technique, l'analyse des images demande beaucoup de calculs, alors q
 
 Sur le plan de la sécurité, le système peut être trompé par une photographie, une vidéo ou un écran présenté devant la caméra~\cite{chakraborty2014overview,iso30107}.
 
-Enfin, le visage d'un utilisateur change avec le temps, ce qui dégrade la reconnaissance si les références enregistrées ne sont pas mises à jour~\cite{bestrowden2018longitudinal,pisani2019adaptive}. Or une mise à jour sans contrôle peut introduire des erreurs dans les références, comme l'a montré une première version de BioGate.
+Enfin, le visage d'un utilisateur change avec le temps, ce qui dégrade la reconnaissance si les références enregistrées ne sont pas mises à jour~\cite{bestrowden2018longitudinal,pisani2019adaptive}. Or une mise à jour sans contrôle peut introduire des erreurs dans les références ; le chapitre~\ref{chap:3} chiffre ce risque.
 
 La problématique centrale de ce mémoire peut donc être formulée comme suit : \textit{comment concevoir un système de contrôle d'accès par reconnaissance faciale, exécuté en local selon le principe de l'Edge Computing, qui résiste aux attaques par présentation et reste fiable malgré l'évolution du visage de ses utilisateurs ?}
 
@@ -32,8 +32,8 @@ L'objectif général est de concevoir et de réaliser \textbf{BioGate}, un syst�
 Les objectifs spécifiques sont les suivants :
 \begin{itemize}
   \item concevoir une chaîne de traitement d'images adaptée aux ressources d'un équipement local ;
-  \item définir une règle de décision fondée sur un score de confiance gradué (\gls{trustscore}), qui associe la reconnaissance du visage à un second facteur d'authentification ;
-  \item intégrer une détection de vivacité (\gls{liveness}) pour limiter les attaques par présentation ;
+  \item définir une règle de décision fondée sur un \glslink{trustscore}{score de confiance} gradué (Trust Score), qui associe la reconnaissance du visage à un second facteur d'authentification ;
+  \item intégrer une \glslink{liveness}{détection de vivacité} (liveness) pour limiter les attaques par présentation ;
   \item encadrer la mise à jour des références biométriques par une confirmation indépendante du visage ;
   \item limiter la transmission et la conservation des données biométriques ;
   \item évaluer le système par des mesures : taux de fausses acceptations et de faux rejets, résistance aux attaques par présentation, temps de traitement et comportement en cas de panne.

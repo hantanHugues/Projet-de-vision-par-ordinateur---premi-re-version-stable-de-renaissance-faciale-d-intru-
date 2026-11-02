@@ -186,3 +186,13 @@ Deux points que je n'ai pas pu vérifier moi-même : la source Apple sur la cart
 - B1 (FRR de 52 %) est éclairci en partie : trois variantes de la chaîne donnent des aires ROC presque identiques, donc ni Haar ni CLAHE n'expliquent l'écart. Il reste non expliqué dans le texte ;
 - B4 (0,269 à 0,106) : retiré du chapitre 3, détaillé dans `DETAILS_POUR_LA_SOUTENANCE.md`.
 Longueur actuelle : 65 pages, corps de 47 pages.
+
+### Mise à jour du 2 novembre (relecture complète du PDF)
+
+43 problèmes relevés à la relecture ; corrigés à partir du code (`config.py`, `api.py`, `database/db_manager.py`), du plan de finalisation, du journal (entrées 019 à 030), des rapports de mesure et du cahier des charges :
+- purge réelle constatée (41 photos le 29/10, 10 le 01/11), alertes désactivées à l'installation, 30 entrées au journal, 11 routes sans jeton détaillées, score de 75,2 % expliqué (une image), variantes de la chaîne rattachées aux 1 429 images de l'essai d'adaptation, deux réglages « silhouette sans visage » distingués ;
+- cahier des charges présenté (sous-section 2.1.4) avec sept écarts ; essais sur les deux bandes Wi-Fi mentionnés ; reprise du flux par le serveur ajoutée à la résilience ;
+- termes définis : route, jeton, enrôlement, gabarit, distance cosinus, fenêtre de grâce, ROC, intervalle de confiance, Wilcoxon, chien de garde, recette ; 11 sigles ajoutés à la liste ;
+- « résiste » et « assez rapide » retirés là où rien n'est mesuré.
+
+**Reste à mesurer ou à fournir par l'auteur** : attaques photo et vidéo (20 essais chacune), débit de la chaîne complète (ms par image, images par seconde), coupure du Wi-Fi provoquée, relance des 180 tests après fusion (180 cas comptés dans le code, réussite non vérifiée dans ce conteneur faute de cv2/deepface), seconde lecture de jour de l'apprentissage à la webcam, photo de l'alerte Telegram reçue, couverture, dédicace, remerciements, photo du montage, capture de la page de surveillance.
