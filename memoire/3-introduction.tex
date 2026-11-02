@@ -7,37 +7,49 @@ La biométrie remplace ces facteurs par une caractéristique propre à l'individ
 
 \section*{1- Contexte et justification}
 
-Une architecture courante de reconnaissance faciale consiste à transmettre les images à des serveurs distants, où elles sont analysées. Ce modèle est désigné par le terme d'informatique en nuage, ou \gls{cloudcomputing}. Les caméras connectées de la marque Ring en sont un exemple : en 2023, la \gls{ftc} américaine a relevé que leurs vidéos étaient stockées sans chiffrement sur le réseau de l'entreprise et accessibles à tous ses employés~\cite{ftc2023ring}. Ce modèle suppose une alimentation électrique et un accès à Internet continus. Au Bénin, le coût d'Internet et l'instabilité de l'alimentation électrique rendent ces conditions difficiles à garantir, d'après l'observation de l'auteur. Lorsqu'elles ne le sont pas, le service s'interrompt avec la liaison.
+\begin{maj}
+Au Bénin, le coût de l'accès à Internet pèse sur de nombreux foyers et l'alimentation électrique est parfois instable. Ces conditions conviennent mal aux solutions de sécurité qui dépendent en permanence d'un service en ligne. Les solutions actuelles de contrôle d'accès par reconnaissance faciale présentent en outre trois limites.
 
-Les données biométriques font par ailleurs l'objet d'un encadrement juridique particulier. Le \gls{rgpd} range les données biométriques utilisées pour identifier une personne de façon unique parmi les catégories particulières de données, dont le traitement est en principe interdit sauf exceptions~\cite{ue2016rgpd}. Au Bénin, le Code du numérique pose la même interdiction de principe à son article 394~\cite{apdp2018codenumerique}. Contrairement à un mot de passe, un visage ne peut pas être remplacé après une fuite, ce qui justifie de limiter sa transmission et sa conservation.
+La première concerne le lieu du traitement. Les systèmes les plus répandus envoient les images à des serveurs distants, selon le modèle de l'informatique en nuage, ou \gls{cloudcomputing}. Ils exigent une connexion continue et exposent les images à un tiers : en 2023, la \gls{ftc} américaine a relevé que les vidéos des caméras de la marque Ring étaient accessibles à tous les employés de l'entreprise~\cite{ftc2023ring}. Le traitement en périphérie de réseau, ou \gls{edge}~\cite{shi2016edge}, analyse au contraire les données à proximité de leur source. Il réduit la dépendance à la connexion et conserve les images sur le site.
 
-Le traitement en périphérie de réseau, ou \gls{edge}~\cite{shi2016edge}, consiste à analyser les données à proximité de leur source plutôt que dans un centre de données distant. Il réduit la dépendance à la connexion et permet de conserver les images sur le site. Il impose en contrepartie de travailler avec des ressources de calcul limitées.
+La deuxième concerne l'usurpation. Un service en ligne dispose de serveurs puissants et peut analyser chaque image en profondeur pour repérer une reproduction du visage. Un système local doit se contenter de la puissance d'un équipement modeste, qui limite les contrôles qu'il peut exécuter : il se laisse plus facilement tromper par une simple photographie~\cite{chakraborty2014overview,iso30107}. Seuls quelques concepteurs, qui maîtrisent à la fois le matériel et le logiciel, y échappent. Face ID associe ainsi une caméra de profondeur, un composant sécurisé et des réseaux de neurones contre l'usurpation~\cite{apple2026faceid}.
+
+La troisième concerne l'évolution du visage. Une reconnaissance fondée sur un seul enregistrement, jamais renouvelé, perd en stabilité avec le temps : le visage présenté s'éloigne peu à peu du visage enregistré, et les refus injustifiés augmentent~\cite{bestrowden2018longitudinal,deb2017aging}. Les systèmes qui renouvellent l'enregistrement, comme Face ID, restent fiables sans obliger l'utilisateur à enregistrer de nouveau son visage~\cite{apple2026faceid,pisani2019adaptive}.
+
+Les données biométriques sont enfin une catégorie particulière de données personnelles. Le \gls{rgpd}~\cite{ue2016rgpd} et, au Bénin, le Code du numérique (article 394)~\cite{apdp2018codenumerique} en interdisent le traitement sauf exceptions. Il faut donc limiter leur transmission et leur conservation. Le cadre légal est détaillé en section~\ref{sec:legal}.
+
+Face à ces limites, ce projet propose BioGate, un système de contrôle d'accès qui traite les images en local, vérifie par un geste tiré au sort que la personne est réellement présente, et met à jour les données d'une personne dont le visage change, après confirmation par une empreinte digitale. Le traitement local impose de travailler avec des ressources de calcul limitées, ce qui conduit à une chaîne de traitement économe.
+\end{maj}
 
 \section*{2- Problématique}
 
-Le contrôle d'accès par reconnaissance faciale pose plusieurs problèmes.
+\begin{maj}
+Le contrôle d'accès par reconnaissance faciale pose ainsi trois problèmes.
 
-Sur le plan technique, l'analyse des images demande beaucoup de calculs, alors qu'un équipement installé sur place dispose de peu de ressources.
+Le premier est le lieu du traitement : les solutions en ligne dépendent du réseau et exposent les images, alors que le traitement local dispose de peu de ressources.
 
-Sur le plan de la sécurité, le système peut être trompé par une photographie, une vidéo ou un écran présenté devant la caméra~\cite{chakraborty2014overview,iso30107}.
+Le deuxième est l'usurpation : le système peut être trompé par une photographie, une vidéo ou un écran présenté devant la caméra~\cite{chakraborty2014overview,iso30107}.
 
-Enfin, le visage d'un utilisateur change avec le temps, ce qui dégrade la reconnaissance si les références enregistrées ne sont pas mises à jour~\cite{bestrowden2018longitudinal,pisani2019adaptive}. Or une mise à jour sans contrôle peut introduire des erreurs dans les références ; le chapitre~\ref{chap:3} chiffre ce risque.
+Le troisième est l'évolution du visage : un visage enregistré une seule fois devient moins représentatif avec le temps, ce qui dégrade la reconnaissance~\cite{bestrowden2018longitudinal,pisani2019adaptive}.
 
-La problématique centrale de ce mémoire peut donc être formulée comme suit : \textit{comment concevoir un système de contrôle d'accès par reconnaissance faciale, exécuté en local selon le principe de l'Edge Computing, qui résiste aux attaques par présentation et reste fiable malgré l'évolution du visage de ses utilisateurs ?}
+La problématique centrale de ce mémoire peut donc être formulée comme suit : \textit{comment concevoir un système de contrôle d'accès par reconnaissance faciale, exécuté en local selon le principe de l'Edge Computing, qui résiste à l'usurpation et reste fiable malgré l'évolution du visage de ses utilisateurs ?}
+\end{maj}
 
 \section*{3- Objectifs de la recherche}
 
+\begin{maj}
 L'objectif général est de concevoir et de réaliser \textbf{BioGate}, un système de contrôle d'accès par reconnaissance faciale fonctionnant en périphérie de réseau.
 
 Les objectifs spécifiques sont les suivants :
 \begin{itemize}
   \item concevoir une chaîne de traitement d'images adaptée aux ressources d'un équipement local ;
   \item définir une règle de décision fondée sur un \glslink{trustscore}{score de confiance} gradué (Trust Score), qui associe la reconnaissance du visage à un second facteur d'authentification ;
-  \item intégrer une \glslink{liveness}{détection de vivacité} (liveness) pour limiter les attaques par présentation ;
-  \item encadrer la mise à jour des références biométriques par une confirmation indépendante du visage ;
+  \item intégrer un \glslink{liveness}{test de vivacité} (liveness) pour limiter l'usurpation ;
+  \item encadrer la mise à jour des données enregistrées par une confirmation indépendante du visage ;
   \item limiter la transmission et la conservation des données biométriques ;
-  \item évaluer le système par des mesures : taux de fausses acceptations et de faux rejets, résistance aux attaques par présentation, temps de traitement et comportement en cas de panne.
+  \item évaluer le système par des mesures : taux de fausses acceptations et de faux rejets, test de vivacité, temps de traitement et comportement en cas de panne.
 \end{itemize}
+\end{maj}
 
 \section*{4- Organisation du mémoire}
 

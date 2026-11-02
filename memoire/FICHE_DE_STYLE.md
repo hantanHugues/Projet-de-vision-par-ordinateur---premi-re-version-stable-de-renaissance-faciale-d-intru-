@@ -66,3 +66,17 @@ Conclusion générale : rappel problématique, objectif, solution, technologies,
 Espace manquant après un point (ex. "...structurée.Au Bénin"), coquilles, en-têtes "Chapter" en anglais, paragraphes-blocs de
 discussion sans respiration, affirmations trop fortes ("imparable", "tous les objectifs atteints") sans donnée, répétitions de formules,
 excès de gras. Aucun chiffre sans source ou sans mesure issue des tests de l'étudiant.
+
+## 9. Règles complémentaires de l'étudiant (à respecter à chaque rédaction)
+Le mémoire est un diplôme académique sérieux, pas un journal de développement. Il se comprend seul.
+- **Aucune trace du journal de travail** : pas de « journal de bord », de « notes du projet », de dates de séances ou de recettes, de « branche », de « poste de l'auteur », de « selon l'auteur », de « hors journal », de « commentaires du code », d'assistance par IA. Les résultats sont donnés comme les résultats du travail.
+- **Pas d'histoire du développement** : on ne raconte pas pourquoi une version a été abandonnée, pourquoi une chose « était absente » ou « n'est pas utilisée » ; on dit ce qui est et pourquoi c'est utile. Une information importante a sa place et son espace ; une information sans utilité pour le raisonnement s'omet.
+- **Chaque phrase est liée à la précédente et à la suivante** et répond à une question que le lecteur se pose. Pas de phrase ajoutée « pour la forme » (parenthèses d'information sans portée, détails de dépôt, d'environnement, d'installation).
+- **Tout terme technique, sigle, formule ou valeur est défini ou expliqué à sa première apparition** (distance cosinus avec sa formule, seuil, profil, jeton, route, Haar, ROC, intervalle de confiance, point de pourcentage). Pas de test statistique cité sans nécessité (Wilcoxon, rééchantillonnage) ; si une notion est citée, une phrase l'explique.
+- **Vocabulaire du lecteur, pas celui du projet** : pas de noms de fonctions, de variables, de tables ou de routes ; pas de formule du journal (« recette », « pipeline », « chien de garde » sans explication). Dans les tableaux, des libellés compréhensibles par quelqu'un qui n'a jamais vu le projet.
+- **Ton positif et précis** : présenter les choix par leurs avantages (« améliorent les performances » plutôt que « limitent le calcul »). Ne pas distinguer « choix comparés » et « choix non comparés » : « X a été préféré à Y car… » ou « X : avantages ».
+- **Pas de répétition** : chaque information a une seule place principale (matériel simulé : 2.1.3 et 3.3.3 ; limites : 3.3.3 ; risque d'apprentissage erroné : 2.4.4 et 3.2.7.1 seulement).
+- **Résumé** : un paragraphe de 150 à 200 mots, contexte, problème, objectif, démarche, résultats en mots, sans chiffre ni jargon. L'introduction expose le contexte avec une preuve par limite ; les résultats appartiennent au chapitre 3 et à la conclusion.
+- **Conclusion générale** : phrases reliées par des connecteurs (Ainsi, De plus, Par ailleurs, Néanmoins, En définitive).
+- **Vocabulaire** : « usurpation » et non « attaque par présentation » ; « test de vivacité » ; « évaluation limitée » et non « exploratoire » ; « points de pourcentage » expliqués ou évités.
+- **Ne jamais demander à l'étudiant une source pour une évidence** : la rédiger directement.

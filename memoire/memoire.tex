@@ -8,6 +8,13 @@
 \usepackage{tabularx}
 \usepackage{booktabs}
 \usepackage{tikz}
+\usepackage{framed}
+\definecolor{shadecolor}{rgb}{1,0.96,0.45}
+% Surlignement des passages réécrits : mettre \surlignefalse pour obtenir la version propre
+\newif\ifsurligne
+\ifdefined\versionpropre\surlignefalse\else\surlignetrue\fi
+\newcommand{\majmark}{\ifsurligne\ \colorbox{shadecolor}{\tiny modifié}\fi}
+\newenvironment{maj}{\ifsurligne\begin{shaded}\fi}{\ifsurligne\end{shaded}\fi}
 \usetikzlibrary{arrows.meta}
 \usetikzlibrary{shapes.multipart,shapes.geometric}
 % --- Macros de schémas UML ---
