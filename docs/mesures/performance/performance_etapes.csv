@@ -1,0 +1,16 @@
+etape,n,moyenne,ecart_type,mediane,p90,p95,min,max,remarque
+"Détection des personnes, YOLOv8n à 320 px (réglage de BioGate)",100,21.0030,1.2950,20.9908,22.6267,23.0941,18.3692,24.7784,
+"Détection des personnes, YOLOv8n à 640 px",100,43.3976,1.8008,43.2838,45.8969,46.4152,38.4495,48.7672,pour comparaison
+NMS maison (6 boîtes qui se recouvrent),1,0.0074,0.0000,0.0074,0.0074,0.0074,0.0074,0.0074,moyenne sur 5 000 appels
+Face Gate : détecteur de Haar (silhouette),100,84.7766,2.0551,84.3752,87.7724,88.1651,81.3053,92.3485,
+Face Gate : second avis MediaPipe,100,12.3604,0.8066,12.2276,13.4461,13.8735,11.0281,14.6233,
+Correction de contraste CLAHE seule,100,0.9090,0.2097,0.8153,1.0992,1.3638,0.7341,1.8178,
+Embedding FaceNet512 (CLAHE incluse),100,300.6040,20.4724,297.8291,308.3223,312.9129,282.1190,480.3104,"l'étape la plus coûteuse, lancée seulement si un visage de face est confirmé"
+"Appariement, cache en mémoire, 16 vecteurs",195,0.0627,0.0137,0.0584,0.0728,0.0915,0.0578,0.1493,
+"Relecture de SQLite à chaque image, 16 vecteurs",10,3.5056,0.6589,3.1044,4.4630,4.5527,2.9396,4.6423,ce que le cache en mémoire évite
+"Appariement, cache en mémoire, 160 vecteurs",195,0.6520,0.2181,0.5786,0.8336,1.0379,0.5725,2.0869,
+"Relecture de SQLite à chaque image, 160 vecteurs",10,32.2856,3.6530,32.2749,38.3308,38.6866,28.2648,39.0424,ce que le cache en mémoire évite
+"Appariement, cache en mémoire, 1600 vecteurs",195,6.7173,0.8769,6.3709,7.7879,8.0485,5.7877,10.7453,
+"Relecture de SQLite à chaque image, 1600 vecteurs",10,294.8352,7.2401,294.6989,303.8398,306.4406,286.2074,309.0414,ce que le cache en mémoire évite
+"Appariement, cache en mémoire, 16000 vecteurs",15,69.0179,2.0402,69.0095,71.6960,72.6671,66.1588,73.9548,
+"Relecture de SQLite à chaque image, 16000 vecteurs",3,3128.5347,152.1257,3082.8709,3283.3235,3308.3800,2969.2967,3333.4366,ce que le cache en mémoire évite
