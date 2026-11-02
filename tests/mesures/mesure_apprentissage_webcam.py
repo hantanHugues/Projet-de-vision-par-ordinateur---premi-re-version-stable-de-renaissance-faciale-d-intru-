@@ -1,8 +1,9 @@
 """
 Mesure, à la webcam, l'effet de l'apprentissage continu sur UN profil enrôlé.
 
-Pendant la capture, chaque image où Haar trouve un visage, confirmé par le second avis de MediaPipe (comme
-le Face Gate de BioGate : sans lui un pli de vêtement passe pour un visage), est transformée par le code même
+Pendant la capture, la chaîne est celle de BioGate : YOLOv8 repère la silhouette de la personne, Haar cherche le
+visage DANS ce recadrage (et non sur l'image entière : le visage y est plus grand, donc bien mieux trouvé en
+faible lumière), le second avis de MediaPipe écarte les faux visages, puis le visage est transformé par le code même
 de BioGate (FaceRecognizer._extract_face_signature : CLAHE, FaceNet512, alignement) puis comparée en distance
 cosinus. Pour les MÊMES images, on compare la distance :
   - au seul vecteur d'origine du profil (le premier enregistré : l'enrôlement) ;
@@ -75,6 +76,8 @@ def main(profil, sortie, delai=20.0, duree=30.0):
     fr = FaceRecognizer(logger=VisualLogger(), trust_mgr=None)
     fr._extract_face_signature(np.zeros((160, 160, 3), np.uint8))   # charge FaceNet avant le décompte
     fr._get_landmarker()                                            # et le second avis MediaPipe
+    from ultralytics import YOLO
+    yolo = YOLO(os.path.join(RACINE, "yolov8n.pt"))
 
     cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if not cam.isOpened():
@@ -87,22 +90,30 @@ def main(profil, sortie, delai=20.0, duree=30.0):
         cam.read()  # garde l'image fraîche
     print("CAPTURE EN COURS", flush=True)
 
-    lignes, sans_visage, rejetes = [], 0, 0
+    lignes, sans_visage, rejetes, sans_personne = [], 0, 0, 0
     fin = time.time() + duree
     while time.time() < fin:
         ok, image = cam.read()
         if not ok:
             continue
-        gris = cv2.equalizeHist(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+        # 1. Silhouette de la personne (YOLOv8 nano, 320 px, confiance 0,5 : réglages de BioGate)
+        boites = yolo.predict(image, imgsz=320, conf=0.5, classes=[0], verbose=False)[0].boxes.xyxy.cpu().numpy()
+        if not len(boites):
+            sans_personne += 1
+            continue
+        x1, y1, x2, y2 = (int(v) for v in max(boites, key=lambda b: (b[2] - b[0]) * (b[3] - b[1])))
+        silhouette = image[max(0, y1):y2, max(0, x1):x2]
+        # 2. Face Gate : Haar dans la silhouette, puis second avis MediaPipe
+        gris = cv2.equalizeHist(cv2.cvtColor(silhouette, cv2.COLOR_BGR2GRAY))
         visages = fr.face_cascade.detectMultiScale(gris, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
         if not len(visages):
             sans_visage += 1
             continue
-        if not fr._confirm_face(image, visages[0]):
+        if not fr._confirm_face(silhouette, visages[0]):
             rejetes += 1   # faux visage écarté par MediaPipe, comme le ferait BioGate
             continue
         x, y, w, h = (int(v) for v in visages[0])
-        s = fr._extract_face_signature(image[y:y + h, x:x + w])
+        s = fr._extract_face_signature(silhouette[y:y + h, x:x + w])
         if s is None:
             continue
         d_origine = distance_cosinus(s, propres[0])
@@ -110,7 +121,7 @@ def main(profil, sortie, delai=20.0, duree=30.0):
         d_autres = min((distance_cosinus(s, v) for v in autres), default=float("nan"))
         lignes.append((d_origine, d_tous, d_autres))
     cam.release()
-    print(f"Capture terminée : {len(lignes)} images retenues, {rejetes} faux visages écartés, {sans_visage} sans visage.", flush=True)
+    print(f"Capture terminée : {len(lignes)} images retenues, {rejetes} faux visages écartés, {sans_visage} silhouettes sans visage, {sans_personne} sans personne.", flush=True)
     if not lignes:
         raise SystemExit("Aucun visage détecté pendant la capture.")
 
@@ -134,8 +145,8 @@ def main(profil, sortie, delai=20.0, duree=30.0):
         "## Protocole",
         "",
         f"- Un profil enrôlé de **{len(propres)} vecteurs** : le premier est l'enrôlement d'origine, les autres ont été ajoutés par l'apprentissage continu (confirmation par empreinte).",
-        f"- Capture à la webcam pendant {duree:.0f} s, la personne regardant la caméra : **{n} images retenues** (visage de face trouvé par Haar et confirmé par MediaPipe), {rejetes} faux visages écartés par MediaPipe, {sans_visage} images sans visage de face.",
-        "- Code même de BioGate : Face Gate (Haar + second avis MediaPipe), puis `FaceRecognizer._extract_face_signature` (CLAHE, FaceNet512, alignement), distance cosinus. La base est lue en lecture seule ; aucune image n'est enregistrée.",
+        f"- Capture à la webcam pendant {duree:.0f} s, la personne regardant la caméra : **{n} images retenues** (silhouette trouvée par YOLO, visage de face trouvé par Haar dans la silhouette et confirmé par MediaPipe), {rejetes} faux visages écartés par MediaPipe, {sans_visage} silhouettes sans visage de face, {sans_personne} images sans personne détectée.",
+        "- Chaîne de BioGate : YOLOv8 (silhouette), Face Gate (Haar dans la silhouette + second avis MediaPipe), puis `FaceRecognizer._extract_face_signature` (CLAHE, FaceNet512, alignement), distance cosinus. La base est lue en lecture seule ; aucune image n'est enregistrée.",
         "- Pour **les mêmes images**, on compare la distance au seul vecteur d'origine et la distance au plus proche des vecteurs du profil complet.",
         "",
         "## Résultats",

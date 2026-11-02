@@ -106,13 +106,14 @@ Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\
 - **Distance moyenne « 0,269 → 0,106 »** (chapitre 3, adaptation) : c'est la moyenne des distances que le serveur a journalisées lors de reconnaissances
   réelles à la webcam, avant puis après quatre validations d'empreinte (189 puis 45 mesures, recette du 29/10). Source unique : entrée 023 du journal.
   **Non reproduite depuis** : à écrire « relevé dans le journal du serveur lors d'une séance », sans dire « confirmé ».
-- **Reproduction à la webcam (02/11, non concluante)** : `tests/mesures/mesure_apprentissage_webcam.py` compare, sur les mêmes images, la distance au
-  seul vecteur d'origine du profil et au profil complet, avec le code même de BioGate. Deux passes de nuit n'ont rien donné d'exploitable : la pièce
-  était trop sombre (luminosité moyenne 49 sur 255), Haar ne trouvait le visage que sur 12 images sur 35 et MediaPipe écartait ses détections.
-  **Ne citer aucun chiffre de ces deux passes.** À refaire en pleine lumière : `.venv-deepface\Scripts\python.exe tests\mesures\mesure_apprentissage_webcam.py Ash <dossier> 20 40`.
-- **Limite mesurée en faible lumière** (un échantillon de 6 s, une nuit, à ne pas généraliser) : avec une webcam très sombre (49 sur 255), le filtre de visage
-  (Haar) trouve le visage sur 12 images sur 35, alors que MediaPipe le voit sur 31 sur 35. Le premier filtre de BioGate est donc le maillon faible quand la
-  lumière manque : à ajouter aux limites du chapitre 3, comme observation et non comme mesure systématique.
+- **Observation en direct (02/11, serveur réel, webcam sombre : luminosité 49 sur 255)** : le journal du serveur montre 39 re-confirmations de « Ash »
+  en 46 secondes, distance moyenne **0,178** (médiane 0,160, minimum 0,11, maximum 0,29, écart-type 0,04), toutes sous le seuil de 0,35, et un accès
+  accordé à 75,2 %. BioGate reconnaît donc l'auteur même dans une pièce peu éclairée. C'est une séance, un visage : à citer comme observation.
+- **Reproduction contrôlée (vecteur d'origine contre profil complet) : pas encore faite.** Le script `tests/mesures/mesure_apprentissage_webcam.py` a
+  d'abord été mal construit (il cherchait le visage sur l'image entière au lieu de la silhouette trouvée par YOLO, comme le fait BioGate) : ses deux passes de
+  nuit sont invalides, **ne citer aucun de leurs chiffres** et **ne pas en déduire une limite de faible lumière**. Le script est corrigé (YOLO, puis Haar dans
+  la silhouette, puis MediaPipe) mais pas encore relancé : `.venv-deepface\Scripts\python.exe tests\mesures\mesure_apprentissage_webcam.py Ash <dossier> 20 40`
+  (serveur et tableau de bord arrêtés, la webcam doit être libre).
 - Pas encore faites : attaque par photographie et par vidéo (avec l'auteur, environ une heure), performance complète (ms par image).
 
 ---
