@@ -165,3 +165,35 @@ Photographies publiques sous licence libre, couvrant 11 ans, qui montrent le vie
 
 **Les 137 puis 180 tests prouvent-ils que le système marche ?**
 Ils vérifient le comportement de chaque module, avec contre-épreuve. Ils n'ont pas détecté le défaut des inconnus sans cadre : il a fallu un essai réel. Le mémoire le dit.
+
+## 9. Mesure d'apprentissage sur 150 sujets de LFW : objections possibles et réponses
+
+Source : `docs/mesures/apprentissage_lfw/rapport_apprentissage_lfw.md`.
+
+| Objection possible | Réponse |
+|---|---|
+| « Un seul tirage de photos peut être favorable. » | La répartition enrôlement, apprentissage et test est tirée 20 fois par sujet ; les résultats sont des moyennes. |
+| « Les photos d'un même sujet ne sont pas indépendantes. » | L'unité statistique est le sujet : intervalles de confiance et test par rééchantillonnage ou appariement des sujets, jamais des photos. |
+| « Des photos presque identiques gonflent l'effet. » | Résultats redonnés en écartant les photos de test proches d'une photo du profil (47,4 % à 71,2 %). |
+| « Le seuil a été choisi pour que cela marche. » | Le seuil de 0,35 vient de la webcam. Résultats aussi à 0,30 (35,2 à 58,1 %) et à 0,40 (58,9 à 80,8 %), et sans seuil (aire ROC 0,919, égal taux d'erreur 14,1 % au seuil 0,71). |
+| « Les sujets ont été choisis. » | Tirage au hasard avec graine fixée parmi toutes les personnes éligibles ; aucun nom publié ; le script reproduit tout. |
+| « Votre chaîne de mesure n'est pas celle du produit. » | Comparée au code de production sur des images réelles : écart de 1,2e-07 en distance cosinus. |
+| « L'amélioration est automatique : plus de vecteurs, plus de chances. » | Oui, et c'est le comportement de BioGate. Ce qui est mesuré est l'ampleur du gain et son coût en fausses acceptations, avec l'apprentissage erroné comme contre-exemple. |
+| « La confirmation par empreinte n'est pas parfaite. » | Elle est supposée fiable (empreinte simulée). La mesure d'apprentissage erroné chiffre ce qui arrive si elle ne l'est pas. |
+
+**À ne pas dire** : que ces taux sont ceux de BioGate en usage réel (photos de presse, pas une caméra de porte ; BioGate compare à plusieurs photos enrôlées à la webcam) ; que cette mesure prouve la tenue au vieillissement (LFW ne date pas les photos : la démonstration reste l'essai à photos datées).
+
+## 10. Trois variantes de la chaîne (mêmes 1 429 images de LFW)
+
+| Variante | Aire ROC | Égal taux d'erreur (seuil) | FRR / FAR des paires à 0,35 | Reconnues, origine puis après |
+|---|---|---|---|---|
+| Chaîne de BioGate (Haar, CLAHE, FaceNet512) | 0,919 | 14,1 % (0,71) | 51,4 % / 0,1 % | 47,8 % puis 71,6 % |
+| Image entière, sans Haar ni CLAHE | 0,921 | 14,1 % (0,74) | 42,9 % / 0,1 % | 56,4 % puis 79,0 % |
+| Haar sans CLAHE | 0,924 | 13,5 % (0,73) | 43,7 % / 0,1 % | 55,8 % puis 79,5 % |
+
+Lecture : les aires ROC sont presque identiques, donc ni Haar ni CLAHE n'expliquent l'écart avec les performances publiées de FaceNet. Au seuil de 0,35, CLAHE ajoute environ 8 points de faux rejets sur ces photos bien éclairées. Ce n'est pas un argument contre CLAHE pour la webcam (non testé). Restent non testés : le détecteur et l'alignement de DeepFace, et le protocole des paires.
+
+## 11. Anciens relevés d'apprentissage retirés du texte
+
+- **Distance moyenne 0,269 puis 0,106** (journal, entrée 023) : moyennes de distances journalisées lors de deux séances de la recette du 29/10, avant puis après quatre validations d'empreinte (189 puis 45 mesures). Non reproduite par la mesure contrôlée : elle compare deux séances aux conditions différentes. Ne pas la présenter comme effet de l'apprentissage.
+- **Mesure à la webcam, première lecture de nuit** (78 images) : distance moyenne 0,209 puis 0,203 ; médiane 0,206 puis 0,204 ; écart-type 0,044 puis 0,027 ; pire image 0,436 puis 0,273 ; images sous 0,35 : 76 sur 78 puis 78 sur 78. Marge face à l'autre profil toujours positive (minimum 0,109). Une seconde lecture en pleine lumière est prévue.

@@ -177,3 +177,12 @@ Deux points que je n'ai pas pu vérifier moi-même : la source Apple sur la cart
 
 - La photo de la carte vient de Youpilab : la légende le dit (« Source de l'image : Youpilab »). Reste à vérifier que l'usage dans un mémoire est permis par le vendeur, ou à indiquer l'adresse de la page produit si tu veux la citer.
 - Longueur : 70 pages ramenées à 63 (corps de 45 pages, contre 42 et 47 pour les deux mémoires de référence). Ce qui a été retiré est dans `DETAILS_POUR_LA_SOUTENANCE.md`, avec des réponses aux questions probables du jury.
+
+### Mise à jour du 2 novembre (nuit) : dernier push de `main`
+
+`main` contient une mesure de l'apprentissage continu sur 150 sujets de LFW (commit `89f3f9b`). Reportée au chapitre 3, au résumé et à la conclusion :
+- reconnaissance de 47,8 % à 71,6 % après deux validations, fausses acceptations de 0,1 % à 0,3 %, et 47,9 % des photos d'un inconnu acceptées après un seul apprentissage erroné ;
+- l'essai à photos datées est conservé pour le vieillissement et la barbe, que LFW ne couvre pas ;
+- B1 (FRR de 52 %) est éclairci en partie : trois variantes de la chaîne donnent des aires ROC presque identiques, donc ni Haar ni CLAHE n'expliquent l'écart. Il reste non expliqué dans le texte ;
+- B4 (0,269 à 0,106) : retiré du chapitre 3, détaillé dans `DETAILS_POUR_LA_SOUTENANCE.md`.
+Longueur actuelle : 65 pages, corps de 47 pages.
