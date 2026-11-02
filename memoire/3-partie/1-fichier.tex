@@ -36,7 +36,7 @@ Le serveur démarre avec uvicorn. À son lancement, il charge les réglages enre
 
 \subsection{Réalisation du tableau de bord}
 
-Le tableau de bord est une application de bureau Electron et React. Il comporte sept pages, présentées ci-après. Les captures viennent d'un serveur simulé : ce sont des données de démonstration, avec des noms fictifs, et les réglages par défaut du profil domicile.
+Le tableau de bord est une application de bureau Electron et React. Il comporte sept pages, présentées ci-après. Les captures du journal, de la configuration et des alertes viennent d'un serveur simulé : ce sont des données de démonstration, avec des noms fictifs, et les réglages par défaut du profil domicile. La capture de la page de surveillance a été prise pendant un essai à la webcam.
 
 \subsubsection{Page de surveillance}
 
@@ -236,14 +236,14 @@ Au seuil de décision de 0,35 (la distance maximale à laquelle deux visages son
 \begin{maj}
 Le seuil de 0,35 est donc prudent : il évite toute fausse acceptation, au prix de nombreux refus de personnes autorisées. Ce taux de refus élevé tient en partie au protocole : les photographies sont prises dans des conditions non contrôlées, et chaque personne n'est comparée qu'à une seule photographie. BioGate compare au contraire à plusieurs photographies enregistrées à la webcam et retient la plus proche. Son taux de refus réel est donc plus bas que cette mesure, et son taux d'acceptation à tort un peu plus haut. Ces deux valeurs n'ont pas été mesurées pour BioGate en conditions réelles.
 
-Les performances publiées pour FaceNet sont meilleures que celles mesurées ici. Pour en chercher la cause, trois variantes de la chaîne ont été comparées sur les 1\,429 images de l'essai d'adaptation (section~\ref{sec:lfw}) : la chaîne de BioGate, l'image entière sans Haar ni CLAHE, et Haar sans CLAHE. Les aires sous la courbe \gls{roc} sont presque identiques (0,919 ; 0,921 ; 0,924) : ni la détection de Haar ni la correction du contraste n'expliquent l'écart. La cause reste à établir ; la détection du visage et l'alignement de DeepFace n'ont pas été testés. Au seuil de 0,35, la correction du contraste ajoute environ 8 points de pourcentage de refus sur ces photographies bien éclairées (51,4~\% contre 43,7~\% sans elle). Elle a toutefois été prévue pour les visages en contre-jour, absents de LFW, et son effet sur les images de la webcam n'a pas été mesuré.
+Les performances publiées pour FaceNet sont meilleures que celles mesurées ici. Pour en chercher la cause, trois variantes de la chaîne ont été comparées sur les 1\,429 images de l'essai d'adaptation (section~\ref{sec:lfw}) : la chaîne de BioGate, l'image entière sans Haar ni CLAHE, et Haar sans CLAHE. Les aires sous la courbe \gls{roc} sont presque identiques (0,919 ; 0,921 ; 0,924) : ni la détection de Haar ni la correction du contraste n'expliquent l'écart. La cause reste à établir ; la détection du visage et l'alignement de DeepFace n'ont pas été testés. Au seuil de 0,35, la correction du contraste ajoute environ 8 points de pourcentage de refus sur ces photographies bien éclairées (51,4~\% contre 43,7~\% sans elle). Elle a toutefois été prévue pour les visages en contre-jour, absents de LFW ; à la webcam, elle n'a pas amélioré la détection d'un visage à contre-jour (section~\ref{sec:detection}).
 
 \end{maj}
 
-\subsection{Reconnaissance en faible éclairage}
+\subsection{Reconnaissance selon l'éclairage}
 
 \begin{maj}
-Une séance a été observée avec une webcam peu éclairée : la luminosité moyenne de l'image est de 49 sur 255. Pendant 46 secondes, le serveur a reconfirmé 39 fois l'identité d'un résident, avec une distance moyenne de 0,178 (médiane de 0,160, minimum de 0,11, maximum de 0,29), toujours sous le seuil de 0,35. L'accès a été accordé avec un score de 75,2~\%, calculé sur une seule image : d'après la formule $(1-d)\times 100$ du chapitre~\ref{chap:2}, il correspond à une distance de 0,248, comprise entre le minimum et le maximum. BioGate reconnaît donc un résident dans une pièce peu éclairée. Cette observation porte sur une séance et un visage.
+Deux séances ont été observées avec le serveur réel. La première, avec une webcam peu éclairée, a une luminosité moyenne de l'image de 49 sur 255. Pendant 46 secondes, le serveur a reconfirmé 39 fois l'identité d'un résident, avec une distance moyenne de 0,178 (médiane de 0,160, minimum de 0,11, maximum de 0,29), toujours sous le seuil de 0,35. L'accès a été accordé avec un score de 75,2~\%, calculé sur une seule image : d'après la formule $(1-d)\times 100$ du chapitre~\ref{chap:2}, il correspond à une distance de 0,248, comprise entre le minimum et le maximum. BioGate reconnaît donc un résident dans une pièce peu éclairée. La seconde séance, en pleine lumière, avec la personne bien placée face à la caméra, a donné 57 reconfirmations avec une distance moyenne de 0,110 (maximum de 0,17), toutes sous le seuil, et 4 accès accordés avec une confiance de 88,5~\% à 97,4~\%. La distance est donc plus faible en pleine lumière qu'en faible éclairage (0,110 contre 0,178). Ces observations portent sur un seul visage.
 \end{maj}
 
 \subsection{Qualité de la détection}\label{sec:detection}
@@ -251,7 +251,9 @@ Une séance a été observée avec une webcam peu éclairée : la luminosité mo
 \begin{maj}
 Des mesures sur des captures ont montré les limites d'un détecteur de personnes appliqué à des images en deux dimensions. À 320, 480 et 640 pixels, YOLOv8 nano attribue à une photographie de personne affichée sur un téléphone des confiances de 0,80, 0,85 et 0,86, et à une main placée près de l'objectif des confiances de 0,84, 0,89 et 0,71. Augmenter la résolution ne supprime donc pas la fausse détection, et aucun seuil de confiance ne sépare la photographie (0,80) d'une vraie silhouette partielle (0,37). Cette mesure justifie la règle selon laquelle un intrus est un visage inconnu, et non une silhouette sans visage.
 
-Le détecteur de Haar peut lui aussi se tromper : le col et un bouton d'une chemise ont été pris pour un visage de 67 pixels, ce qui a déclenché l'envoi d'une alerte avec la photo d'un torse. Le second avis de MediaPipe rejette ce faux visage. Sur une photographie de chemise et trois portraits de test, la chemise est rejetée et les portraits sont acceptés ; cette validation reste limitée à ces images.
+À contre-jour, le détecteur de Haar ne trouve le visage que sur une faible part des images, alors que le modèle de points du visage de MediaPipe le voit sur la grande majorité. Ni l'égalisation globale du contraste ni la méthode CLAHE ne changent ce résultat. La personne reste alors en attente de visage et n'est pas reconnue.
+
+Le détecteur de Haar peut aussi prendre un pli de vêtement pour un visage : le col et un bouton d'une chemise ont été pris pour un visage de 67 pixels, ce qui a déclenché l'envoi d'une alerte avec la photo d'un torse. Le second avis de MediaPipe rejette ce faux visage. Sur une photographie de chemise et trois portraits de test, la chemise est rejetée et les portraits sont acceptés ; cette validation reste limitée à ces images.
 \end{maj}
 
 \subsection{Adaptation à l'évolution du visage}
@@ -373,7 +375,7 @@ Filtre de visage & Temps de traitement réduit de 48 à 78~\% & Une photo de tes
 Adaptation (150 sujets de LFW) & Reconnaissance de 47,8~\% à 71,6~\% ; fausses acceptations de 0,1~\% à 0,3~\% & Photographies non datées, empreinte supposée fiable \\
 Adaptation (photographies datées) & Distance de 0,4722 à 0,224 après un apprentissage & Une personne, empreinte simulée \\
 Adaptation (webcam) & Moyenne de 0,209 à 0,203 ; pire image de 0,436 à 0,273 & Une personne, une séance, éclairage faible \\
-Faible éclairage & 39 reconfirmations, distance moyenne de 0,178, toutes sous 0,35 & Une séance, un visage \\
+Éclairage & Faible éclairage : 39 reconfirmations, distance moyenne de 0,178 ; pleine lumière : 57 reconfirmations, 0,110 ; toutes sous 0,35 & Deux séances, un visage \\
 Test de vivacité & Sourires et clignements reconnus ; photographies fixes rejetées ; franchi par une vidéo contenant les deux gestes en continu & Un essai avec une vidéo \\
 Purge des photos & Automatique ; 41 photos supprimées au premier démarrage & Serveur réel, deux démarrages \\
 Caméra & Flux lu à 17 à 30 images par seconde, reconnexion au réseau enregistré & Une carte \\
@@ -437,6 +439,7 @@ Les limites du prototype sont les suivantes :
 \begin{itemize}
   \item \textbf{Périmètre de validation} : les mesures reposent sur des photographies de LFW, non datées et prises hors d'une caméra installée à l'entrée d'un lieu, et les autres essais portent sur peu de personnes ;
   \item \textbf{Usurpation} : le test de vivacité est franchi par une vidéo qui contient en continu les deux gestes demandés, la caméra ne mesure pas la profondeur, et les images et vidéos générées par intelligence artificielle n'ont pas été essayées ;
+  \item \textbf{Contre-jour} : le détecteur de Haar ne trouve le visage que sur une faible part des images lorsque le visage est à contre-jour, et la reconnaissance n'est alors pas lancée ;
   \item \textbf{Matériel} : le lecteur d'empreinte, la gâche et la lumière sont simulés, l'écran \gls{lcd} n'est pas encore intégré, et le portage sur un micro-ordinateur monocarte n'a pas été essayé ;
   \item \textbf{Visages proches} : le vecteur du second profil de résident le plus proche du profil principal est à 0,306, sous le seuil de 0,35, et une confusion entre ces deux résidents est possible. En conditions réelles, des distances de 0,23 à 0,35 ont été observées entre le visage du premier et ce second profil. La mesure à la webcam donne une marge toujours positive entre les deux profils, d'au moins 0,109. Aucune marge de décision n'est ajoutée entre profils proches ;
   \item \textbf{Sécurité} : pas de \gls{https}, routes sans jeton utilisées par le programme client de développement, aucun audit externe, vecteurs et identifiants d'alerte non chiffrés dans la base, réglages et clé de la caméra non chiffrés dans la mémoire flash de la carte ;
@@ -460,6 +463,7 @@ Les suites du travail s'articulent autour des axes suivants :
   \item \textbf{Renforcer la protection contre l'usurpation} : ajouter un capteur de profondeur, exiger des gestes qui ne peuvent pas être joués en continu par une vidéo, essayer des images et des vidéos générées par intelligence artificielle, et mesurer la résistance du test de vivacité selon la norme ISO/IEC 30107-3~\cite{iso30107} ;
   \item \textbf{Évaluer à plus grande échelle} : valider la mesure des taux d'erreur sur les dix séries de LFW, puis avec plusieurs photographies par personne enrôlées à la webcam ;
   \item \textbf{Élargir les alertes} : valider l'envoi par courrier électronique avec un vrai serveur, essayer en conditions réelles la suppression d'une alerte accompagnée d'une photo, et envisager WhatsApp malgré son coût par message ;
+  \item \textbf{Améliorer la détection à contre-jour} : s'appuyer sur le modèle de points du visage de MediaPipe, qui trouve le visage dans cette situation, pour décider qu'un visage est présent ;
   \item \textbf{Alléger le calcul} : quantifier les modèles et porter le système sur un micro-ordinateur monocarte ;
   \item \textbf{Respecter le cadre légal} : accomplir les formalités auprès de l'Autorité de protection des données à caractère personnel et recueillir le consentement explicite des personnes enrôlées, comme l'exige le Code du numérique béninois.
 \end{itemize}

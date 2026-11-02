@@ -37,3 +37,6 @@ Appliqué (surligné dans `build/memoire_surligne.pdf`) : D1, D4 (avec la mesure
 
 ## Règle sur les réserves et les « pas encore testé » (énoncée par l'étudiant)
 Une réserve n'est écrite que : (1) à côté du résultat dont elle conditionne l'interprétation, une seule fois ; (2) dans « Limites observées » (3.3.3), qui rassemble les limites une seule fois ; (3) dans les conclusions, en résumé. Elle n'est pas répétée dans les chapitres de conception, de réalisation ni dans les résumés de section. Le test d'une coupure volontaire du Wi-Fi ne figure plus nulle part.
+
+## Dernier push de main (5fdd031) : capture de la page de surveillance et séance de jour
+Intégré : capture réelle de la page de surveillance (figure de la section 2.2.4) ; séance de jour dans « Reconnaissance selon l'éclairage » (57 reconfirmations, distance moyenne 0,110, maximum 0,17, 4 accès à 88,5 à 97,4 %) ; limite du contre-jour (Haar ne trouve le visage que sur une faible part des images, MediaPipe sur la grande majorité, CLAHE ne change rien) ajoutée à la qualité de la détection, aux limites et aux perspectives ; la phrase sur CLAHE « rétablit les traits en contre-jour » est retirée. Les chiffres de la séance contrôlée du matin (invalide) ne sont pas cités. La seconde lecture de la mesure d'apprentissage à la webcam reste à refaire (marqueur rouge conservé).
