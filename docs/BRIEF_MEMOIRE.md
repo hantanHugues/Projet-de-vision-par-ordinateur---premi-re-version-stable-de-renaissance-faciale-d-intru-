@@ -103,6 +103,16 @@ Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\
   FRR réel est plus bas. Ne pas écrire que le FRR de BioGate vaut 52 % en usage réel, ni qu'il vaut moins : ce n'est pas mesuré.
   L'écart avec les performances publiées de FaceNet n'est pas expliqué (détecteur, recadrage, CLAHE possibles) : le dire, ne pas l'inventer.
   Le seuil par défaut de DeepFace pour Facenet512 est 0,30 ; BioGate retient 0,35 (réglé à la webcam).
+- **Distance moyenne « 0,269 → 0,106 »** (chapitre 3, adaptation) : c'est la moyenne des distances que le serveur a journalisées lors de reconnaissances
+  réelles à la webcam, avant puis après quatre validations d'empreinte (189 puis 45 mesures, recette du 29/10). Source unique : entrée 023 du journal.
+  **Non reproduite depuis** : à écrire « relevé dans le journal du serveur lors d'une séance », sans dire « confirmé ».
+- **Reproduction à la webcam (02/11, non concluante)** : `tests/mesures/mesure_apprentissage_webcam.py` compare, sur les mêmes images, la distance au
+  seul vecteur d'origine du profil et au profil complet, avec le code même de BioGate. Deux passes de nuit n'ont rien donné d'exploitable : la pièce
+  était trop sombre (luminosité moyenne 49 sur 255), Haar ne trouvait le visage que sur 12 images sur 35 et MediaPipe écartait ses détections.
+  **Ne citer aucun chiffre de ces deux passes.** À refaire en pleine lumière : `.venv-deepface\Scripts\python.exe tests\mesures\mesure_apprentissage_webcam.py Ash <dossier> 20 40`.
+- **Limite mesurée en faible lumière** (un échantillon de 6 s, une nuit, à ne pas généraliser) : avec une webcam très sombre (49 sur 255), le filtre de visage
+  (Haar) trouve le visage sur 12 images sur 35, alors que MediaPipe le voit sur 31 sur 35. Le premier filtre de BioGate est donc le maillon faible quand la
+  lumière manque : à ajouter aux limites du chapitre 3, comme observation et non comme mesure systématique.
 - Pas encore faites : attaque par photographie et par vidéo (avec l'auteur, environ une heure), performance complète (ms par image).
 
 ---
@@ -133,10 +143,10 @@ Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\
    **Restent à fournir par l'auteur** : `dashboard_surveillance.png` (il faut la vraie caméra : le serveur simulé n'envoie pas de vidéo, la page
    affiche alors « Flux vidéo indisponible ») et `bw21_carte.jpg` (sa propre carte : le fichier actuel est une photo de vendeur de 225×225 pixels).
    Ne rien inventer à leur place.
-10. **Profil « haute sécurité » et vivacité** : le tableau de bord (`Config.jsx`) décrit ce profil par « MFA + fingerprint + liveness », mais le
-    profil du serveur (`database/db_manager.py`, `HAUTE_SECURITE`) met `LIVENESS_ENABLED` à `False`. Avant la correction de la branche, ce réglage
-    n'avait aucun effet ; depuis, il désactive la vivacité en haute sécurité. L'intention affichée est donc la vivacité active : décision de l'auteur,
-    à trancher avant de figer le tableau des profils du chapitre 2.
+10. **Profil « haute sécurité » et vivacité : tranché par l'auteur le 02/11 — le mémoire fait foi.** Haute sécurité = empreinte seule, sans test de vivacité
+    (`LIVENESS_ENABLED` à `False` dans `database/db_manager.py`, présent depuis le 21/08). C'est ce que décrit déjà le chapitre 2, donc rien à changer
+    dans le texte ni dans le code. Seul le libellé du tableau de bord était faux (« MFA + fingerprint + liveness ») : corrigé en « MFA · Empreinte seule »,
+    et celui du profil Bureau en « MFA · Empreinte ou liveness ». La figure `dashboard_config.png` a été refaite avec ces libellés.
 
 ---
 
