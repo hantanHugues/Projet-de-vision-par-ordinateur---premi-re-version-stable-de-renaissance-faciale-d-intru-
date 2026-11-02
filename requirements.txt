@@ -1,10 +1,31 @@
-﻿opencv-python==4.11.0.86
-numpy>=1.26.0
-ultralytics>=8.0.0
-mediapipe>=0.10.8
-tf-keras>=2.15.0
-deepface>=0.0.84
-fastapi>=0.111.0
-uvicorn>=0.29.0
-python-multipart>=0.0.9
-requests>=2.31.0
+﻿# Dépendances du serveur BioGate, aux versions utilisées pour les essais du mémoire.
+# Seules les bibliothèques principales sont fixées ; torch, installé par ultralytics, suit la dernière
+# version compatible (essais faits avec la 2.11.0, suite de tests vérifiée aussi avec la 2.15.0).
+#
+# Python 3.11 exigé : la version 3.13 pose des incompatibilités entre les bibliothèques de calcul et de vision.
+#
+#   py -3.11 -m venv .venv-deepface
+#   .venv-deepface\Scripts\python.exe -m pip install -r requirements.txt
+#
+# OpenCV : deepface et ultralytics exigent « opencv-python », mediapipe exige « opencv-contrib-python ».
+# Les deux paquets installent le même dossier cv2 : ils doivent avoir EXACTEMENT la même version,
+# sinon leurs fichiers se mélangent et cv2 se comporte de façon imprévisible.
+opencv-python==4.11.0.86
+opencv-contrib-python==4.11.0.86
+numpy==2.4.4
+tensorflow==2.21.0
+tf-keras==2.21.0
+deepface==0.0.99
+# Dépendances de deepface à fixer : retina-face 0.0.19 et suivantes exigent un troisième paquet OpenCV
+# (opencv-contrib-python-headless 5.x), qui remettrait un autre cv2 dans l'environnement.
+retina-face==0.0.17
+keras==3.14.1
+ultralytics==8.4.47
+mediapipe==0.10.35
+fastapi==0.136.1
+uvicorn==0.46.0
+python-multipart==0.0.27
+requests==2.33.1
+
+# Seulement pour la mesure du FAR et du FRR (tests/mesures/mesure_far_frr.py)
+matplotlib==3.10.9

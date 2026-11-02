@@ -6,6 +6,10 @@ et **les corrections à reporter** dans `memoire/` (branche `claude/memoire-late
 
 Pour récupérer le code à jour : `git fetch origin && git merge origin/main` (sur la branche du mémoire).
 
+**Les réponses aux questions de `memoire/QUESTIONS_ET_MANQUES.md` sont dans `docs/REPONSES_AU_TELEPHONE.md`** (même numérotation).
+Deux corrections importantes qu'elles contiennent : Face ID a bien une caméra de profondeur (TrueDepth) et la plage « 0,23 à 0,35 »
+entre profils proches vient d'observations en direct, pas des vecteurs enregistrés.
+
 ---
 
 ## 1. Consignes de l'auteur
@@ -72,8 +76,23 @@ Pour récupérer le code à jour : `git fetch origin && git merge origin/main` (
 - Page Configuration : bouton **Modifier** par caméra ; l'adresse d'une caméra IP s'affiche avec la clé masquée (`********`) ; la clé
   est conservée côté serveur quand la valeur masquée est renvoyée.
 
-### Tests : 167 réussis sur `main` (175 une fois les 8 tests de vivacité de la branche fusionnés ; à relancer après fusion)
+### Tests : 172 réussis sur `main` (180 une fois les 8 tests de vivacité de la branche fusionnés ; à relancer après fusion)
+La branche actuelle (175 tests) a été vérifiée le 01/11 dans un environnement neuf : tout passe, à condition que le modèle MediaPipe soit présent
+(voir « Installation »). Sans lui, `test_a_shirt_is_never_judged_as_an_unknown_face` échoue.
 Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\python.exe -m unittest discover -s tests -t .`
+
+### Installation (`requirements.txt` corrigé le 01/11)
+- Problème : `mediapipe` exige `opencv-contrib-python` alors que `deepface` et `ultralytics` exigent `opencv-python`. Les deux paquets installent le
+  même dossier `cv2` ; dans l'environnement de l'auteur ils avaient des versions différentes (4.11 et 4.13). De plus `retina-face` 0.0.19 et suivantes
+  exigent un troisième paquet OpenCV (5.x), le fichier avait un BOM et presque aucune version n'était fixée.
+- Correction : les deux paquets OpenCV sont fixés à la même version (4.11.0.86), `retina-face` à 0.0.17, `keras` à 3.14.1, les autres bibliothèques
+  principales aux versions des essais. Vérifié dans un environnement neuf (`uv venv` puis installation du fichier tel quel) : un seul cv2 cohérent et
+  les 167 tests réussis. `torch` n'est pas fixé (essais avec la 2.11.0, tests vérifiés aussi avec la 2.15.0).
+- Python 3.11 est exigé (la 3.13 pose des incompatibilités).
+- **Modèle MediaPipe** : `models/face_landmarker.task` (3,6 Mo) est ignoré par git et rien ne le téléchargeait. Sans lui, le test de vivacité ne démarre pas
+  et le second avis contre les faux visages disparaît (la chemise est de nouveau prise pour un visage). Le script `telecharger_modeles.py` le télécharge
+  depuis l'adresse officielle de Google et vérifie son empreinte SHA-256 (identique au fichier des essais) ; l'étape est dans le README.
+  Procédure complète vérifiée : environnement neuf, `requirements.txt`, modèle, puis tous les tests réussis.
 
 ### Mesures
 - Faites : filtre de visage (Haar), apprentissage continu, temps de traitement (voir `docs/lab_journal.md`).
@@ -88,6 +107,15 @@ Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\
   FRR réel est plus bas. Ne pas écrire que le FRR de BioGate vaut 52 % en usage réel, ni qu'il vaut moins : ce n'est pas mesuré.
   L'écart avec les performances publiées de FaceNet n'est pas expliqué (détecteur, recadrage, CLAHE possibles) : le dire, ne pas l'inventer.
   Le seuil par défaut de DeepFace pour Facenet512 est 0,30 ; BioGate retient 0,35 (réglé à la webcam).
+- **Distance moyenne « 0,269 → 0,106 »** (chapitre 3, adaptation) : c'est la moyenne des distances que le serveur a journalisées lors de reconnaissances
+  réelles à la webcam, avant puis après quatre validations d'empreinte (189 puis 45 mesures, recette du 29/10). Source unique : entrée 023 du journal.
+  **Non reproduite depuis** : à écrire « relevé dans le journal du serveur lors d'une séance », sans dire « confirmé ».
+- **Observation en direct (02/11, serveur réel, webcam sombre : luminosité 49 sur 255)** : le journal du serveur montre 39 re-confirmations de « Ash »
+  en 46 secondes, distance moyenne **0,178** (médiane 0,160, minimum 0,11, maximum 0,29, écart-type 0,04), toutes sous le seuil de 0,35, et un accès
+  accordé à 75,2 %. BioGate reconnaît donc l'auteur même dans une pièce peu éclairée. C'est une séance, un visage : à citer comme observation.
+- **Reproduction contrôlée (02/11, valide) : la baisse « 0,269 → 0,106 » n'est PAS reproduite.** `tests/mesures/mesure_apprentissage_webcam.py` (chaîne de BioGate : YOLO, Haar dans la silhouette, MediaPipe, `_extract_face_signature`) compare, sur les **mêmes 78 images** d'une séance de 40 s, le seul vecteur d'origine du profil de l'auteur (enrôlement du 10/04) et le profil complet de 8 vecteurs. Résultats (`docs/mesures/apprentissage_webcam/`) : distance moyenne **0,209 → 0,203** (différence 0,006) ; pire image **0,436 → 0,274** ; images au-dessus du seuil de 0,35 : **2 sur 78 → 0** (reconnues : 76 sur 78 → 78 sur 78) ; écart-type 0,044 → 0,027 ; marge face à l'autre profil toujours positive (minimum 0,109, moyenne 0,220) : l'autre profil passe sous 0,35 sur 2 images mais n'est jamais plus proche que le profil de l'auteur.
+  **Première lecture, faite de nuit : une seconde lecture sera faite en journée, en pleine lumière, sur le poste de l'auteur, pour confirmer les valeurs. D'ici là, écrire ces chiffres comme « première lecture » ; les mettre à jour (ou les confirmer) quand `docs/mesures/apprentissage_webcam/` recevra la seconde lecture.**
+  **Lecture honnête** : sur un visage proche de son enrôlement, l'apprentissage ne baisse presque pas la moyenne mais supprime les pires cas (les deux images au-dessus du seuil). Les moyennes du journal (0,269 puis 0,106) viennent de deux séances aux conditions différentes : **ne pas écrire que l'apprentissage fait passer la distance moyenne de 0,269 à 0,106**. Citer le relevé du journal comme tel (« moyennes relevées dans le journal du serveur lors de deux séances ») et présenter la mesure contrôlée comme preuve de l'effet, avec ses limites : une personne, une séance, un éclairage ; images consécutives très proches ; prendre le minimum sur plusieurs vecteurs baisse mécaniquement la distance. L'essai avec changement d'apparence (Chris Evans, 0,4722 → 0,224) reste la démonstration d'un vrai changement.
 - Pas encore faites : attaque par photographie et par vidéo (avec l'auteur, environ une heure), performance complète (ms par image).
 
 ---
@@ -107,10 +135,21 @@ Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\
 5. **Défauts** : ajouter les quatre défauts de la caméra (§2) au tableau du chapitre 3.
 6. **Versions** (note rouge `\adonner` du chapitre 3) : annexe C.
 7. **Introduction** : adopter le plan et le ton de l'annexe A (cf. §1).
-8. **À recouper avec `docs/lab_journal.md` avant publication** : la distance moyenne « 0,269 → 0,106 » (le journal donne d'autres relevés),
+8. **Distance « 0,269 → 0,106 »** : voir la section « Mesures » (non reproduite par la mesure contrôlée). La ligne « visages proches non testés devant la caméra » est à recouper avec `docs/lab_journal.md` (il contient des confusions observées entre l'auteur et son frère).
    et la ligne « visages proches non testés devant la caméra » (le journal contient des confusions observées entre l'auteur et son frère).
-9. **Captures du tableau de bord** : les six `\imageouplace` restent en place ; elles seront produites sur le poste de développement.
+9. **Captures du tableau de bord** : produites le 01/11 dans `docs/images_memoire/` ; les copier dans `memoire/images/` sous ces noms,
+   qui sont ceux attendus par les `\imageouplace` : `dashboard_journal.png`, `dashboard_profils.png`, `dashboard_config.png`,
+   `dashboard_alertes.png`, `dashboard_couplage.png` (écran de saisie du code). `dashboard_stats.png` est en plus : elle permet d'ajouter
+   une figure à la page des statistiques, aujourd'hui décrite en texte seulement.
+   **Les légendes doivent dire « données de démonstration »** : les captures viennent d'un serveur simulé (`biogate-dashboard/scripts/mock-api.mjs`),
+   avec des noms fictifs (sauf celui de l'auteur) et les réglages par défaut du profil Domicile, pas d'une session réelle.
+   **Restent à fournir par l'auteur** : `dashboard_surveillance.png` (il faut la vraie caméra : le serveur simulé n'envoie pas de vidéo, la page
+   affiche alors « Flux vidéo indisponible ») et `bw21_carte.jpg` (sa propre carte : le fichier actuel est une photo de vendeur de 225×225 pixels).
    Ne rien inventer à leur place.
+10. **Profil « haute sécurité » et vivacité : tranché par l'auteur le 02/11 — le mémoire fait foi.** Haute sécurité = empreinte seule, sans test de vivacité
+    (`LIVENESS_ENABLED` à `False` dans `database/db_manager.py`, présent depuis le 21/08). C'est ce que décrit déjà le chapitre 2, donc rien à changer
+    dans le texte ni dans le code. Seul le libellé du tableau de bord était faux (« MFA + fingerprint + liveness ») : corrigé en « MFA · Empreinte seule »,
+    et celui du profil Bureau en « MFA · Empreinte ou liveness ». La figure `dashboard_config.png` a été refaite avec ces libellés.
 
 ---
 
@@ -174,7 +213,7 @@ Ce document s'organise en trois chapitres :
 \end{itemize}
 ```
 
-## Annexe B — Tests automatiques par domaine (167 sur `main`, 175 avec les 8 tests de vivacité de la branche)
+## Annexe B — Tests automatiques par domaine (172 sur `main`, 180 avec les 8 tests de vivacité de la branche)
 
 | Domaine | Cas | Fichiers |
 |---|---|---|
@@ -184,8 +223,9 @@ Ce document s'organise en trois chapitres :
 | Purge des photos | 25 | `test_rgpd_purge.py` |
 | Sources vidéo et caméras (flux, affichage, routes) | 37 | `test_camera_sources.py` (7), `test_camera_display.py` (12), `test_camera_api.py` (18) |
 | Logique des intrus | 20 | `test_intruder_logic.py` |
+| Téléchargement du modèle MediaPipe | 5 | `test_telecharger_modeles.py` |
 | Réglage de vivacité (branche) | 8 | `test_liveness_toggle.py` |
-| **Total** | **175** | |
+| **Total** | **180** | |
 
 ## Annexe C — Versions utilisées (environnement `.venv-deepface`)
 
