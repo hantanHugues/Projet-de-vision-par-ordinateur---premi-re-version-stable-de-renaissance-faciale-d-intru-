@@ -14,7 +14,7 @@ La base est ouverte en lecture seule : aucun vecteur n'est modifié, aucune imag
 (seules les distances le sont).
 
 Usage :
-    .venv-deepface\\Scripts\\python.exe tests\\mesures\\mesure_apprentissage_webcam.py <profil> <dossier_sortie> [delai_s] [duree_s]
+    .venv-deepface\\Scripts\\python.exe tests\\mesures\\mesure_apprentissage_webcam.py <profil> <dossier_sortie> [delai_s] [duree_s] [attente_lumiere_s]
 
 Sorties : distances_webcam.csv (une ligne par image) et rapport_apprentissage_webcam.md.
 """
@@ -36,6 +36,8 @@ sys.path.insert(0, RACINE)
 from mesure_far_frr import distance_cosinus, materiel  # noqa: E402
 
 SEUIL_BIOGATE = 0.35
+LUMINOSITE_MIN = 80    # sur 255 : en dessous, la séance est refusée (la pièce est trop sombre pour une mesure fiable)
+IMAGES_MIN = 30       # en dessous, la séance est déclarée insuffisante dans le rapport
 BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "database", "visages.db")
 
 
@@ -61,7 +63,31 @@ def resume(valeurs):
             "reconnues": int((v < SEUIL_BIOGATE).sum())}
 
 
-def main(profil, sortie, delai=20.0, duree=30.0):
+def luminosite(cam, secondes=2.0):
+    """Luminosité moyenne (0 = noir, 255 = blanc) de la webcam sur quelques secondes, sans rien enregistrer."""
+    valeurs, fin = [], time.time() + secondes
+    while time.time() < fin:
+        ok, image = cam.read()
+        if ok:
+            valeurs.append(float(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY).mean()))
+    return float(np.mean(valeurs)) if valeurs else 0.0
+
+
+def attendre_lumiere(cam, attente_max):
+    """Refuse de démarrer tant que l'image est trop sombre ; attend jusqu'à `attente_max` secondes que la pièce soit éclairée."""
+    debut = time.time()
+    while True:
+        lum = luminosite(cam)
+        print(f"Luminosité de la webcam : {lum:.0f} sur 255 (minimum exigé : {LUMINOSITE_MIN}).", flush=True)
+        if lum >= LUMINOSITE_MIN:
+            return lum
+        if time.time() - debut >= attente_max:
+            raise SystemExit(f"Pièce trop sombre ({lum:.0f} sur 255) : allumez la lumière, ouvrez les rideaux ou placez-vous face à la fenêtre, "
+                             "et vérifiez que rien ne cache l'objectif. Aucune mesure n'a été faite.")
+        time.sleep(1.0)
+
+
+def main(profil, sortie, delai=20.0, duree=30.0, attente=0.0):
     os.makedirs(sortie, exist_ok=True)
     propres, autres = lire_vecteurs(profil)
     if len(propres) < 2:
@@ -84,18 +110,20 @@ def main(profil, sortie, delai=20.0, duree=30.0):
         raise SystemExit("Webcam inaccessible (fermez le serveur BioGate et le tableau de bord).")
     for _ in range(5):
         cam.read()
+    lum_debut = attendre_lumiere(cam, attente)
     print(f"Placez-vous devant la webcam. Début dans {delai:.0f} s, durée {duree:.0f} s.", flush=True)
     t_debut = time.time() + delai
     while time.time() < t_debut:
         cam.read()  # garde l'image fraîche
     print("CAPTURE EN COURS", flush=True)
 
-    lignes, sans_visage, rejetes, sans_personne = [], 0, 0, 0
+    lignes, sans_visage, rejetes, sans_personne, lums = [], 0, 0, 0, []
     fin = time.time() + duree
     while time.time() < fin:
         ok, image = cam.read()
         if not ok:
             continue
+        lums.append(float(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY).mean()))
         # 1. Silhouette de la personne (YOLOv8 nano, 320 px, confiance 0,5 : réglages de BioGate)
         boites = yolo.predict(image, imgsz=320, conf=0.5, classes=[0], verbose=False)[0].boxes.xyxy.cpu().numpy()
         if not len(boites):
@@ -148,6 +176,10 @@ def main(profil, sortie, delai=20.0, duree=30.0):
         f"- Capture à la webcam pendant {duree:.0f} s, la personne regardant la caméra : **{n} images retenues** (silhouette trouvée par YOLO, visage de face trouvé par Haar dans la silhouette et confirmé par MediaPipe), {rejetes} faux visages écartés par MediaPipe, {sans_visage} silhouettes sans visage de face, {sans_personne} images sans personne détectée.",
         "- Chaîne de BioGate : YOLOv8 (silhouette), Face Gate (Haar dans la silhouette + second avis MediaPipe), puis `FaceRecognizer._extract_face_signature` (CLAHE, FaceNet512, alignement), distance cosinus. La base est lue en lecture seule ; aucune image n'est enregistrée.",
         "- Pour **les mêmes images**, on compare la distance au seul vecteur d'origine et la distance au plus proche des vecteurs du profil complet.",
+        f"- **Conditions** : luminosité moyenne de la webcam pendant la séance **{np.mean(lums):.0f} sur 255** (la mesure refuse de démarrer sous {LUMINOSITE_MIN}) ; "
+        f"séance du {time.strftime('%d/%m/%Y à %H:%M')}.",
+        (f"- **ATTENTION : séance insuffisante** ({n} images retenues, minimum {IMAGES_MIN}) : ne citer aucune de ces valeurs." if n < IMAGES_MIN
+         else f"- Séance suffisante : {n} images retenues (minimum {IMAGES_MIN})."),
         "",
         "## Résultats",
         "",
@@ -185,4 +217,5 @@ if __name__ == "__main__":
         raise SystemExit(__doc__)
     main(sys.argv[1], sys.argv[2],
          float(sys.argv[3]) if len(sys.argv) > 3 else 20.0,
-         float(sys.argv[4]) if len(sys.argv) > 4 else 30.0)
+         float(sys.argv[4]) if len(sys.argv) > 4 else 30.0,
+         float(sys.argv[5]) if len(sys.argv) > 5 else 0.0)
