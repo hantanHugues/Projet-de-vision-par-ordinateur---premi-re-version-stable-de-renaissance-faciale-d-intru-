@@ -1,0 +1,7 @@
+regime,n,moyenne,ecart_type,mediane,p90,p95,min,max,images_par_seconde,remarque,essais,atteints
+Première image d'un inconnu (identification),20,406.6307,25.7563,401.4311,409.2711,414.6847,387.4427,516.1012,2.4592,YOLO + suivi + Haar + MediaPipe + FaceNet,,
+Première image d'un résident (identification),20,445.7792,8.0291,443.2783,451.3398,455.8215,434.8641,472.8084,2.2433,"même chaîne, appariement réussi",,
+"Régime stable, résident identifié, images à 5 par seconde",147,158.5335,184.7454,29.6630,424.8126,429.6866,23.4242,495.8354,6.3078,"état GRANTED ; revérification toutes les 0,8 s ; cadence imposée de 5 images par seconde",,
+"Débit maximal, résident identifié, sans pause",1100,54.5664,100.9784,27.4442,31.7324,419.3316,22.6805,679.0283,18.3263,images par seconde = débit d'analyse du serveur,,
+Résident : de la première image à « accès accordé »,10,457.7777,22.3225,453.4254,473.9046,497.1099,439.6265,520.3152,,,10,10
+Inconnu : de la première image à « intrus provisoire »,10,1645.5161,22.1109,1636.6678,1675.1227,1681.2474,1622.6102,1687.3721,,,10,10
