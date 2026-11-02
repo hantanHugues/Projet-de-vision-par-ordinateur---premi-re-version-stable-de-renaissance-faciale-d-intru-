@@ -18,11 +18,11 @@ Il n'est pas destiné à être déposé. Il sert à répondre aux questions. Les
 | Configuration | `/config` (lecture et modification) | oui |
 |  | `/config/templates`, `/config/apply_template` | non |
 | Alertes | `/alerts/test`, `/alerts/telegram/detect`, `/alerts/telegram/purge` | oui |
-| Journal et vie privée | `/logs`, `/logs/stats`, `/logs/purge`, `/logs/{id`, `/rgpd/status` | oui |
-| Profils | `/profiles` (lecture), `/profiles/{nom` (suppression) | oui |
+| Journal et vie privée | `/logs`, `/logs/stats`, `/logs/purge`, `/logs/{id}`, `/rgpd/status` | oui |
+| Profils | `/profiles` (lecture), `/profiles/{nom}` (suppression) | oui |
 | Actionneurs (simulés) | `/iot/door`, `/iot/fingerprint`, `/iot/light`, `/iot/door/open`, `/iot/door/lock` | oui |
-| Caméras | `/cameras` (4 routes), `/cameras/scan/usb`, `/snapshot`, `/snapshot/{cam_id` | oui |
-| Flux vidéo | `/stream`, `/stream/{cam_id` | oui, dans l'adresse |
+| Caméras | `/cameras` (4 routes), `/cameras/scan/usb`, `/snapshot`, `/snapshot/{cam_id}` | oui |
+| Flux vidéo | `/stream`, `/stream/{cam_id}` | oui, dans l'adresse |
 | Couplage et santé | `/pair/request`, `/auth/token`, `/health` | non, par conception |
 
 ## 2. Réglages complets
