@@ -1023,7 +1023,7 @@ async def health():
 async def pair_request():
     """
     Génère un PIN 6 chiffres et l'affiche dans le terminal du serveur.
-    Le dashboard Electron l'envoie ensuite via POST /auth/token pour obtenir un JWT.
+    Le dashboard Electron l'envoie ensuite via POST /auth/token pour obtenir un jeton opaque.
     """
     global _pair_pin, _pair_pin_expires, _pair_pin_attempts
     _pair_pin          = str(secrets.randbelow(900_000) + 100_000)

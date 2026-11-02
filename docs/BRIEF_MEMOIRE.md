@@ -6,6 +6,10 @@ et **les corrections à reporter** dans `memoire/` (branche `claude/memoire-late
 
 Pour récupérer le code à jour : `git fetch origin && git merge origin/main` (sur la branche du mémoire).
 
+**Les réponses aux questions de `memoire/QUESTIONS_ET_MANQUES.md` sont dans `docs/REPONSES_AU_TELEPHONE.md`** (même numérotation).
+Deux corrections importantes qu'elles contiennent : Face ID a bien une caméra de profondeur (TrueDepth) et la plage « 0,23 à 0,35 »
+entre profils proches vient d'observations en direct, pas des vecteurs enregistrés.
+
 ---
 
 ## 1. Consignes de l'auteur
