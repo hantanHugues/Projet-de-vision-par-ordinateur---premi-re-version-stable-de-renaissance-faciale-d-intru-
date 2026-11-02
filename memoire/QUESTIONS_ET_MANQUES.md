@@ -172,3 +172,8 @@ Source : `docs/REPONSES_AU_TELEPHONE.md` et `docs/BRIEF_MEMOIRE.md` (mis à jour
 Ce qui reste ouvert : A1 (page de garde), A2 (dédicace, remerciements), A4 (attaques photo et vidéo), A7 à A9, B1 (FRR de 52 %, quatre pistes à tester), B5 (bande Wi-Fi), E1 à E5, la seconde lecture de l'apprentissage en pleine lumière (marqueur rouge au chapitre 3), la capture `dashboard_surveillance.png` (il faut la vraie caméra) et la confirmation que la photo de la carte est bien celle de l'auteur.
 
 Deux points que je n'ai pas pu vérifier moi-même : la source Apple sur la carte de profondeur (page « Biometric security », lue par le poste de développement) et l'article 394 du Code du numérique (lu par Perplexity sur l'édition de l'APDP).
+
+### Mise à jour du 2 novembre (soir) : longueur et photo de la carte
+
+- La photo de la carte vient de Youpilab : la légende le dit (« Source de l'image : Youpilab »). Reste à vérifier que l'usage dans un mémoire est permis par le vendeur, ou à indiquer l'adresse de la page produit si tu veux la citer.
+- Longueur : 70 pages ramenées à 63 (corps de 45 pages, contre 42 et 47 pour les deux mémoires de référence). Ce qui a été retiré est dans `DETAILS_POUR_LA_SOUTENANCE.md`, avec des réponses aux questions probables du jury.

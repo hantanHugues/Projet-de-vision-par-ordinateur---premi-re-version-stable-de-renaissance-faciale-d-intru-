@@ -37,29 +37,11 @@ Le prototype a été réalisé avec des moyens limités. Il s'exécute sur un or
 
 \subsection{Démarche de développement}
 
-Le développement a suivi une démarche itérative et incrémentale, consignée dans un journal de bord de 23 entrées. Les principales phases sont les suivantes :
-\begin{itemize}
-  \item \textbf{Fondations} : mise en place de l'environnement ;
-  \item \textbf{Détection} : intégration de YOLOv8 et d'un journal visuel ;
-  \item \textbf{Suivi et reconnaissance} : suivi des individus, FaceNet512 et apprentissage continu ;
-  \item \textbf{Industrialisation} : séparation du client et du serveur, prétraitement de l'image, conservation des preuves ;
-  \item \textbf{Sécurité d'accès} : authentification multifacteur et test de vivacité ;
-  \item \textbf{Supervision} : journal d'audit, multi-caméras et tableau de bord Electron ;
-  \item \textbf{Alertes et vie privée} : alertes à distance et purge automatique des photos ;
-  \item \textbf{Recettes} : séances d'essais à la webcam, qui ont révélé des défauts corrigés au fur et à mesure.
-\end{itemize}
-Chaque défaut découvert est noté avec sa cause et sa correction. Ces notes fournissent les raisons des choix présentés dans ce chapitre.
+Le développement a suivi une démarche itérative et incrémentale, consignée dans un journal de bord de 23 entrées. Chaque phase (détection, suivi, reconnaissance, authentification multifacteur, test de vivacité, tableau de bord, alertes, purge des photos) s'est terminée par des essais à la webcam, qui ont révélé des défauts corrigés au fur et à mesure. Ces notes fournissent les raisons des choix présentés dans ce chapitre.
 
 \subsection{Notation des schémas}
 
-Les schémas de ce chapitre suivent la notation UML. Les conventions de traits et de flèches sont les suivantes :
-\begin{itemize}
-  \item \textbf{Cas d'utilisation} : une ligne pleine relie un acteur à un cas d'utilisation. Une flèche pointillée marquée \guillemotleft{} extend \guillemotright{} relie un cas qui en complète un autre, sous condition ;
-  \item \textbf{Séquence} : une flèche pleine à pointe pleine est un appel synchrone, dont l'émetteur attend la réponse. Une flèche pleine à pointe ouverte est un message asynchrone, envoyé sans attendre. Une flèche pointillée est une réponse. Une boucle sur une même ligne de vie est un traitement interne, et un rectangle étroit sur une ligne de vie marque la période d'activité. Un cadre \emph{alt} regroupe des cas exclusifs, chacun précédé de sa condition entre crochets ;
-  \item \textbf{États} : un rond plein marque l'état initial. Une flèche relie deux états et porte l'événement qui déclenche le passage, avec sa condition entre crochets ;
-  \item \textbf{Données} : un trait relie deux tables, avec la multiplicité à chaque extrémité (1 ou 0..*) ;
-  \item \textbf{Architecture} : un cadre ou une flèche en pointillés désigne un élément simulé dans le prototype.
-\end{itemize}
+Les schémas suivent la notation UML. Dans un diagramme de séquence, une flèche pleine à pointe pleine est un appel synchrone, une flèche pleine à pointe ouverte un message asynchrone et une flèche pointillée une réponse. Un cadre \emph{alt} regroupe des cas exclusifs, chacun précédé de sa condition entre crochets. Dans le diagramme de cas d'utilisation, une flèche pointillée marquée \guillemotleft{} extend \guillemotright{} relie un cas qui en complète un autre. Dans le diagramme d'états, un rond plein marque l'état initial. Dans le schéma d'architecture, un cadre ou une flèche en pointillés désigne un élément simulé.
 
 \subsection{Acteurs et cas d'utilisation}
 
@@ -160,9 +142,7 @@ Le serveur est conçu pour s'exécuter à terme sur un micro-ordinateur monocart
 
 La caméra est une carte BW21-CBV de la société Ai-Thinker (figure~\ref{fig:carte}). Selon sa fiche technique, elle est bâtie sur la puce RTL8735B de Realtek et offre un Wi-Fi bi-bande (2,4~GHz ou 5~GHz), le Bluetooth basse consommation 5.1 et une programmation avec l'environnement Arduino~\cite{aithinker_bw21_spec}. Elle a été retenue pour cette connectivité bi-bande.
 
-\imageouplace{bw21_carte.jpg}{0.5\textwidth}{Kit Ai-Thinker BW21-CBV}{fig:carte}
-
-\adonner{Confirmer que cette photographie est celle de la carte de l'auteur, sinon citer sa source}
+\imageouplace{bw21_carte.jpg}{0.5\textwidth}{Kit Ai-Thinker BW21-CBV. Source de l'image : Youpilab}{fig:carte}
 
 Le micrologiciel diffuse l'image en format \gls{mjpeg}, en 640 par 480 pixels, taille analysée par le serveur. Quatre mesures protègent le flux :
 \begin{itemize}
@@ -175,46 +155,11 @@ Les échanges ne sont pas chiffrés : la bibliothèque de la carte n'offre ni HT
 
 \subsection{Serveur et interface de programmation}
 
-Le serveur est une application Python bâtie avec FastAPI~\cite{fastapi_docs}. Il expose 37 routes de type \gls{api}, regroupées par fonction dans le tableau~\ref{tab:routes}. Il lit lui-même les caméras, selon le fonctionnement suivant :
-\begin{itemize}
-  \item \textbf{Sources} : un gestionnaire ouvre chaque source (USB, flux MJPEG ou RTSP) dans un fil d'exécution distinct ;
-  \item \textbf{File d'attente} : les images sont déposées dans une file de quatre places, et une image est abandonnée si la file est pleine, ce qui évite l'accumulation de retard ;
-  \item \textbf{Analyse} : un seul fil consomme la file et applique le pipeline, dont le débit est estimé de deux à cinq images par seconde sur le processeur seul, sans mesure complète ;
-  \item \textbf{Suivi par caméra} : chaque caméra a son propre suiveur, et les identifiants sont préfixés par le nom de la caméra pour rester distincts ;
-  \item \textbf{Affichage} : les cadres et les noms sont dessinés à la cadence de la caméra avec les dernières annotations calculées, si bien que la vidéo reste fluide.
-\end{itemize}
-Ce fonctionnement est celui utilisé avec la caméra BW21-CBV et le tableau de bord.
+Le serveur est une application Python bâtie avec FastAPI~\cite{fastapi_docs}. Il expose 37 routes de type \gls{api}, dont 26 exigent le jeton du tableau de bord. Les 11 autres sont le couplage, la vérification de santé et les routes utilisées par le programme client de développement, dont la protection n'est pas traitée dans le prototype (chapitre~\ref{chap:3}).
 
-Deux outils servent au développement et à la mise au point. Ils ne font pas partie du produit :
-\begin{itemize}
-  \item \textbf{Programme client} (\texttt{client\_camera.py}) : il s'utilise avec le serveur en marche. Il capture la webcam, envoie chaque image à la route \texttt{/analyze\_frame} et affiche le résultat. Des touches du clavier simulent l'empreinte, la porte et la lumière. Il calcule en local les coefficients du test de vivacité, que le serveur accepte sans pouvoir les vérifier ;
-  \item \textbf{Programme autonome} (\texttt{main.py}) : il exécute la chaîne d'analyse sans serveur ni réseau, pour déboguer l'intelligence artificielle seule. Il n'a ni second facteur, ni test de vivacité, ni actionneurs.
-\end{itemize}
+Le serveur lit lui-même les caméras (USB, flux MJPEG ou RTSP). Chaque source est ouverte dans un fil d'exécution distinct, et les images sont déposées dans une file de quatre places : si elle est pleine, l'image est abandonnée, ce qui évite l'accumulation de retard. Un seul fil analyse les images, avec un suiveur par caméra. Les cadres et les noms sont dessinés à la cadence de la caméra avec les dernières annotations calculées, si bien que la vidéo reste fluide. Le débit de l'analyse est estimé de deux à cinq images par seconde sur le processeur seul, sans mesure complète. Ce fonctionnement est celui utilisé avec la caméra BW21-CBV et le tableau de bord.
 
-\begin{table}[H]
-\centering
-\caption{Routes de l'interface de programmation, regroupées par fonction}\label{tab:routes}
-\small
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{2.4cm}@{}}
-\toprule
-\textbf{Fonction} & \textbf{Routes} & \textbf{Jeton exigé} \\
-\midrule
-Analyse et enrôlement & \texttt{/analyze\_frame}, \texttt{/enroll} & non \\
-Second facteur (simulé) & \texttt{/access\_status}, \texttt{/fingerprint\_result}, \texttt{/request\_liveness}, \texttt{/liveness\_result} & non \\
-Configuration & \texttt{/config} (lecture et modification) & oui \\
- & \texttt{/config/templates}, \texttt{/config/apply\_template} & non \\
-Alertes & \texttt{/alerts/test}, \texttt{/alerts/telegram/detect}, \texttt{/alerts/telegram/purge} & oui \\
-Journal et vie privée & \texttt{/logs}, \texttt{/logs/stats}, \texttt{/logs/purge}, \texttt{/logs/\{id\}}, \texttt{/rgpd/status} & oui \\
-Profils & \texttt{/profiles} (lecture), \texttt{/profiles/\{nom\}} (suppression) & oui \\
-Actionneurs (simulés) & \texttt{/iot/door}, \texttt{/iot/fingerprint}, \texttt{/iot/light}, \texttt{/iot/door/open}, \texttt{/iot/door/lock} & oui \\
-Caméras & \texttt{/cameras} (4 routes), \texttt{/cameras/scan/usb}, \texttt{/snapshot}, \texttt{/snapshot/\{cam\_id\}} & oui \\
-Flux vidéo & \texttt{/stream}, \texttt{/stream/\{cam\_id\}} & oui, dans l'adresse \\
-Couplage et santé & \texttt{/pair/request}, \texttt{/auth/token}, \texttt{/health} & non, par conception \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-Vingt-six routes exigent le jeton du tableau de bord. Onze n'en exigent pas : trois par conception (le couplage et la vérification de santé) et huit utilisées par le programme client ou pour le choix des modèles de configuration. La protection de ces huit routes n'est pas encore traitée dans le prototype (chapitre~\ref{chap:3}).
+Deux outils servent au développement et ne font pas partie du produit. Le programme client (\texttt{client\_camera.py}) envoie les images de la webcam au serveur, simule l'empreinte, la porte et la lumière par des touches du clavier, et calcule en local les coefficients du test de vivacité, que le serveur accepte sans pouvoir les vérifier. Le programme autonome (\texttt{main.py}) exécute la chaîne d'analyse sans serveur, pour déboguer l'intelligence artificielle seule.
 
 \subsection{Tableau de bord}
 
@@ -284,30 +229,6 @@ Cette section décrit les étapes appliquées à chaque image et la raison de ch
     L'événement est enregistré dans la base.
   \item \textbf{Photo de l'intrus présumé} : lorsqu'un individu devient intrus provisoire, une photo de sa silhouette est rattachée à l'événement et à l'alerte. Elle entre dans la purge de 72 heures. Seul un individu soupçonné est photographié, jamais un résident reconnu. Le programme client de développement enregistre à l'apparition la silhouette de chaque individu, résidents compris ; la purge supprime celles qui ne sont rattachées à aucun événement.
 \end{enumerate}
-
-Le tableau~\ref{tab:parametres} rassemble les principaux paramètres du pipeline.
-
-\begin{table}[H]
-\centering
-\caption{Principaux paramètres du pipeline}\label{tab:parametres}
-\small
-\begin{tabularx}{\textwidth}{@{}Xp{3.2cm}@{}}
-\toprule
-\textbf{Paramètre} & \textbf{Valeur} \\
-\midrule
-Confiance minimale de la détection des personnes & 0,5 \\
-Taille de l'image pour la détection & 320 pixels \\
-Seuil de reconnaissance (distance cosinus, FaceNet512) & 0,35 \\
-Distance de correspondance forte (reclassement d'un intrus provisoire) & 0,25 \\
-Fenêtre d'identification d'un visage inconnu & 1 s \\
-Fenêtre de réanalyse d'un résident déjà reconnu & 5 s \\
-Intervalle de revérification & 0,8 s \\
-Échecs consécutifs avant remise en question & 3 \\
-Corrélation des couleurs de vêtements pour retrouver une personne & 0,85 \\
-Fenêtre de grâce avant une alerte & 60 s \\
-\bottomrule
-\end{tabularx}
-\end{table}
 
 La bibliothèque DeepFace fixe le seuil par défaut de FaceNet512 à 0,30~\cite{serengil_deepface_thresholds}. BioGate retient 0,35, valeur calibrée de façon empirique : 0,20 refusait trop de résidents et 0,60 acceptait trop d'inconnus. Relever le seuil réduit les refus de résidents mais augmente le risque de confondre deux personnes ; l'abaisser produit l'effet inverse. C'est le compromis entre les taux de fausse acceptation et de faux rejet défini au chapitre~\ref{chap:1}.
 
@@ -576,7 +497,7 @@ Un essai réel a supprimé un message de test. Le chemin d'une alerte avec photo
 
 \section{Paramètres et profils de sécurité}
 
-Cette section présente les réglages du système et les profils de sécurité. Les réglages sont enregistrés dans la table de configuration de la base et rechargés au démarrage du serveur. Quatre profils regroupent des valeurs prêtes à l'emploi : portail, domicile (profil par défaut), bureau et haute sécurité. Chaque réglage reste modifiable. Le tableau~\ref{tab:profils} donne les principaux réglages des profils.
+Cette section présente les réglages du système et les profils de sécurité. Les réglages sont enregistrés dans la base et rechargés au démarrage du serveur. Quatre profils regroupent des valeurs prêtes à l'emploi : portail, domicile (profil par défaut), bureau et haute sécurité. Chaque réglage reste modifiable. Le tableau~\ref{tab:profils} donne les principaux réglages des profils.
 
 \begin{table}[H]
 \centering
@@ -600,55 +521,25 @@ Silhouette sans visage classée intrus après (s) & jamais & jamais & jamais & 5
 \end{tabularx}
 \end{table}
 
-Les tableaux~\ref{tab:reglagesA} et~\ref{tab:reglagesB} décrivent chaque réglage : son rôle, sa valeur par défaut et l'endroit où on le modifie. La colonne \emph{Où} prend les valeurs suivantes :
-\begin{itemize}
-  \item \textbf{Curseur} ou \textbf{interrupteur} : modifiable dans la page de configuration du tableau de bord ;
-  \item \textbf{Profil} : fixé par le profil de sécurité choisi ;
-  \item \textbf{Paramètre} : enregistré en base et modifiable par l'interface de programmation ;
-  \item \textbf{Fichier} : défini dans le fichier de configuration, modifiable seulement en éditant le code.
-\end{itemize}
-La durée d'analyse et l'intervalle de revérification ne prennent effet qu'au redémarrage du serveur.
+Le tableau~\ref{tab:reglages} décrit les réglages principaux : leur rôle, leur valeur par défaut et la façon de les modifier (un curseur ou un interrupteur du tableau de bord, le profil de sécurité, ou le fichier de configuration). La durée d'analyse et l'intervalle de revérification ne prennent effet qu'au redémarrage du serveur.
 
 \begin{table}[H]
 \centering
-\caption{Réglages de la détection et de la reconnaissance}\label{tab:reglagesA}
+\caption{Principaux réglages}\label{tab:reglages}
 \small
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{1.3cm}>{\raggedright\arraybackslash}p{2.3cm}@{}}
 \toprule
 \textbf{Réglage} & \textbf{Rôle, et effet d'une hausse} & \textbf{Défaut} & \textbf{Où} \\
 \midrule
-Seuil de reconnaissance & Distance maximale entre deux vecteurs pour les juger identiques. Une hausse reconnaît plus de résidents mais augmente le risque de confondre deux personnes. & 0,35 & Curseur, de 0,15 à 0,70 \\
-Intervalle de revérification & Délai entre deux contrôles d'une personne déjà identifiée. Plus long : moins de calcul, mais un remplacement de personne est détecté plus tard. & 0,8 s & Curseur, de 0,3 à 3 s \\
-Durée d'analyse d'un visage inconnu & Temps laissé à la reconnaissance avant de classer l'individu intrus provisoire. Plus long : moins de faux intrus, mais alerte plus tardive. & 1 s & Curseur, de 0,5 à 5 s \\
-Durée de réanalyse d'un résident & Même rôle pour un résident déjà reconnu qui retombe en analyse. & 5 s & Fichier \\
-Échecs avant remise en question & Nombre de revérifications ratées de suite avant de reclasser un individu. Plus élevé : identité plus stable, remplacement détecté plus tard. & 3 & Profil \\
-Distance de correspondance forte & Distance sous laquelle un intrus provisoire reconnu comme résident est reclassé aussitôt. & 0,25 & Fichier \\
-Attente d'un visage avant classement en intrus & Durée au-delà de laquelle une silhouette sans visage est classée intrus ; 0 signifie jamais. & 0 & Profil \\
-Confiance minimale de détection & Score minimal pour garder une personne détectée. Plus élevé : moins de fausses personnes, mais risque d'en manquer une. & 0,5 & Paramètre \\
-Taille de l'image de détection & Réduction de l'image avant la détection. Plus petite : calcul plus rapide, détection moins fine. & 320 px & Paramètre \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\begin{table}[H]
-\centering
-\caption{Réglages du second facteur, des alertes et de la conservation}\label{tab:reglagesB}
-\small
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{1.3cm}>{\raggedright\arraybackslash}p{2.3cm}@{}}
-\toprule
-\textbf{Réglage} & \textbf{Rôle, et effet d'une hausse} & \textbf{Défaut} & \textbf{Où} \\
-\midrule
+Seuil de reconnaissance & Distance maximale entre deux vecteurs pour les juger identiques. Une hausse reconnaît plus de résidents mais augmente le risque de confondre deux personnes. & 0,35 & Curseur \\
+Intervalle de revérification & Délai entre deux contrôles d'une personne identifiée. Plus long : moins de calcul, mais un remplacement de personne est détecté plus tard. & 0,8 s & Curseur \\
+Durée d'analyse d'un visage inconnu & Temps laissé à la reconnaissance avant de classer l'individu intrus provisoire. Plus long : moins de faux intrus, alerte plus tardive. & 1 s & Curseur \\
 MFA obligatoire & Exige un second facteur après la reconnaissance du visage. & non & Interrupteur, profil \\
 Vivacité activée & Inclut le test de vivacité dans le second facteur. Désactivé, seule l'empreinte reste possible. & oui & Interrupteur, profil \\
-Délai de l'empreinte & Temps accordé pour valider l'empreinte, au-delà duquel l'accès est refusé. & 15 s & Curseur, de 5 à 60 s \\
-Durée du défi de vivacité & Temps accordé pour exécuter le geste demandé. & 10 s & Paramètre \\
-Scores après vivacité et après empreinte & Niveaux de confiance affichés lorsqu'un second facteur réussit. & 85~\% et 100~\% & Paramètre \\
-Fenêtre de grâce & Délai avant de confirmer un intrus provisoire. Plus long : plus de temps pour reconnaître un résident, mais alerte plus tardive ; plus court : alerte rapide, mais plus de fausses alertes. & 60 s & Curseur, de 10 à 120 s \\
-Délai minimal entre deux alertes & Évite l'envoi de nombreux messages pour une même personne. & 30 s & Fichier \\
-Canaux d'alerte & Activent l'envoi par Telegram et par courrier électronique. & désactivés & Page Alertes, profil \\
-Conservation des photos & Durée avant la suppression automatique des photos. & 72 h & Curseur, de 24 à 720 h \\
-Période de la purge & Fréquence du contrôle des photos et des messages à supprimer. & 60 min & Fichier \\
-Suppression des messages Telegram & Délai avant la suppression d'un message d'alerte dans la conversation. Plafonné à 47 h ; 0 désactive la suppression. & 24 h & Fichier \\
+Délai de l'empreinte & Temps accordé pour valider l'empreinte, au-delà duquel l'accès est refusé. & 15 s & Curseur \\
+Fenêtre de grâce & Délai avant de confirmer un intrus provisoire. Plus long : plus de temps pour reconnaître un résident, mais alerte plus tardive. & 60 s & Curseur \\
+Conservation des photos & Durée avant la suppression automatique des photos. & 72 h & Curseur \\
+Suppression des messages Telegram & Délai avant la suppression d'un message d'alerte dans la conversation. Plafonné à 47 h ; 0 désactive. & 24 h & Fichier \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -661,11 +552,8 @@ Cette section décrit le comportement du système face aux défaillances. L'éch
   \item \textbf{Flux vidéo interrompu} : le serveur libère la source et tente de la rouvrir, toutes les secondes après une lecture ratée et toutes les trois secondes si l'ouverture échoue. La caméra BW21-CBV se reconnecte de son côté au dernier réseau enregistré ;
   \item \textbf{Analyse plus lente que la caméra} : les images attendent dans une file de quatre places. Si elle est pleine, l'image est abandonnée, et le fil de capture ne se bloque jamais ;
   \item \textbf{Second avis de MediaPipe indisponible} : un avertissement est journalisé et le détecteur de Haar décide seul. Le risque de prendre un pli de vêtement pour un visage réapparaît alors ;
-  \item \textbf{Envoi d'alerte impossible} (délai dépassé, service injoignable, requête refusée) : l'envoi se fait dans un fil séparé, qui ne ralentit pas l'analyse. L'erreur est journalisée avec un message explicite, dans lequel le jeton Telegram est masqué. Il n'y a pas de nouvelle tentative ;
-  \item \textbf{Photo absente au moment de l'alerte} : le message est envoyé sans photo ;
-  \item \textbf{Actionneur injoignable} : la requête a un délai d'une seconde et part dans un fil séparé. Dans le prototype, les actionneurs sont simulés ;
+  \item \textbf{Envoi d'alerte impossible} : l'envoi se fait dans un fil séparé, qui ne ralentit pas l'analyse. L'erreur est journalisée avec un message explicite, dans lequel le jeton Telegram est masqué. Il n'y a pas de nouvelle tentative, et si la photo manque, le message part sans elle ;
   \item \textbf{Second facteur non fourni à temps} : l'accès est refusé après 15 secondes. L'échec du seul test de vivacité ferme ce canal sans refuser l'accès ;
-  \item \textbf{Individu disparu avant le verdict} : une alerte de fuite est journalisée si un visage avait été vu, et un passage sans visage laisse une trace discrète. Pendant la fenêtre de grâce d'un intrus provisoire, l'alerte est annulée et la photo supprimée ;
   \item \textbf{Redémarrage du serveur} : les caméras et la configuration enregistrées sont rechargées, et la purge des photos s'exécute au démarrage pour rattraper l'arrêt.
 \end{itemize}
 

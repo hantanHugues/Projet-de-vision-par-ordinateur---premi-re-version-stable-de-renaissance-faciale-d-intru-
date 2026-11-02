@@ -7,22 +7,7 @@ Ce chapitre présente la réalisation de BioGate, les essais menés et les ensei
 
 \subsection{Organisation du code et environnement}
 
-Le prototype est écrit en Python 3.11, version retenue parce que la version 3.13 posait des incompatibilités entre les bibliothèques de calcul et de vision. Les versions installées sont les suivantes : OpenCV 4.11.0.86, FastAPI 0.136.1, Uvicorn 0.46.0, Ultralytics 8.4.47 (YOLOv8), DeepFace 0.0.99, MediaPipe 0.10.35, TensorFlow 2.21.0, NumPy 2.4.4 et Requests 2.33.1. Le code est organisé en modules, chacun chargé d'une fonction précise :
-\begin{itemize}
-  \item \textbf{Serveur} (\texttt{api.py}) : application FastAPI qui regroupe les routes, le pipeline d'analyse et les tâches de fond ;
-  \item \textbf{Détection} (\texttt{core/yolo\_detector.py}) : repérage des personnes avec YOLOv8 ;
-  \item \textbf{Suivi} (\texttt{core/centroid\_tracker.py}) : attribution d'un identifiant stable à chaque individu ;
-  \item \textbf{Reconnaissance} (\texttt{core/face\_recognizer.py}) : filtre de visage, calcul du vecteur, comparaison et décisions d'identité ;
-  \item \textbf{Score de confiance} (\texttt{core/trust\_score.py}) : machine à états et authentification multifacteur ;
-  \item \textbf{Vivacité} (\texttt{core/liveness\_detector.py}) : défi du geste tiré au sort ;
-  \item \textbf{Caméras} (\texttt{core/camera\_manager.py}) : ouverture et reconnexion des sources vidéo ;
-  \item \textbf{Alertes} (\texttt{core/notifier.py}) : envois vers Telegram et par courrier électronique ;
-  \item \textbf{Actionneurs} (\texttt{core/iot\_controller.py}) : porte, lumière et lecteur d'empreinte, simulés dans le prototype ;
-  \item \textbf{Base de données} (\texttt{database/db\_manager.py}) : profils, vecteurs, journal, configuration et purge ;
-  \item \textbf{Installation} (\texttt{requirements.txt}, \texttt{telecharger\_modeles.py}) : versions fixées des bibliothèques et téléchargement du modèle MediaPipe, dont l'empreinte est vérifiée ;
-  \item \textbf{Micrologiciel} (\texttt{firmware/bw21\_camera\_protegee}) : programme de la caméra ;
-  \item \textbf{Tests} (\texttt{tests/}) : tests automatiques et rapports de mesure.
-\end{itemize}
+Le prototype est écrit en Python 3.11, version retenue parce que la version 3.13 posait des incompatibilités entre les bibliothèques de calcul et de vision. Les versions installées sont les suivantes : OpenCV 4.11.0.86, FastAPI 0.136.1, Uvicorn 0.46.0, Ultralytics 8.4.47 (YOLOv8), DeepFace 0.0.99, MediaPipe 0.10.35, TensorFlow 2.21.0, NumPy 2.4.4 et Requests 2.33.1. Le code est organisé en modules, chacun chargé d'une fonction précise : le serveur (\texttt{api.py}), la détection, le suivi, la reconnaissance, le score de confiance, le test de vivacité, les caméras, les alertes, les actionneurs simulés, la base de données, le micrologiciel de la caméra, l'installation (versions fixées et téléchargement du modèle MediaPipe) et les tests.
 
 \subsection{Réalisation de la caméra}
 
@@ -45,7 +30,7 @@ Le serveur démarre avec uvicorn. À son lancement, il charge les réglages enre
 
 \subsection{Réalisation du tableau de bord}
 
-Le tableau de bord est une application de bureau Electron et React. Il comporte sept pages, présentées ci-après. Les captures, sauf celle de la page de surveillance, viennent d'un serveur simulé : ce sont des données de démonstration, avec des noms fictifs à l'exception de celui de l'auteur, et les réglages par défaut du profil domicile.
+Le tableau de bord est une application de bureau Electron et React. Il comporte sept pages, présentées ci-après. Les captures viennent d'un serveur simulé : ce sont des données de démonstration, avec des noms fictifs à l'exception de celui de l'auteur, et les réglages par défaut du profil domicile.
 
 \subsubsection{Page de surveillance}
 
@@ -59,48 +44,27 @@ La page du journal d'accès (figure~\ref{fig:dashjournal}) liste les événement
 
 \subsubsection{Page des profils}
 
-La page des profils, intitulée VIP dans le menu (figure~\ref{fig:dashprofils}), affiche une carte par résident : initiales, nom, nombre de gabarits enregistrés, rôle (administrateur, personnel autorisé ou visiteur) et date d'enrôlement. Elle permet de retirer un profil et d'en enrôler un, soit à partir d'un fichier image, soit par une capture de la webcam. L'enrôlement est la seule voie, avec la confirmation par empreinte, pour ajouter un vecteur de visage à la base.
-
-\imageouplace{dashboard_profils.png}{0.85\textwidth}{Page des profils de résidents (données de démonstration)}{fig:dashprofils}
+La page des profils, intitulée VIP dans le menu, affiche une carte par résident : initiales, nom, nombre de gabarits enregistrés, rôle (administrateur, personnel autorisé ou visiteur) et date d'enrôlement. Elle permet de retirer un profil et d'en enrôler un, soit à partir d'un fichier image, soit par une capture de la webcam. L'enrôlement est la seule voie, avec la confirmation par empreinte, pour ajouter un vecteur de visage à la base.
 
 \subsubsection{Page des statistiques}
 
-La page des statistiques (figure~\ref{fig:dashstats}) présente quatre indicateurs pour la période choisie : le nombre d'accès accordés, d'accès refusés (échecs du second facteur compris) et d'intrus confirmés, ainsi que le score moyen de confiance. Elle ajoute un graphique des accès par jour, accordés et refusés, et la liste des résidents les plus actifs. Elle n'affiche pas encore les compteurs d'alertes de fuite et de passages sans visage, que le serveur calcule déjà.
-
-\imageouplace{dashboard_stats.png}{0.85\textwidth}{Page des statistiques (données de démonstration)}{fig:dashstats}
+La page des statistiques présente quatre indicateurs pour la période choisie : le nombre d'accès accordés, d'accès refusés et d'intrus confirmés, ainsi que le score moyen de confiance. Elle ajoute un graphique des accès par jour et la liste des résidents les plus actifs. Elle n'affiche pas encore les compteurs d'alertes de fuite et de passages sans visage, que le serveur calcule déjà.
 
 \subsubsection{Page de configuration}
 
-La page de configuration (figure~\ref{fig:dashconfig}) est organisée en blocs :
-\begin{itemize}
-  \item \textbf{Profil de sécurité} : les quatre profils (portail, domicile, bureau, haute sécurité), avec leur résumé ;
-  \item \textbf{Reconnaissance faciale} : seuil, intervalle de revérification, limite d'analyse et délai avant de classer en intrus une silhouette sans visage ;
-  \item \textbf{MFA} : interrupteurs de l'authentification multifacteur et de la vivacité, délais de l'empreinte et du défi de vivacité ;
-  \item \textbf{Alertes et RGPD} : fenêtre de grâce, conservation des photos et état de la purge automatique (intervalle, dernière exécution, photos supprimées et stockées, âge de la plus ancienne) ;
-  \item \textbf{Actionneurs} : interrupteur du mode simulation et adresses des modules ;
-  \item \textbf{Sources vidéo} : liste des caméras (USB, MJPEG, RTSP) avec leur débit, et boutons de modification et de suppression. La clé d'une caméra IP est masquée.
-\end{itemize}
-Un bouton enregistre les réglages.
+La page de configuration (figure~\ref{fig:dashconfig}) regroupe le choix du profil de sécurité, les réglages de la reconnaissance, de l'authentification multifacteur et des alertes, l'état de la purge automatique, les actionneurs simulés et les sources vidéo (USB, MJPEG, RTSP), dont la clé d'une caméra IP est masquée. Un bouton enregistre les réglages.
 
 \imageouplace{dashboard_config.png}{0.98\textwidth}{Page de configuration (données de démonstration)}{fig:dashconfig}
 
 \subsubsection{Page des alertes}
 
-La page des alertes (figure~\ref{fig:dashalertes}) comporte deux colonnes. À gauche, la liste des intrus confirmés des 30 derniers jours, avec le nom de la photo. À droite se trouvent les réglages :
-\begin{itemize}
-  \item \textbf{Telegram} : jeton du robot, identifiant de la conversation, détection de cet identifiant, enregistrement et envoi d'un message de test ;
-  \item \textbf{Courrier électronique} : serveur, compte d'envoi, mot de passe d'application, destinataires et test d'envoi ;
-  \item \textbf{Notifications du bureau} : notification native lorsqu'une intrusion est confirmée.
-\end{itemize}
-Les identifiants ne sont jamais renvoyés en clair par l'interface. Le canal par courrier électronique n'est pas éprouvé en conditions réelles (chapitre~\ref{chap:2}).
+La page des alertes (figure~\ref{fig:dashalertes}) liste à gauche les intrus confirmés des 30 derniers jours. À droite, elle règle le canal Telegram (jeton du robot, identifiant de la conversation, test d'envoi), le formulaire du courrier électronique, non éprouvé en conditions réelles, et les notifications du bureau. Les identifiants ne sont jamais renvoyés en clair par l'interface.
 
 \imageouplace{dashboard_alertes.png}{0.95\textwidth}{Page des alertes (données de démonstration)}{fig:dashalertes}
 
 \subsubsection{Page de couplage}
 
-La page de couplage (figure~\ref{fig:dashpairing}) se déroule en deux étapes : l'adresse du serveur, puis le code à six chiffres affiché dans le terminal du serveur. Ce code expire au bout de cinq minutes et tolère cinq tentatives. Une fois le code validé, l'application conserve le jeton reçu, chiffré par le système d'exploitation.
-
-\imageouplace{dashboard_couplage.png}{0.6\textwidth}{Page de couplage (données de démonstration)}{fig:dashpairing}
+La page de couplage se déroule en deux étapes : l'adresse du serveur, puis le code à six chiffres affiché dans le terminal du serveur, valable cinq minutes et limité à cinq essais. Une fois le code validé, l'application conserve le jeton reçu, chiffré par le système d'exploitation.
 
 \subsection{Éléments simulés}
 
@@ -360,47 +324,33 @@ Le tableau~\ref{tab:defauts} recense les défauts relevés au fil du développem
 \textbf{Défaut} & \textbf{Cause} & \textbf{Correction} \\
 \midrule
 Journal illisible (erreur du serveur) & Scores stockés au format binaire de la bibliothèque numérique ; 203 lignes corrompues & Conversion en nombre simple, lignes réparées \\
-Alertes sans photo & La photo n'était jamais rattachée à l'intrus & Rattachement à l'intrus provisoire, jamais à un résident \\
-Photos hors de portée de la purge & Fichier sans ligne de journal quand le résident revient ou que la personne s'éloigne & Suppression dans ces deux cas \\
 Purge jamais appliquée & Purge seulement manuelle ; 41 photos de 107 à 128 jours & Purge automatique au démarrage puis toutes les heures \\
 Inconnus sans cadre à l'écran & Erreur avalée, 996 avertissements en deux minutes & Correction et test de non-régression \\
 Faux intrus sur une main ou un torse & Détecteur de personnes trompé par des images partielles & Un intrus est un visage inconnu \\
 Faux visage sur une chemise & Détecteur de Haar sur un col et un bouton & Second avis de MediaPipe \\
-Noms d'intrus dupliqués & Compteur remis à zéro au rechargement des vecteurs & Compteur qui ne recule jamais \\
-Détection de Haar en double & Seconde détection pour dessiner l'encadré & Réutilisation de la position mémorisée \\
 Routes sans jeton (configuration, actionneurs) & Oubli de la vérification & Jeton exigé sur ces routes \\
 Réglage de vivacité sans effet & Les deux pipelines ne lisaient pas le réglage & Règle commune et 8 tests \\
 Redémarrage de la carte toutes les 30 secondes & Chien de garde de 20 secondes armé avant la connexion Wi-Fi et l'initialisation de la caméra & Chien de garde supprimé, aucune coupure sur 87 secondes ensuite \\
 Aucune image lue par OpenCV & La ligne de séparation du flux doit précéder la première image, l'exemple du fabricant ne l'envoie qu'après & Ligne envoyée avant la première image, avec test de contre-épreuve \\
-Carte bloquée après le départ d'un client & La fonction d'écriture de la bibliothèque est déclarée booléenne mais renvoie $-1$ en cas d'échec, que rien ne détecte & Délai de réception court et lecture d'un octet par image \\
-Première requête lente après un repos & Économie d'énergie du Wi-Fi, de 7 à 27 secondes & Économie d'énergie désactivée \\
 Messages d'alerte conservés chez le fournisseur & La purge ne concernait que le disque du serveur & Suppression des messages après 24 heures \\
 Second avis de MediaPipe absent sur une copie propre & Le fichier du modèle est ignoré par git et rien ne le téléchargeait & Script de téléchargement avec empreinte SHA-256, étape dans la procédure d'installation, 5 tests \\
-Installation non reproductible & Deux paquets OpenCV de versions différentes pour le même dossier de programmes & Les deux paquets fixés à la même version, versions des bibliothèques fixées, vérification dans un environnement neuf \\
-Libellés des profils faux au tableau de bord & Libellé non aligné sur le comportement du serveur & Libellés des profils bureau et haute sécurité corrigés \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Un enseignement général s'en dégage : aucun des tests existants n'avait vu le défaut des inconnus sans cadre, parce qu'aucun n'exécutait le pipeline multi-caméras avec une personne inconnue. Il a fallu un essai réel et la lecture du journal du serveur, qui est devenu un outil de validation à part entière.
+D'autres défauts mineurs sont consignés dans le journal de bord du projet. Un enseignement général s'en dégage : aucun des tests existants n'avait vu le défaut des inconnus sans cadre, parce qu'aucun n'exécutait le pipeline multi-caméras avec une personne inconnue. Il a fallu un essai réel et la lecture du journal du serveur, qui est devenu un outil de validation à part entière.
 
 \subsection{Limites observées}
 
 Les limites du prototype sont les suivantes :
 \begin{itemize}
-  \item \textbf{Périmètre de validation} : l'évaluation est exploratoire ; les taux d'erreur reposent sur une seule série de 1\,000 paires de LFW, et non sur une caméra de porte, et les autres essais portent sur peu de personnes et de photographies ;
-  \item \textbf{Efficacité anti-usurpation} : aucune attaque par photographie, vidéo rejouée ou masque n'a été présentée, et la caméra ne mesure pas la profondeur ;
-  \item \textbf{Matériel simulé} : le lecteur d'empreinte, la gâche et la lumière sont simulés, et l'écran LCD des consignes, reporté à la fin du projet, n'est pas réalisé ;
-  \item \textbf{Portage} : l'exécution sur un micro-ordinateur monocarte de type Raspberry Pi est visée mais n'a pas été essayée, et la quantification des modèles n'est pas faite ;
+  \item \textbf{Périmètre de validation} : l'évaluation est exploratoire ; les taux d'erreur reposent sur une seule série de 1\,000 paires de LFW, et non sur une caméra de porte, et les autres essais portent sur peu de personnes ;
+  \item \textbf{Anti-usurpation} : aucune attaque par photographie, vidéo rejouée ou masque n'a été présentée, et la caméra ne mesure pas la profondeur ;
+  \item \textbf{Matériel} : le lecteur d'empreinte, la gâche et la lumière sont simulés, l'écran LCD est reporté à la fin du projet, et le portage sur un micro-ordinateur monocarte n'a pas été essayé ;
   \item \textbf{Visages proches} : deux profils de résidents ont des visages proches : le vecteur du second profil le plus proche du profil principal est à 0,306, sous le seuil de 0,35, et une confusion est possible. En direct, des distances de 0,23 à 0,35 ont été observées entre le visage de l'auteur et ce second profil. La mesure à la webcam donne une marge toujours positive entre les deux profils, d'au moins 0,109. Aucune marge de décision entre profils proches n'est ajoutée, et ce cas est exclu des essais finaux ;
-  \item \textbf{Caméra} : la clé du flux et le réseau Wi-Fi sont mémorisés sans chiffrement dans la mémoire flash de la carte, et la reprise après une coupure provoquée du Wi-Fi n'a pas été éprouvée ;
-  \item \textbf{Sources vidéo} : le flux RTSP n'a pas été vérifié, faute de serveur RTSP, ni le HTTPS ;
-  \item \textbf{Sécurité des échanges} : pas de HTTPS, onze routes sans jeton dont celles utilisées par l'outil de développement, et aucun audit de sécurité externe ;
-  \item \textbf{Protection des données} : les vecteurs ne sont pas chiffrés dans la base, les identifiants des canaux d'alerte y sont enregistrés en clair, et la table d'audit prévue n'est pas implémentée ;
-  \item \textbf{Messages Telegram} : les messages envoyés avant la suppression automatique restent dans la conversation, et la suppression d'une alerte accompagnée d'une photo n'a pas été essayée en conditions réelles ;
-  \item \textbf{Journal} : les lignes du journal ne sont pas purgées, seules les photos le sont ;
-  \item \textbf{Alertes} : un envoi qui échoue n'est pas renvoyé, un intrus qui quitte le champ avant la fin de la fenêtre de grâce n'est pas signalé, et un passant sans visage ne déclenche aucune alerte à distance ;
-  \item \textbf{Réglages} : la durée d'analyse et l'intervalle de revérification ne prennent effet qu'au redémarrage du serveur ;
+  \item \textbf{Sécurité} : pas de HTTPS, routes sans jeton utilisées par l'outil de développement, aucun audit externe, vecteurs et identifiants d'alerte non chiffrés dans la base, réglages et clé de la caméra non chiffrés dans la mémoire flash de la carte ;
+  \item \textbf{Alertes} : un envoi qui échoue n'est pas renvoyé, un intrus qui quitte le champ avant la fin de la fenêtre de grâce n'est pas signalé, les messages Telegram envoyés avant la suppression automatique restent dans la conversation, et l'envoi par courrier électronique n'est pas éprouvé ;
+  \item \textbf{Caméra et sources} : la reprise après une coupure provoquée du Wi-Fi, le flux RTSP et le HTTPS n'ont pas été éprouvés ;
   \item \textbf{Alimentation} : une coupure d'électricité arrête le serveur et fait perdre les états en mémoire, dont le jeton du tableau de bord.
 \end{itemize}
 Ces limites ne remettent pas en cause l'intérêt de l'approche. Elles précisent ce qu'il reste à faire pour passer du prototype à un produit.
