@@ -24,7 +24,7 @@
 | Profil « Haute sécurité » (02/11) | ✅ Tranché : empreinte seule, sans vivacité, comme le mémoire ; libellés du tableau de bord corrigés | |
 | Apprentissage par empreinte | ✅ **Preuve statistique le 02/11 sur 150 sujets de LFW** : reconnaissance 47,8 % → 71,6 % (+23,8 points, IC [22,3 ; 25,4]), fausses acceptations 0,1 % → 0,3 %, **un apprentissage erroné rend l'inconnu accepté dans 47,9 % des cas** (justifie la confirmation par l'empreinte) ; `docs/mesures/apprentissage_lfw/`. Première lecture à la webcam (de nuit, 78 images) : 0,209 → 0,203, pire image 0,436 → 0,274 ; la baisse « 0,269 → 0,106 » du journal n'est pas reproduite | Seconde lecture à la webcam en journée (même script, serveur arrêté) ; écrire dans le mémoire la mesure sur 150 sujets et la lire avec ses limites (LFW ne date pas les photos : le vieillissement reste démontré par l'essai Chris Evans) |
 | Caméra IP protégée, miroir, bouton « Modifier », clé masquée | ✅ Poussés (backend et tableau de bord) | |
-| Images du mémoire | 🟡 Six captures du tableau de bord (`docs/images_memoire/`, données de démonstration) | **Manquent** : page de surveillance avec la vraie caméra, photo de la carte BW21 |
+| Images du mémoire | ✅ Six captures du tableau de bord en données de démonstration (`docs/images_memoire/`) + **la page de surveillance réelle, fournie par l'auteur le 02/11** | **Manque** : photo de la carte BW21 (la sienne, ou une photo du fabricant avec sa source) |
 | 2.1 Anti-spoofing | ⬜ **À faire, priorité haute** | 20 essais photo, 20 vidéo, 20 légitimes, avec l'auteur, environ 1 h |
 | 2.2 FAR / FRR | ✅ **Fait le 01/11** sur LFW (1 000 paires) : au seuil 0,35, **FAR 0,0 %, FRR 52,0 %** ; égalité des erreurs 13,1 % au seuil 0,74 ; aire ROC 0,931 (`docs/mesures/far_frr/`). **Écart éclairci en partie le 02/11** (1 429 images, 3 variantes) : ni Haar ni CLAHE n'expliquent l'écart (aires ROC 0,919 / 0,921 / 0,924) ; à 0,35, CLAHE ajoute environ 8 points de FRR sur ces photos bien éclairées | Restent non testés : détecteur et alignement de DeepFace, protocole des paires ; écrire « écart non expliqué, non dû à CLAHE ni à Haar » ; tester CLAHE contre l'absence de CLAHE à la webcam (contre-jour) si le temps le permet |
 | 2.3 Performance | ✅ **Fait le 02/11** (`docs/mesures/performance/`) : identification 401 ms (≈ 2,5 images/s), régime stable médiane 30 ms et jusqu'à 18,3 images/s, YOLO 320 px 2,1 fois plus rapide que 640 px, cache en mémoire 46 fois plus rapide que SQLite à 1 600 vecteurs, décision résident 0,45 s, endurance de 5 minutes sans dégradation ni fuite | Corriger le mémoire (« 2 à 5 images/s » venait d'un commentaire) ; limites : scène fixe, une machine, pas de Raspberry Pi ; la latence caméra → écran n'est pas mesurée de bout en bout |
@@ -170,7 +170,7 @@ Ordre conseillé (le plus facile et le plus utile d'abord) :
 - [ ] Pipeline IA en cascade
 - [ ] Machine à états du Trust Score
 - [ ] Schéma du réseau LAN fermé + Mini-UPS
-- [x] Captures du dashboard : Journal, VIP, Config, Alertes, Couplage, Stats faites (données de démonstration). [ ] Surveillance : à capturer avec la vraie caméra
+- [x] Captures du dashboard : Journal, VIP, Config, Stats, Alertes, Couplage faites (données de démonstration) ; [x] Surveillance : capture réelle fournie par l'auteur le 02/11
 - [ ] Capture de l'alerte Telegram reçue
 - [x] Courbe FAR/FRR (`docs/mesures/far_frr/far_frr.png`), test Chris Evans. [ ] Table anti-spoofing, tableau avant/après des optimisations
 - [ ] Photo du montage réel (carte + LCD)

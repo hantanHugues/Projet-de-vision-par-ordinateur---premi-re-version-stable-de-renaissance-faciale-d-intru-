@@ -151,9 +151,7 @@ Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\
    une figure à la page des statistiques, aujourd'hui décrite en texte seulement.
    **Les légendes doivent dire « données de démonstration »** : les captures viennent d'un serveur simulé (`biogate-dashboard/scripts/mock-api.mjs`),
    avec des noms fictifs (sauf celui de l'auteur) et les réglages par défaut du profil Domicile, pas d'une session réelle.
-   **Restent à fournir par l'auteur** : `dashboard_surveillance.png` (il faut la vraie caméra : le serveur simulé n'envoie pas de vidéo, la page
-   affiche alors « Flux vidéo indisponible ») et `bw21_carte.jpg` (sa propre carte : le fichier actuel est une photo de vendeur de 225×225 pixels).
-   Ne rien inventer à leur place.
+   **`dashboard_surveillance.png` : fournie le 02/11 par l'auteur, capture RÉELLE** (serveur et caméra réels, visage de l'auteur, résident reconnu à 95 %, geste de vivacité demandé et empreinte en attente) : légende suggérée « Page de surveillance pendant un essai, le 2 novembre 2026 » ; ce n'est pas une donnée de démonstration. **Reste à fournir par l'auteur** : `bw21_carte.jpg` (sa propre carte ou, à défaut, une photo du fabricant avec sa source dans la légende ; le fichier actuel fait 225×225 pixels). Ne rien inventer à sa place.
 10. **Profil « haute sécurité » et vivacité : tranché par l'auteur le 02/11 — le mémoire fait foi.** Haute sécurité = empreinte seule, sans test de vivacité
     (`LIVENESS_ENABLED` à `False` dans `database/db_manager.py`, présent depuis le 21/08). C'est ce que décrit déjà le chapitre 2, donc rien à changer
     dans le texte ni dans le code. Seul le libellé du tableau de bord était faux (« MFA + fingerprint + liveness ») : corrigé en « MFA · Empreinte seule »,
