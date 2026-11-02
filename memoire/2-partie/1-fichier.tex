@@ -151,6 +151,31 @@ Gâche et éclairage & Ouverture et éclairage d'accueil ou d'alerte & Conçus e
 
 Le serveur est conçu pour s'exécuter à terme sur un micro-ordinateur monocarte de type Raspberry Pi ou sous Linux. Le prototype tourne sur un ordinateur personnel. Trois choix limitent le calcul : l'image est réduite avant la détection, les vecteurs des profils sont gardés en mémoire, et une personne déjà identifiée n'est revérifiée que toutes les 0,8 seconde.
 
+La figure~\ref{fig:reseau} montre l'organisation du réseau prévue par le cahier des charges. Un routeur Wi-Fi dédié forme un réseau local fermé, séparé de la box Internet. Un mini-onduleur alimente le routeur et le serveur, et la caméra se branche sur le même, pour qu'une coupure de courant ne les arrête pas. Le seul lien avec Internet part du serveur vers Telegram, pour l'alerte. Dans le prototype, le mini-onduleur, la gâche, le lecteur d'empreinte et l'éclairage ne sont pas réalisés.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>={Stealth[length=2mm]},
+  box/.style={draw, rounded corners, align=center, minimum height=0.9cm, inner sep=3pt, font=\footnotesize},
+  sim/.style={box, dashed}]
+  \node[box, minimum width=2.8cm] (cam) at (0,1.3) {Caméra\\BW21-CBV};
+  \node[box, minimum width=2.8cm] (srv) at (0,-1.3) {Serveur BioGate\\(ordinateur)};
+  \node[box, minimum width=2.8cm] (rt) at (5.6,0) {Routeur Wi-Fi\\dédié};
+  \node[sim, minimum width=3.2cm] (iot) at (11.2,1.3) {Gâche, empreinte,\\éclairage};
+  \node[box, minimum width=3.2cm] (dash) at (11.2,-1.3) {Tableau de bord};
+  \node[sim, minimum width=2.8cm] (ups) at (5.6,-3) {Mini-onduleur};
+  \node[box, minimum width=2.8cm] (tg) at (0,-3.4) {Telegram\\(Internet)};
+  \draw[<->] (cam) -- (rt);
+  \draw[<->] (srv) -- (rt);
+  \draw[<->] (dash) -- (rt);
+  \draw[<->, dashed] (iot) -- (rt);
+  \draw[->] (srv) -- node[right, font=\scriptsize] {alerte} (tg);
+  \draw[->, dashed] (ups) -- (rt);
+  \draw[->, dashed] (ups) -- (srv);
+\end{tikzpicture}
+\caption{Réseau local fermé prévu (les éléments en pointillés ne sont pas réalisés ou sont simulés)}\label{fig:reseau}
+\end{figure}
+
 \subsection{Caméra Ai-Thinker BW21-CBV}
 
 La caméra est une carte BW21-CBV de la société Ai-Thinker (figure~\ref{fig:carte}). Selon sa fiche technique, elle est bâtie sur la puce RTL8735B de Realtek et offre un Wi-Fi bi-bande (2,4~GHz ou 5~GHz), le Bluetooth basse consommation 5.1 et une programmation avec l'environnement Arduino~\cite{aithinker_bw21_spec}. Elle a été retenue pour cette connectivité bi-bande. Au laboratoire, la carte s'est connectée en 2,4~GHz, et l'auteur l'a essayée sur les deux bandes lors de ses propres essais, hors journal.
