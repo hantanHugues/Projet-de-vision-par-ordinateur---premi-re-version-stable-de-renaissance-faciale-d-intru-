@@ -89,7 +89,7 @@ Cette évaluation est exploratoire. Elle porte sur peu de personnes et sur des p
 
 \subsection{Tests automatiques}
 
-Les fichiers de test comptent 180 cas, répartis comme l'indique le tableau~\ref{tab:tests}. Sur la branche principale, 172 tests sont réussis. Les 8 tests du réglage de vivacité, ajoutés dans la branche du mémoire, passent eux aussi sur une copie propre, à condition que le modèle MediaPipe soit présent. \adonner{La suite complète est à relancer après la fusion des deux branches : 180 cas attendus.}
+Les fichiers de test comptent 180 cas, répartis comme l'indique le tableau~\ref{tab:tests}. Sur la branche principale, 172 tests sont réussis sur le poste de l'auteur. Les 8 tests du réglage de vivacité ont été ajoutés dans la branche du mémoire. Après la fusion des deux branches, les 180 cas réussissent sur une copie propre : environnement Python 3.11 créé à partir du fichier des dépendances, modèle MediaPipe téléchargé par le script d'installation, fichiers de test lancés un par un. Un test, celui de la chemise, échoue tant que la bibliothèque graphique exigée par MediaPipe est absente : il détecte bien que le second avis ne fonctionne plus et que Haar décide seul.
 
 \begin{table}[H]
 \centering

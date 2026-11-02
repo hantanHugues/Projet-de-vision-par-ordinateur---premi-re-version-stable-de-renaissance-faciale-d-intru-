@@ -196,3 +196,5 @@ Longueur actuelle : 65 pages, corps de 47 pages.
 - « résiste » et « assez rapide » retirés là où rien n'est mesuré.
 
 **Reste à mesurer ou à fournir par l'auteur** : attaques photo et vidéo (20 essais chacune), débit de la chaîne complète (ms par image, images par seconde), coupure du Wi-Fi provoquée, relance des 180 tests après fusion (180 cas comptés dans le code, réussite non vérifiée dans ce conteneur faute de cv2/deepface), seconde lecture de jour de l'apprentissage à la webcam, photo de l'alerte Telegram reçue, couverture, dédicace, remerciements, photo du montage, capture de la page de surveillance.
+
+**Tests (2 novembre, soir)** : les 180 cas réussissent dans un environnement neuf (Python 3.11, `requirements.txt`, modèle MediaPipe téléchargé), fichier par fichier. Une exécution unique de `pytest` s'arrête dans ce conteneur sur un plantage de chargement des bibliothèques (torch/TensorFlow), sans échec de test ; à confirmer par `python -m pytest -q` sur le poste de l'auteur.
