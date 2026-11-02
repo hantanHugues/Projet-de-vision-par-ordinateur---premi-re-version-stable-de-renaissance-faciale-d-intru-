@@ -206,7 +206,7 @@ Le taux de fausse acceptation (\gls{far}) et le taux de faux rejet (\gls{frr}) o
   \item \textbf{Définitions} : le \gls{far} est la part des paires de personnes différentes dont la distance est sous le seuil, c'est-à-dire un inconnu accepté ; le \gls{frr} est la part des paires de la même personne dont la distance est au-dessus du seuil, c'est-à-dire un résident refusé.
 \end{itemize}
 
-Au seuil de décision de 0,35, retenu pour BioGate, le \gls{far} est de 0,0~\% et le \gls{frr} de 52,0~\% : aucune paire de personnes différentes n'a été acceptée, mais 52~\% des paires d'une même personne ont été refusées. Le seuil où le \gls{far} et le \gls{frr} sont égaux, appelé point d'égal taux d'erreur, est de 13,1~\%, atteint à 0,74. L'aire sous la courbe \gls{roc} est de 0,931. Cette courbe place, pour chaque seuil possible, la part des paires identiques acceptées contre la part des paires différentes acceptées à tort : son aire vaut 1 pour un système parfait et 0,5 pour un tirage au hasard. La distance moyenne est de 0,424 pour la même personne et de 0,923 pour des personnes différentes. Le tableau~\ref{tab:farfrr} donne les taux selon le seuil, et la figure~\ref{fig:farfrr} les courbes.
+Au seuil de décision de 0,35 (la distance maximale à laquelle deux visages sont jugés identiques), valeur utilisée par BioGate, le \gls{far} est de 0,0~\% et le \gls{frr} de 52,0~\% : aucune paire de personnes différentes n'a été acceptée, mais 52~\% des paires d'une même personne ont été refusées. Le seuil où le \gls{far} et le \gls{frr} sont égaux, appelé point d'égal taux d'erreur, est de 13,1~\%, atteint à 0,74. L'aire sous la courbe \gls{roc} est de 0,931. Cette courbe place, pour chaque seuil possible, la part des paires identiques acceptées contre la part des paires différentes acceptées à tort : son aire vaut 1 pour un système parfait et 0,5 pour un tirage au hasard. La distance moyenne est de 0,424 pour la même personne et de 0,923 pour des personnes différentes. Le tableau~\ref{tab:farfrr} donne les taux selon le seuil, et la figure~\ref{fig:farfrr} les courbes.
 \end{maj}
 
 \begin{table}[H]
@@ -220,7 +220,7 @@ Au seuil de décision de 0,35, retenu pour BioGate, le \gls{far} est de 0,0~\% e
 0,20 & 0,0 & 87,4 \\
 0,25 & 0,0 & 77,4 \\
 0,30 & 0,0 & 63,6 \\
-0,35 (seuil retenu) & 0,0 & 52,0 \\
+0,35 (valeur utilisée par BioGate) & 0,0 & 52,0 \\
 0,40 & 0,0 & 40,6 \\
 0,45 & 0,0 & 32,8 \\
 0,50 & 0,4 & 25,4 \\
@@ -281,7 +281,7 @@ Chaque sujet est résumé par la moyenne de ses 20 tirages, et les résultats so
 
 \begin{table}[H]
 \centering
-\caption{Apprentissage continu sur 150 sujets de LFW (seuil de 0,35, intervalle de confiance à 95~\% entre crochets)}\majmark\label{tab:lfwappr}
+\caption{Apprentissage continu sur 150 sujets de LFW (seuil de décision de 0,35, intervalle de confiance à 95~\% entre crochets)}\majmark\label{tab:lfwappr}
 \small
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}Xcc@{}}
 \toprule
@@ -340,7 +340,7 @@ Une séance de 40 secondes a été mesurée à la webcam avec le profil de l'uti
 \begin{maj}
 Le test de vivacité a été essayé à la webcam avec le tableau de bord. Pour fixer ses seuils, deux séances ont été enregistrées image par image : la première compte 1\,606 images, avec 25 clignements et 14 sourires détectés, la seconde 3\,367 images, avec 25 clignements et 80 sourires. Les pics du coefficient de sourire atteignent 0,60 à 0,75, d'où un seuil de sourire fixé à 0,40, avec une marge. Le seuil de clignement est de 0,35.
 
-Les essais montrent que le test fonctionne : il reconnaît correctement les sourires et les clignements des yeux. Pour en étudier les limites, une vidéo d'une personne qui sourit et cligne des yeux sans interruption a été présentée à la caméra. Elle a franchi tous les défis, car elle contient à chaque instant les deux gestes qui peuvent être demandés. Le tirage au sort protège donc contre les photographies et contre les vidéos qui ne contiennent pas le geste demandé, mais pas contre une vidéo qui contient les deux gestes en continu. Pour contourner le test, il faut connaître son fonctionnement et disposer d'une telle vidéo de la personne. Les images et les vidéos générées par intelligence artificielle n'ont pas été essayées.
+Les essais montrent que le test fonctionne : il reconnaît correctement les sourires et les clignements des yeux, et aucune photographie fixe présentée à la caméra ne l'a franchi. Pour en étudier les limites, une vidéo d'une personne qui sourit et cligne des yeux sans interruption a été présentée à la caméra. Elle a franchi tous les défis, car elle contient à chaque instant les deux gestes qui peuvent être demandés. Cette vidéo en particulier a franchi le test, alors que les photographies fixes ne l'ont pas franchi. Le tirage au sort protège donc contre les photographies et contre les vidéos qui ne contiennent pas le geste demandé, mais pas contre une vidéo qui contient les deux gestes en continu. Pour contourner le test, il faut connaître son fonctionnement et disposer d'une telle vidéo de la personne. Les images et les vidéos générées par intelligence artificielle n'ont pas été essayées.
 \end{maj}
 
 \subsection{Purge des photos}
@@ -380,7 +380,7 @@ Adaptation (150 sujets de LFW) & Reconnaissance de 47,8~\% à 71,6~\% ; fausses 
 Adaptation (photographies datées) & Distance de 0,4722 à 0,224 après un apprentissage & Une personne, empreinte simulée \\
 Adaptation (webcam) & Moyenne de 0,209 à 0,203 ; pire image de 0,436 à 0,273 & Une personne, une séance, éclairage faible \\
 Faible éclairage & 39 reconfirmations, distance moyenne de 0,178, toutes sous 0,35 & Une séance, un visage \\
-Test de vivacité & Sourires et clignements reconnus ; franchi par une vidéo contenant les deux gestes en continu & Images et vidéos générées par intelligence artificielle non essayées \\
+Test de vivacité & Sourires et clignements reconnus ; photographies fixes rejetées ; franchi par une vidéo contenant les deux gestes en continu & Images et vidéos générées par intelligence artificielle non essayées \\
 Purge des photos & Automatique ; 41 photos supprimées au premier démarrage & Serveur réel, deux démarrages \\
 Caméra & Flux lu à 17 à 30 images par seconde, reconnexion au réseau enregistré & Une carte \\
 Alertes & Message avec photo reçu sur Telegram, suppression d'un message de test & Courrier électronique non éprouvé en réel \\
@@ -397,7 +397,7 @@ L'objectif du travail était de réaliser un prototype de contrôle d'accès par
 
 Premièrement, le traitement est local. L'analyse des images, le calcul des vecteurs, la base de données et la purge s'exécutent sur le serveur, et le fonctionnement de base n'appelle aucun service extérieur : seuls les envois d'alerte en sortent, et ils sont désactivés tant que le propriétaire ne les active pas. La photographie de l'intrus transite toutefois par Telegram, et le message est supprimé de la conversation après 24 heures.
 
-Deuxièmement, un test de vivacité actif est en place. Il tire au sort un geste à chaque tentative et reconnaît correctement les sourires et les clignements. Il est cependant franchi par une vidéo qui contient les deux gestes en continu, ce qui limite sa protection.
+Deuxièmement, un test de vivacité actif est en place. Il tire au sort un geste à chaque tentative, reconnaît correctement les sourires et les clignements, et rejette les photographies fixes. Il est cependant franchi par une vidéo qui contient les deux gestes en continu, ce qui limite sa protection.
 
 Troisièmement, l'adaptation aux changements d'apparence fonctionne. Sur 150 sujets de LFW, deux validations font passer la reconnaissance de 47,8~\% à 71,6~\%, et sur des photographies datées, une seule confirmation suffit à reconnaître une personne dont l'apparence a changé. L'empreinte est simulée, et l'adaptation n'a lieu que si le second facteur est exigé.
 
@@ -475,5 +475,5 @@ Les suites du travail s'articulent autour des axes suivants :
 \section*{Conclusion}
 
 \begin{maj}
-Ce chapitre a présenté l'implémentation de BioGate, les essais menés et leurs enseignements. Le prototype fonctionne de bout en bout : la caméra alimente le serveur, qui détecte, suit et reconnaît les personnes, demande un second facteur si nécessaire et envoie une alerte par Telegram en cas d'intrusion. Les essais montrent que la mise à jour du profil améliore la reconnaissance, que le test de vivacité reconnaît les sourires et les clignements mais peut être franchi par une vidéo qui contient les deux gestes en continu, et que la purge des photos est automatisée. L'analyse atteint 18 images par seconde pour une personne déjà identifiée, et 2,5 images par seconde pendant l'identification. Ils montrent aussi les limites du travail : un matériel en partie simulé, des mesures faites sur peu de personnes et une sécurité à renforcer avant tout déploiement. Ces limites constituent les axes de poursuite présentés dans les perspectives.
+Ce chapitre a présenté l'implémentation de BioGate, les essais menés et leurs enseignements. Le prototype fonctionne de bout en bout : la caméra alimente le serveur, qui détecte, suit et reconnaît les personnes, demande un second facteur si nécessaire et envoie une alerte par Telegram en cas d'intrusion. Les essais montrent que la mise à jour du profil améliore la reconnaissance, que le test de vivacité reconnaît les sourires et les clignements et rejette les photographies fixes, mais peut être franchi par une vidéo qui contient les deux gestes en continu, et que la purge des photos est automatisée. L'analyse atteint 18 images par seconde pour une personne déjà identifiée, et 2,5 images par seconde pendant l'identification. Ils montrent aussi les limites du travail : un matériel en partie simulé, des mesures faites sur peu de personnes et une sécurité à renforcer avant tout déploiement. Ces limites constituent les axes de poursuite présentés dans les perspectives.
 \end{maj}

@@ -138,7 +138,7 @@ Gâche et éclairage & Ouverture et éclairage d'accueil ou d'alerte & Conçus e
 \end{tabularx}
 \end{table}
 
-Le serveur est conçu pour s'exécuter à terme sur un micro-ordinateur monocarte de type Raspberry Pi ou sous Linux. Le prototype tourne sur un ordinateur personnel. Trois choix améliorent les performances : l'image est réduite avant la détection, les vecteurs des profils sont gardés en mémoire, et une personne déjà identifiée n'est revérifiée que toutes les 0,8 seconde. Les gains mesurés sont présentés à la section~\ref{sec:perf}.
+Le serveur est conçu pour s'exécuter à terme sur un micro-ordinateur monocarte de type Raspberry Pi ou sous Linux. Le prototype tourne sur un ordinateur personnel. Trois choix améliorent les performances : l'image est réduite avant la détection, les vecteurs des profils sont gardés en mémoire, et une personne déjà identifiée n'est revérifiée, c'est-à-dire que son visage n'est comparé de nouveau, que toutes les 0,8 seconde. Les gains mesurés sont présentés à la section~\ref{sec:perf}.
 
 \begin{maj}
 La figure~\ref{fig:reseau} montre l'organisation du réseau prévue. Un routeur Wi-Fi dédié forme un réseau local fermé, séparé de la box Internet. Une alimentation de secours, par exemple une petite batterie, alimente le routeur, le serveur et la caméra pour couvrir les courtes coupures de courant. Le seul lien avec Internet part du serveur vers Telegram, pour l'alerte. Dans le prototype, l'alimentation de secours, la gâche, le lecteur d'empreinte et l'éclairage ne sont pas réalisés.
@@ -234,7 +234,7 @@ Dans le prototype, le code s'affiche dans le terminal du serveur. Dans une insta
 
 \section{Pipeline de traitement par intelligence artificielle}
 
-Cette section décrit les étapes appliquées à chaque image et la raison de chacune. La figure~\ref{fig:pipeline} les résume.
+Cette section décrit la chaîne de traitement, ou pipeline : les étapes appliquées à chaque image et la raison de chacune. La figure~\ref{fig:pipeline} les résume.
 
 \begin{figure}[H]
 \centering
