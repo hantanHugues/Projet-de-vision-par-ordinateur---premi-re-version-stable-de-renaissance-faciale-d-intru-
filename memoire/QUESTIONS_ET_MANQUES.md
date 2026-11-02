@@ -148,3 +148,27 @@ L'entrée 020 parle d'abord de deux profils « Ash » et « Fuck » qui portent 
 - Corriger le profil haute sécurité, le paramètre inutilisé et les tests (B2, B3).
 - Écrire la section coût (A8), les annexes (A9), le premier jet des remerciements (A2).
 - Alléger le chapitre 1 et ajuster la longueur du chapitre 3 (D3, D4).
+
+---
+
+## État au 2 novembre, après lecture de `main` (réponses du poste de développement)
+
+Source : `docs/REPONSES_AU_TELEPHONE.md` et `docs/BRIEF_MEMOIRE.md` (mis à jour le 02/11). Ce que j'ai reporté dans le mémoire :
+
+| Point | Décision ou constat | Reporté |
+|---|---|---|
+| A3 Images | Six captures reçues (données de démonstration) | Placées dans `memoire/images/`, légendes « données de démonstration », nouvelle figure pour les statistiques, descriptions des pages corrigées d'après les captures |
+| A5 Tests | 172 réussis sur `main`, 180 après fusion | Tableau à 180 cas (+ 5 tests du téléchargement du modèle), marqueur rouge conservé pour la suite complète |
+| A6 Fenêtre de grâce | 60 s dans la base réelle | Aucun changement nécessaire |
+| B2 Haute sécurité | Empreinte seule, tranché par l'auteur | Aucun changement, le mémoire était juste |
+| B3 Paramètre inutilisé | Ne rien retirer | Aucun changement |
+| B4 Distance 0,269 → 0,106 | Non reproduite par la mesure contrôlée | Retirée comme effet de l'apprentissage ; remplacée par la mesure à la webcam (0,209 → 0,203, pire image 0,436 → 0,273), première lecture de nuit |
+| B6 JWT | Jeton opaque, commentaire périmé corrigé | Le mémoire décrit déjà la version réalisée |
+| B8 Visages proches | Plage 0,23–0,35 issue d'observations en direct ; vecteur le plus proche à 0,306 | Limite réécrite sans mention familiale, avec les deux sources |
+| C Face ID | Caméra TrueDepth documentée par Apple | Chapitre 1 corrigé (paragraphe, tableau, analyse critique) ; chapitre 2 y renvoie |
+| C Vitesse 2 à 5 images/s | Estimation, non mesurée | Écrit comme telle aux chapitres 2 et 3 |
+| C Faible éclairage | Observation du 02/11 (39 reconfirmations, distance moyenne 0,178) | Nouvelle sous-section, présentée comme observation |
+
+Ce qui reste ouvert : A1 (page de garde), A2 (dédicace, remerciements), A4 (attaques photo et vidéo), A7 à A9, B1 (FRR de 52 %, quatre pistes à tester), B5 (bande Wi-Fi), E1 à E5, la seconde lecture de l'apprentissage en pleine lumière (marqueur rouge au chapitre 3), la capture `dashboard_surveillance.png` (il faut la vraie caméra) et la confirmation que la photo de la carte est bien celle de l'auteur.
+
+Deux points que je n'ai pas pu vérifier moi-même : la source Apple sur la carte de profondeur (page « Biometric security », lue par le poste de développement) et l'article 394 du Code du numérique (lu par Perplexity sur l'édition de l'APDP).

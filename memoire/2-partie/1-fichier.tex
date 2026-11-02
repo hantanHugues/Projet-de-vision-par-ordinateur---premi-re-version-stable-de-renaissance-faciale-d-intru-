@@ -160,7 +160,9 @@ Le serveur est conçu pour s'exécuter à terme sur un micro-ordinateur monocart
 
 La caméra est une carte BW21-CBV de la société Ai-Thinker (figure~\ref{fig:carte}). Selon sa fiche technique, elle est bâtie sur la puce RTL8735B de Realtek et offre un Wi-Fi bi-bande (2,4~GHz ou 5~GHz), le Bluetooth basse consommation 5.1 et une programmation avec l'environnement Arduino~\cite{aithinker_bw21_spec}. Elle a été retenue pour cette connectivité bi-bande.
 
-\imageouplace{bw21_carte.jpg}{0.5\textwidth}{Carte Ai-Thinker BW21-CBV utilisée dans le prototype}{fig:carte}
+\imageouplace{bw21_carte.jpg}{0.5\textwidth}{Kit Ai-Thinker BW21-CBV}{fig:carte}
+
+\adonner{Confirmer que cette photographie est celle de la carte de l'auteur, sinon citer sa source}
 
 Le micrologiciel diffuse l'image en format \gls{mjpeg}, en 640 par 480 pixels, taille analysée par le serveur. Quatre mesures protègent le flux :
 \begin{itemize}
@@ -177,7 +179,7 @@ Le serveur est une application Python bâtie avec FastAPI~\cite{fastapi_docs}. I
 \begin{itemize}
   \item \textbf{Sources} : un gestionnaire ouvre chaque source (USB, flux MJPEG ou RTSP) dans un fil d'exécution distinct ;
   \item \textbf{File d'attente} : les images sont déposées dans une file de quatre places, et une image est abandonnée si la file est pleine, ce qui évite l'accumulation de retard ;
-  \item \textbf{Analyse} : un seul fil consomme la file et applique le pipeline, à raison de deux à cinq images par seconde sur le processeur seul ;
+  \item \textbf{Analyse} : un seul fil consomme la file et applique le pipeline, dont le débit est estimé de deux à cinq images par seconde sur le processeur seul, sans mesure complète ;
   \item \textbf{Suivi par caméra} : chaque caméra a son propre suiveur, et les identifiants sont préfixés par le nom de la caméra pour rester distincts ;
   \item \textbf{Affichage} : les cadres et les noms sont dessinés à la cadence de la caméra avec les dernières annotations calculées, si bien que la vidéo reste fluide.
 \end{itemize}
@@ -219,12 +221,12 @@ Vingt-six routes exigent le jeton du tableau de bord. Onze n'en exigent pas : tr
 Le tableau de bord est une application de bureau développée avec Electron~\cite{electron_docs} et React. Il comporte sept pages :
 \begin{itemize}
   \item \textbf{Surveillance} : flux annoté de la caméra, état de chaque individu, score de confiance et progression du test de vivacité ;
-  \item \textbf{Journal} : liste des événements, filtrable et exportable, avec un bouton de purge ;
-  \item \textbf{Profils} : enrôlement d'un résident par photo ou par capture de la caméra ;
-  \item \textbf{Statistiques} : indicateurs de la journée ;
+  \item \textbf{Journal} : liste des événements, filtrable par période, par type et par nom, exportable au format CSV, avec un bouton de purge ;
+  \item \textbf{VIP} : liste des résidents, enrôlement par fichier image ou par capture de la caméra, retrait d'un profil ;
+  \item \textbf{Statistiques} : indicateurs de la période, graphique des accès par jour et liste des résidents les plus actifs ;
   \item \textbf{Configuration} : sources vidéo, profils de sécurité, réglages et état de la purge automatique ;
-  \item \textbf{Alertes} : réglage et test du canal Telegram ;
-  \item \textbf{Couplage} : saisie du code d'accès.
+  \item \textbf{Alertes} : liste des intrusions confirmées, réglage et test des canaux Telegram et courrier électronique, notifications du bureau ;
+  \item \textbf{Couplage} : saisie de l'adresse du serveur, puis du code d'accès.
 \end{itemize}
 Une notification native du système s'affiche lorsqu'une intrusion est confirmée. La figure~\ref{fig:dashboard} montre la page de surveillance.
 
@@ -400,7 +402,7 @@ La personne dispose de dix secondes. Le seuil du sourire a été abaissé de 0,4
 
 Le tirage au sort rend le geste imprévisible : une photographie ne peut exécuter aucun geste, et une vidéo préparée doit contenir exactement le geste demandé. Ce principe de défi tiré au hasard est celui de Widjaya et Wicaksana, qui l'appliquent à d'autres gestes (ouvrir la bouche, cligner des yeux, tourner la tête)~\cite{widjaya2023challenge}. Une première version exigeait une validation faciale ininterrompue de cinq à six secondes. Elle a été écartée, car une photo immobile la franchirait plus facilement.
 
-BioGate n'utilise qu'une caméra ordinaire en deux dimensions, sans capteur de profondeur ni infrarouge. Il ne peut pas contrôler le relief du visage. La protection contre une photographie repose donc sur le seul défi actif, dont l'efficacité n'a pas été mesurée (chapitre~\ref{chap:3}). L'ajout d'un capteur de profondeur est une perspective.
+BioGate n'utilise qu'une caméra ordinaire en deux dimensions, sans capteur de profondeur ni infrarouge. Il ne peut pas contrôler le relief du visage, ce que fait par exemple la caméra TrueDepth de Face ID (chapitre~\ref{chap:1}). La protection contre une photographie repose donc sur le seul défi actif, dont l'efficacité n'a pas été mesurée (chapitre~\ref{chap:3}). L'ajout d'un capteur de profondeur est une perspective.
 
 \subsection{Adaptation des profils par apprentissage continu}
 

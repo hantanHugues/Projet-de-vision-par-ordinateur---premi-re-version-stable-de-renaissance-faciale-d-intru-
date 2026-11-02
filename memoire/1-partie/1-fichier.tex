@@ -49,7 +49,7 @@ Google Nest propose une détection de visages familiers. Selon les modèles, les
 
 \subsection{Face ID}
 
-Face ID est la solution de reconnaissance faciale d'Apple. Les données du visage, y compris leurs représentations mathématiques, sont chiffrées et protégées par le Secure Enclave\glsadd{secureenclave}, un composant sécurisé de l'appareil, où se fait aussi la comparaison. Le système vérifie que les yeux sont ouverts et que l'attention est dirigée vers l'appareil, et utilise des réseaux de neurones contre l'usurpation~\cite{apple2026faceid}.
+Face ID est la solution de reconnaissance faciale d'Apple. Les données du visage, y compris leurs représentations mathématiques, sont chiffrées et protégées par le Secure Enclave\glsadd{secureenclave}, un composant sécurisé de l'appareil, où se fait aussi la comparaison. Il s'appuie sur une caméra dédiée, appelée TrueDepth, qui projette des points infrarouges pour former une carte de profondeur et une image infrarouge en deux dimensions~\cite{apple2026faceid,apple_biometric_security}. Le système vérifie que les yeux sont ouverts et que l'attention est dirigée vers l'appareil, et utilise des réseaux de neurones contre l'usurpation~\cite{apple2026faceid}.
 
 \subsection{Frigate}
 
@@ -68,7 +68,7 @@ Le tableau~\ref{tab:comparatif} compare ces solutions à BioGate selon les trois
 \textbf{Solution} & \textbf{Traitement des données} & \textbf{Vivacité} & \textbf{Adaptation au visage} \\
 \midrule
 Google Nest~\cite{google2026familiarface} & Données de visages dans le service en ligne (chiffrées) ou dans la caméra selon le modèle ; lieu de la comparaison non précisé & Non mentionné & Ajout automatique d'instantanés à la bibliothèque ; l'utilisateur nomme les inconnus \\
-Face ID~\cite{apple2026faceid} & Sur l'appareil, dans le Secure Enclave & Attention du regard et réseaux de neurones anti-usurpation & Adaptation automatique, code demandé pour les grands changements \\
+Face ID~\cite{apple2026faceid} & Sur l'appareil, dans le Secure Enclave & Caméra de profondeur, attention du regard et réseaux de neurones anti-usurpation & Adaptation automatique, code demandé pour les grands changements \\
 Frigate~\cite{frigate_face_recognition} & En local ; téléchargement unique des modèles & Non mentionné & Manuelle : l'utilisateur attribue les visages reconnus à une personne \\
 BioGate & En local sur le serveur Edge & Défi actif (sourire, clignement) & Apprentissage continu confirmé par une authentification complémentaire \\
 \bottomrule
@@ -91,7 +91,7 @@ Pour un système comme BioGate, il en résulte, dans le RGPD comme dans le Code 
 
 \subsection{Ce que les solutions existantes offrent et que BioGate n'offre pas}
 
-Face ID et Google Nest sont des produits finis. Face ID protège les données du visage dans un composant matériel dédié, vérifie l'attention de l'utilisateur et emploie des réseaux de neurones spécialisés contre l'usurpation~\cite{apple2026faceid}. BioGate ne dispose d'aucun de ces éléments et n'utilise qu'une caméra ordinaire en deux dimensions, sans capteur de profondeur : le prototype s'exécute sur un ordinateur personnel, sans composant de sécurité dédié (le portage sur un micro-ordinateur monocarte de type Raspberry Pi est visé mais n'a pas été testé), et sa vérification de vivacité repose sur un geste demandé à l'utilisateur. Face ID, produit industriel mature, offre vraisemblablement de meilleures performances que BioGate ; ce travail ne cherche ni à les égaler ni à les mesurer.
+Face ID et Google Nest sont des produits finis. Face ID protège les données du visage dans un composant matériel dédié, s'appuie sur une caméra de profondeur, vérifie l'attention de l'utilisateur et emploie des réseaux de neurones spécialisés contre l'usurpation~\cite{apple2026faceid,apple_biometric_security}. BioGate ne dispose d'aucun de ces éléments et n'utilise qu'une caméra ordinaire en deux dimensions, sans capteur de profondeur : le prototype s'exécute sur un ordinateur personnel, sans composant de sécurité dédié (le portage sur un micro-ordinateur monocarte de type Raspberry Pi est visé mais n'a pas été testé), et sa vérification de vivacité repose sur un geste demandé à l'utilisateur. Face ID, produit industriel mature, offre vraisemblablement de meilleures performances que BioGate ; ce travail ne cherche ni à les égaler ni à les mesurer.
 
 Ces produits bénéficient en outre d'une industrialisation et d'une maintenance suivies. BioGate, de son côté, n'a été évalué que sur un nombre limité de cas (chapitre~\ref{chap:3}) et n'a fait l'objet d'aucun audit de sécurité externe (chapitre~\ref{chap:3}).
 
