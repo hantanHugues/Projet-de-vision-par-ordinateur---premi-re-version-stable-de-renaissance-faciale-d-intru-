@@ -34,3 +34,6 @@ Cinq points : constat général ; situation locale (Bénin) ; trois limites des 
 
 ## État au 2 novembre (soir)
 Appliqué (surligné dans `build/memoire_surligne.pdf`) : D1, D4 (avec la mesure de vivacité), D5, D6, D7, D8, D9, D10 (face ID et Frigate ajoutés aux limites), D11, retrait du cahier des charges, retrait du paragraphe sur l'exclusion de MediaPipe de git, réécriture du pipeline, des tests, des performances, de l'adaptation, de la vivacité, du bilan, de la conclusion générale, des tableaux. Reste en attente : D2/D3 (résolus dans le résumé), seconde lecture de jour de la mesure à la webcam (marqueur rouge), relecture de l'étudiant.
+
+## Règle sur les réserves et les « pas encore testé » (énoncée par l'étudiant)
+Une réserve n'est écrite que : (1) à côté du résultat dont elle conditionne l'interprétation, une seule fois ; (2) dans « Limites observées » (3.3.3), qui rassemble les limites une seule fois ; (3) dans les conclusions, en résumé. Elle n'est pas répétée dans les chapitres de conception, de réalisation ni dans les résumés de section. Le test d'une coupure volontaire du Wi-Fi ne figure plus nulle part.

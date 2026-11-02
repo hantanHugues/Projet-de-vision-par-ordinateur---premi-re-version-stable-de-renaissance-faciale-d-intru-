@@ -26,9 +26,7 @@ Le flux est diffusé en 640 par 480 pixels, taille analysée par le serveur et p
 BioGate le lit à 17 à 30 images par seconde. Les mesures de protection du flux sont décrites à la section~\ref{sec:camera}.
 \end{maj}
 
-La reconnaissance et le test de vivacité ont été validés sur ce flux, qui s'affiche dans le tableau de bord. \begin{maj}
-L'écran \gls{lcd}, destiné à afficher les consignes du test de vivacité, n'est pas encore intégré au prototype.
-\end{maj}
+La reconnaissance et le test de vivacité ont été validés sur ce flux, qui s'affiche dans le tableau de bord.
 
 \subsection{Réalisation du serveur}
 
@@ -92,7 +90,7 @@ Les essais ont été menés sur un ordinateur personnel équipé d'un processeur
   \item \textbf{Test de vivacité} : essais du geste tiré au sort devant la webcam ;
   \item \textbf{Essais en conditions réelles} : utilisation du système avec la webcam et le tableau de bord, selon des scénarios simples (un résident se présente, un inconnu se présente, une main passe devant l'objectif). Ces essais ont fait apparaître des défauts, tous corrigés (tableau~\ref{tab:defauts}). Au cours de ces essais, aucun inconnu n'a été pris pour un résident ; dans de rares cas, un résident a été refusé.
 \end{itemize}
-Cette évaluation est limitée : elle porte sur peu de personnes et sur des photographies de test, et les taux d'erreur ont été mesurés sur une base publique et non devant une caméra installée à l'entrée d'un lieu. Les essais d'usurpation sont décrits à la section~\ref{sec:vivacite}.
+Les essais d'usurpation sont décrits à la section~\ref{sec:vivacite}.
 \end{maj}
 
 \subsection{Tests automatiques}
@@ -175,7 +173,7 @@ Personne déjà identifiée, débit maximal & 27 & 419 & 18,3 \\
 \end{table}
 
 \begin{maj}
-Un résident passe de la première image à l'accès accordé en 0,45 seconde en médiane (10 essais sur 10). Un inconnu devient intrus provisoire en 1,64 seconde : ce délai comprend la seconde d'analyse prévue par le réglage, ce n'est pas un coût de calcul. Pendant un essai de 300 secondes, le débit est resté stable (18,42 images par seconde au début, 18,47 à la fin), le processeur a été utilisé à 51~\% et la mémoire du processus n'a pas varié (1\,135 Mo au départ, 1\,133 Mo à la fin). La scène est une photographie fixe sur fond noir, sur une seule machine : ces valeurs isolent le coût de la chaîne, pas celui d'une scène réelle avec plusieurs personnes. Elles ne portent pas sur un Raspberry Pi.
+Un résident passe de la première image à l'accès accordé en 0,45 seconde en médiane (10 essais sur 10). Un inconnu devient intrus provisoire en 1,64 seconde : ce délai comprend la seconde d'analyse prévue par le réglage, ce n'est pas un coût de calcul. Pendant un essai de 300 secondes, le débit est resté stable (18,42 images par seconde au début, 18,47 à la fin), le processeur a été utilisé à 51~\% et la mémoire du processus n'a pas varié (1\,135 Mo au départ, 1\,133 Mo à la fin). La scène est une photographie fixe sur fond noir, sur une seule machine : ces valeurs isolent le coût de la chaîne, pas celui d'une scène réelle avec plusieurs personnes.
 
 Le détecteur de Haar était exécuté deux fois par image pour un même visage : une première fois pour décider que le visage est de face, une seconde fois pour tracer son encadré à l'écran. La seconde exécution a été supprimée : l'encadré réutilise la position trouvée par la première. Le tableau~\ref{tab:facegate} compare le temps de traitement d'une image avant et après cette suppression. La mesure utilise une photo de test et remplace YOLO et FaceNet512 par des modules factices qui répondent aussitôt : elle isole donc le filtre de visage. Un appel du détecteur de Haar y coûte 58 ms, car il dépend de la taille de la zone analysée.
 \end{maj}
@@ -240,7 +238,6 @@ Le seuil de 0,35 est donc prudent : il évite toute fausse acceptation, au prix 
 
 Les performances publiées pour FaceNet sont meilleures que celles mesurées ici. Pour en chercher la cause, trois variantes de la chaîne ont été comparées sur les 1\,429 images de l'essai d'adaptation (section~\ref{sec:lfw}) : la chaîne de BioGate, l'image entière sans Haar ni CLAHE, et Haar sans CLAHE. Les aires sous la courbe \gls{roc} sont presque identiques (0,919 ; 0,921 ; 0,924) : ni la détection de Haar ni la correction du contraste n'expliquent l'écart. La cause reste à établir ; la détection du visage et l'alignement de DeepFace n'ont pas été testés. Au seuil de 0,35, la correction du contraste ajoute environ 8 points de pourcentage de refus sur ces photographies bien éclairées (51,4~\% contre 43,7~\% sans elle). Elle a toutefois été prévue pour les visages en contre-jour, absents de LFW, et son effet sur les images de la webcam n'a pas été mesuré.
 
-Cette mesure a deux limites : une seule série de 1\,000 paires, parmi les dix séries proposées par LFW, et des photographies de personnalités, différentes de celles d'une caméra installée à l'entrée d'un lieu.
 \end{maj}
 
 \subsection{Reconnaissance en faible éclairage}
@@ -255,8 +252,6 @@ Une séance a été observée avec une webcam peu éclairée : la luminosité mo
 Des mesures sur des captures ont montré les limites d'un détecteur de personnes appliqué à des images en deux dimensions. À 320, 480 et 640 pixels, YOLOv8 nano attribue à une photographie de personne affichée sur un téléphone des confiances de 0,80, 0,85 et 0,86, et à une main placée près de l'objectif des confiances de 0,84, 0,89 et 0,71. Augmenter la résolution ne supprime donc pas la fausse détection, et aucun seuil de confiance ne sépare la photographie (0,80) d'une vraie silhouette partielle (0,37). Cette mesure justifie la règle selon laquelle un intrus est un visage inconnu, et non une silhouette sans visage.
 
 Le détecteur de Haar peut lui aussi se tromper : le col et un bouton d'une chemise ont été pris pour un visage de 67 pixels, ce qui a déclenché l'envoi d'une alerte avec la photo d'un torse. Le second avis de MediaPipe rejette ce faux visage. Sur une photographie de chemise et trois portraits de test, la chemise est rejetée et les portraits sont acceptés ; cette validation reste limitée à ces images.
-
-Le retour d'un individu classé intrus provisoire à l'état de résident prenait 15 secondes en médiane, de 2 à 31 secondes sur 7 cas. Deux correctifs visent à le raccourcir : une analyse sur cinq secondes au lieu d'une pour un résident remis en question, et le reclassement immédiat d'un intrus provisoire reconnu à une distance inférieure à 0,25 (chapitre~\ref{chap:2}). Leur effet sur ce délai n'a pas été mesuré.
 \end{maj}
 
 \subsection{Adaptation à l'évolution du visage}
@@ -327,7 +322,7 @@ Après un apprentissage (photo de 2019 ajoutée), validation avec la photo de 20
 \end{tabularx}
 \end{table}
 
-Le système ne reconnaît pas la personne tant qu'aucun apprentissage n'a eu lieu, puis la reconnaît après une seule confirmation d'identité. L'essai porte sur une personne et un apprentissage, avec une confirmation par empreinte simulée.
+Le système ne reconnaît pas la personne tant qu'aucun apprentissage n'a eu lieu, puis la reconnaît après une seule confirmation d'identité.
 
 \subsubsection{Mesure à la webcam}\label{sec:webcam}
 
@@ -358,7 +353,6 @@ La résilience a été éprouvée sur trois points :
   \item \textbf{Serveur} : une fois la carte reconnectée, le serveur a repris le flux de lui-même ;
   \item \textbf{Alertes} : l'envoi par Telegram a été testé en conditions réelles : l'alerte avec la photo de l'individu est reçue sur le téléphone, et la suppression d'un message de test a été vérifiée.
 \end{itemize}
-L'envoi par courrier électronique n'a été vérifié qu'avec un serveur simulé. Le comportement face à une coupure volontaire du Wi-Fi ou à une coupure d'électricité n'a pas été testé.
 \end{maj}
 
 \subsection{Synthèse des résultats}
@@ -380,10 +374,10 @@ Adaptation (150 sujets de LFW) & Reconnaissance de 47,8~\% à 71,6~\% ; fausses 
 Adaptation (photographies datées) & Distance de 0,4722 à 0,224 après un apprentissage & Une personne, empreinte simulée \\
 Adaptation (webcam) & Moyenne de 0,209 à 0,203 ; pire image de 0,436 à 0,273 & Une personne, une séance, éclairage faible \\
 Faible éclairage & 39 reconfirmations, distance moyenne de 0,178, toutes sous 0,35 & Une séance, un visage \\
-Test de vivacité & Sourires et clignements reconnus ; photographies fixes rejetées ; franchi par une vidéo contenant les deux gestes en continu & Images et vidéos générées par intelligence artificielle non essayées \\
+Test de vivacité & Sourires et clignements reconnus ; photographies fixes rejetées ; franchi par une vidéo contenant les deux gestes en continu & Un essai avec une vidéo \\
 Purge des photos & Automatique ; 41 photos supprimées au premier démarrage & Serveur réel, deux démarrages \\
 Caméra & Flux lu à 17 à 30 images par seconde, reconnexion au réseau enregistré & Une carte \\
-Alertes & Message avec photo reçu sur Telegram, suppression d'un message de test & Courrier électronique non éprouvé en réel \\
+Alertes & Message avec photo reçu sur Telegram, suppression d'un message de test & Canal Telegram \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -447,7 +441,7 @@ Les limites du prototype sont les suivantes :
   \item \textbf{Visages proches} : le vecteur du second profil de résident le plus proche du profil principal est à 0,306, sous le seuil de 0,35, et une confusion entre ces deux résidents est possible. En conditions réelles, des distances de 0,23 à 0,35 ont été observées entre le visage du premier et ce second profil. La mesure à la webcam donne une marge toujours positive entre les deux profils, d'au moins 0,109. Aucune marge de décision n'est ajoutée entre profils proches ;
   \item \textbf{Sécurité} : pas de \gls{https}, routes sans jeton utilisées par le programme client de développement, aucun audit externe, vecteurs et identifiants d'alerte non chiffrés dans la base, réglages et clé de la caméra non chiffrés dans la mémoire flash de la carte ;
   \item \textbf{Alertes} : un envoi qui échoue n'est pas renvoyé, un intrus qui quitte le champ avant la fin de la fenêtre de grâce n'est pas signalé, les messages Telegram envoyés avant la suppression automatique restent dans la conversation, et l'envoi par courrier électronique n'est pas éprouvé ;
-  \item \textbf{Caméra et sources} : la reprise après une coupure volontaire du Wi-Fi, le flux \gls{rtsp} et le \gls{https} n'ont pas été éprouvés ;
+  \item \textbf{Caméra et sources} : le flux \gls{rtsp} et le \gls{https} n'ont pas été éprouvés ;
   \item \textbf{Alimentation} : une coupure d'électricité arrête le serveur et fait perdre les états en mémoire, dont le jeton du tableau de bord.
 \end{itemize}
 Ces limites ne remettent pas en cause l'intérêt de l'approche. Elles précisent ce qu'il reste à faire pour passer du prototype à un produit.

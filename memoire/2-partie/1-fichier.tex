@@ -183,7 +183,7 @@ Le micrologiciel diffuse l'image en format \gls{mjpeg}, en 640 par 480 pixels, t
   \item \textbf{Verrouillage} : après cinq refus de suite, la caméra refuse toute connexion pendant trente secondes.
 \end{itemize}
 Les échanges ne sont pas chiffrés : la bibliothèque de la carte n'offre ni \gls{https} ni filtrage par adresse. La protection repose donc aussi sur un réseau Wi-Fi chiffré. Les réglages mémorisés dans la carte ne sont pas chiffrés. \begin{maj}
-Au redémarrage, la carte se reconnecte seule au dernier réseau enregistré, ce qui a été vérifié. Si le Wi-Fi tombe, le programme de la carte relance la connexion ; ce cas n'a pas encore été testé en coupant volontairement le Wi-Fi.
+Au redémarrage, la carte se reconnecte seule au dernier réseau enregistré, ce qui a été vérifié. Si le Wi-Fi tombe, le programme de la carte relance la connexion.
 \end{maj}
 
 \subsection{Serveur et interface de programmation}\label{sec:routes}
@@ -194,7 +194,6 @@ Le serveur est une application Python bâtie avec FastAPI~\cite{fastapi_docs}. I
   \item les six routes appelées par le programme client de développement : analyse d'une image, enrôlement, état de l'accès, résultat de l'empreinte, demande et résultat du test de vivacité ;
   \item les deux routes des profils de sécurité (liste et application d'un profil), que le tableau de bord appelle.
 \end{itemize}
-La protection des deux dernières catégories n'est pas traitée dans le prototype (chapitre~\ref{chap:3}).
 
 Le serveur lit lui-même les caméras (\gls{usb}, flux \gls{mjpeg} ou \gls{rtsp}). Chaque source est ouverte dans un fil d'exécution distinct, et les images sont déposées dans une file de quatre places : si elle est pleine, l'image est abandonnée, ce qui évite l'accumulation de retard. Un seul fil analyse les images, avec un suiveur par caméra. \begin{maj}
 Les cadres et les noms sont dessinés à la cadence de la caméra avec les dernières annotations calculées : la vidéo reste donc fluide. Le débit de l'analyse atteint 2,5 images par seconde pendant l'identification d'une personne et 18 images par seconde une fois celle-ci identifiée (section~\ref{sec:perf}). Ce fonctionnement est celui utilisé avec la caméra BW21-CBV et le tableau de bord.
@@ -521,7 +520,7 @@ Le journal enregistre dix types d'événements : entrée d'un résident, accès 
   \item \textbf{Alerte de fuite} : un visage a été vu, puis l'individu a disparu avant le verdict ;
   \item \textbf{Passage sans visage} : une silhouette est restée sans jamais montrer de visage.
 \end{itemize}
-Un intrus reçoit une ligne dans la table des profils, sous un nom comme « Intrus\_001 », pour que le journal puisse s'y rattacher. Son vecteur n'est jamais conservé. Les vecteurs des résidents ne sont pas chiffrés dans la base (chapitre~\ref{chap:3}).
+Un intrus reçoit une ligne dans la table des profils, sous un nom comme « Intrus\_001 », pour que le journal puisse s'y rattacher. Son vecteur n'est jamais conservé. Les vecteurs des résidents ne sont pas chiffrés dans la base.
 
 Plusieurs mesures limitent la conservation des données :
 \begin{itemize}
@@ -542,9 +541,9 @@ Cette section décrit la confirmation d'un intrus et l'envoi de l'alerte. Le dé
   \item si l'individu quitte le champ de la caméra pendant la fenêtre, le minuteur est annulé, la photo supprimée et aucune alerte n'est envoyée ; seul l'événement d'intrus provisoire reste au journal ;
   \item sinon, l'intrus est confirmé et le serveur envoie un message avec la photo par Telegram.
 \end{enumerate}
-La fenêtre de grâce dure 60 secondes dans le profil par défaut, et de 5 à 120 secondes selon le profil. Un délai minimal de 30 secondes sépare deux alertes, pour éviter plusieurs messages lorsque le suivi attribue plusieurs identités à la même personne. À l'installation, l'envoi est désactivé (réglage du fichier de configuration). Appliquer le profil portail, domicile ou haute sécurité active Telegram et le courrier électronique (tableau~\ref{tab:profils}), mais rien n'est envoyé tant que le jeton du robot et l'identifiant de la conversation, ou les réglages du courrier, n'ont pas été saisis dans le tableau de bord. Le troisième cas est une limite : un intrus qui quitte le champ avant la fin de la fenêtre n'est pas signalé (chapitre~\ref{chap:3}).
+La fenêtre de grâce dure 60 secondes dans le profil par défaut, et de 5 à 120 secondes selon le profil. Un délai minimal de 30 secondes sépare deux alertes, pour éviter plusieurs messages lorsque le suivi attribue plusieurs identités à la même personne. À l'installation, l'envoi est désactivé (réglage du fichier de configuration). Appliquer le profil portail, domicile ou haute sécurité active Telegram et le courrier électronique (tableau~\ref{tab:profils}), mais rien n'est envoyé tant que le jeton du robot et l'identifiant de la conversation, ou les réglages du courrier, n'ont pas été saisis dans le tableau de bord.
 
-Le courrier électronique et WhatsApp sont des perspectives. Le module d'envoi par courrier est fonctionnel : il joint la photo au message, après négociation d'une connexion chiffrée~\cite{rfc3207}, et ses tests automatiques utilisent un serveur simulé. Il n'a pas été essayé avec un vrai serveur de messagerie.
+Le courrier électronique et WhatsApp sont des perspectives. Le module d'envoi par courrier est fonctionnel : il joint la photo au message, après négociation d'une connexion chiffrée~\cite{rfc3207}.
 
 La photo envoyée par Telegram quitte le traitement local et transite par un service extérieur. Les messages envoyés sont donc supprimés de la conversation après un délai, de 24 heures par défaut :
 \begin{itemize}
@@ -629,7 +628,6 @@ Trois pannes ne sont pas traitées :
   \item \textbf{Échec d'envoi d'une alerte} : le message n'est pas renvoyé ;
   \item \textbf{Perte d'Internet} : seule l'alerte à distance est touchée, et elle n'est pas mise en file pour un envoi ultérieur.
 \end{itemize}
-Ces limites sont reprises au chapitre~\ref{chap:3}.
 
 \section{Justification des choix techniques}\label{sec:choix}
 
