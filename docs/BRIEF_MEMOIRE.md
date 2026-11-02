@@ -113,11 +113,8 @@ Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\
 - **Observation en direct (02/11, serveur réel, webcam sombre : luminosité 49 sur 255)** : le journal du serveur montre 39 re-confirmations de « Ash »
   en 46 secondes, distance moyenne **0,178** (médiane 0,160, minimum 0,11, maximum 0,29, écart-type 0,04), toutes sous le seuil de 0,35, et un accès
   accordé à 75,2 %. BioGate reconnaît donc l'auteur même dans une pièce peu éclairée. C'est une séance, un visage : à citer comme observation.
-- **Reproduction contrôlée (vecteur d'origine contre profil complet) : pas encore faite.** Le script `tests/mesures/mesure_apprentissage_webcam.py` a
-  d'abord été mal construit (il cherchait le visage sur l'image entière au lieu de la silhouette trouvée par YOLO, comme le fait BioGate) : ses deux passes de
-  nuit sont invalides, **ne citer aucun de leurs chiffres** et **ne pas en déduire une limite de faible lumière**. Le script est corrigé (YOLO, puis Haar dans
-  la silhouette, puis MediaPipe) mais pas encore relancé : `.venv-deepface\Scripts\python.exe tests\mesures\mesure_apprentissage_webcam.py Ash <dossier> 20 40`
-  (serveur et tableau de bord arrêtés, la webcam doit être libre).
+- **Reproduction contrôlée (02/11, valide) : la baisse « 0,269 → 0,106 » n'est PAS reproduite.** `tests/mesures/mesure_apprentissage_webcam.py` (chaîne de BioGate : YOLO, Haar dans la silhouette, MediaPipe, `_extract_face_signature`) compare, sur les **mêmes 78 images** d'une séance de 40 s, le seul vecteur d'origine du profil de l'auteur (enrôlement du 10/04) et le profil complet de 8 vecteurs. Résultats (`docs/mesures/apprentissage_webcam/`) : distance moyenne **0,209 → 0,203** (différence 0,006) ; pire image **0,436 → 0,274** ; images au-dessus du seuil de 0,35 : **2 sur 78 → 0** (reconnues : 76 sur 78 → 78 sur 78) ; écart-type 0,044 → 0,027 ; marge face à l'autre profil toujours positive (minimum 0,109, moyenne 0,220) : l'autre profil passe sous 0,35 sur 2 images mais n'est jamais plus proche que le profil de l'auteur.
+  **Lecture honnête** : sur un visage proche de son enrôlement, l'apprentissage ne baisse presque pas la moyenne mais supprime les pires cas (les deux images au-dessus du seuil). Les moyennes du journal (0,269 puis 0,106) viennent de deux séances aux conditions différentes : **ne pas écrire que l'apprentissage fait passer la distance moyenne de 0,269 à 0,106**. Citer le relevé du journal comme tel (« moyennes relevées dans le journal du serveur lors de deux séances ») et présenter la mesure contrôlée comme preuve de l'effet, avec ses limites : une personne, une séance, un éclairage ; images consécutives très proches ; prendre le minimum sur plusieurs vecteurs baisse mécaniquement la distance. L'essai avec changement d'apparence (Chris Evans, 0,4722 → 0,224) reste la démonstration d'un vrai changement.
 - Pas encore faites : attaque par photographie et par vidéo (avec l'auteur, environ une heure), performance complète (ms par image).
 
 ---
@@ -137,7 +134,7 @@ Voir l'annexe B pour le tableau par domaine. Commande : `.venv-deepface\Scripts\
 5. **Défauts** : ajouter les quatre défauts de la caméra (§2) au tableau du chapitre 3.
 6. **Versions** (note rouge `\adonner` du chapitre 3) : annexe C.
 7. **Introduction** : adopter le plan et le ton de l'annexe A (cf. §1).
-8. **À recouper avec `docs/lab_journal.md` avant publication** : la distance moyenne « 0,269 → 0,106 » (le journal donne d'autres relevés),
+8. **Distance « 0,269 → 0,106 »** : voir la section « Mesures » (non reproduite par la mesure contrôlée). La ligne « visages proches non testés devant la caméra » est à recouper avec `docs/lab_journal.md` (il contient des confusions observées entre l'auteur et son frère).
    et la ligne « visages proches non testés devant la caméra » (le journal contient des confusions observées entre l'auteur et son frère).
 9. **Captures du tableau de bord** : produites le 01/11 dans `docs/images_memoire/` ; les copier dans `memoire/images/` sous ces noms,
    qui sont ceux attendus par les `\imageouplace` : `dashboard_journal.png`, `dashboard_profils.png`, `dashboard_config.png`,
