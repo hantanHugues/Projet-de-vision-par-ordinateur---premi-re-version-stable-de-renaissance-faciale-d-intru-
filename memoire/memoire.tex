@@ -13,8 +13,10 @@
 % Surlignement des passages réécrits : mettre \surlignefalse pour obtenir la version propre
 \newif\ifsurligne
 \ifdefined\versionpropre\surlignefalse\else\surlignetrue\fi
-\newcommand{\majmark}{\ifsurligne\ \colorbox{shadecolor}{\tiny modifié}\fi}
-\newenvironment{maj}{\ifsurligne\begin{shaded}\fi}{\ifsurligne\end{shaded}\fi}
+\newcommand{\majmark}{}
+\newenvironment{maj}{}{}
+\newcommand{\nouvmark}{\ifsurligne\ \colorbox{shadecolor}{\tiny modifié}\fi}
+\newenvironment{nouv}{\ifsurligne\begin{shaded}\fi}{\ifsurligne\end{shaded}\fi}
 \usetikzlibrary{arrows.meta}
 \usetikzlibrary{shapes.multipart,shapes.geometric}
 % --- Macros de schémas UML ---
@@ -40,7 +42,7 @@
 \addto\captionsfrench{\renewcommand{\listfigurename}{Liste des figures}\renewcommand{\listtablename}{Liste des tableaux}}
 
 \typeMemoire{Diplôme de Licence en Informatique}
-\optionFormation{\adonner{Option à confirmer}}
+\optionFormation{Systèmes Embarqués et Internet des Objets}
 \etudiant{Hugues \textbf{HANTAN}}
 \titreDuMemoire{Conception et implémentation d'une infrastructure de contrôle d'accès biométrique intelligente par vision artificielle et architecture Edge Computing : le système BioGate} % À confirmer par l'étudiant
 
@@ -159,7 +161,7 @@
 \bibliography{biblio}
 
 
-%\include{annexe}
+\include{annexe_photos}
 
 \newpage
 \tableofcontents
