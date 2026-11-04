@@ -1,0 +1,91 @@
+personne,sexe,region,photos_admises,silhouette_320px,silhouette_640px
+P01,F,Afrique,11,11,11
+P02,F,Afrique,19,19,19
+P03,F,Afrique,14,12,12
+P04,F,Afrique,0,0,0
+P05,F,Afrique,7,7,7
+P06,F,Afrique,6,6,6
+P07,F,Afrique,3,3,3
+P08,F,Afrique,1,1,1
+P09,M,Afrique,0,0,0
+P10,M,Afrique,10,10,10
+P11,M,Afrique,8,8,8
+P12,M,Afrique,5,5,5
+P13,M,Afrique,2,2,2
+P14,M,Afrique,5,5,5
+P15,M,Afrique,6,6,6
+P16,M,Afrique,7,7,7
+P17,M,Afrique,2,2,2
+P18,F,Asie,0,0,0
+P19,F,Asie,9,9,9
+P20,F,Asie,25,25,25
+P21,F,Asie,6,6,6
+P22,F,Asie,12,11,11
+P23,F,Asie,22,22,22
+P24,M,Asie,9,9,9
+P25,M,Asie,5,5,5
+P26,M,Asie,8,8,8
+P27,M,Asie,15,15,15
+P28,M,Asie,3,3,3
+P29,M,Asie,3,3,3
+P30,M,Asie,7,7,7
+P31,M,Asie,0,0,0
+P32,M,Asie,1,1,1
+P33,F,Europe,15,15,15
+P34,F,Europe,17,17,16
+P35,F,Europe,24,24,23
+P36,F,Europe,19,19,18
+P37,F,Europe,11,11,10
+P38,F,Europe,22,22,22
+P39,F,Europe,25,25,25
+P40,M,Europe,15,15,15
+P41,M,Europe,6,6,6
+P42,M,Europe,13,13,13
+P43,M,Europe,15,15,15
+P44,M,Europe,19,19,19
+P45,F,Amérique du Nord,0,0,0
+P46,F,Amérique du Nord,20,20,20
+P47,F,Amérique du Nord,6,6,6
+P48,F,Amérique du Nord,11,11,11
+P49,F,Amérique du Nord,21,21,21
+P50,F,Amérique du Nord,25,25,25
+P51,F,Amérique du Nord,11,11,11
+P52,M,Amérique du Nord,4,4,4
+P53,M,Amérique du Nord,0,0,0
+P54,M,Amérique du Nord,15,15,15
+P55,M,Amérique du Nord,18,18,18
+P56,M,Amérique du Nord,17,16,17
+P57,M,Amérique du Nord,19,19,19
+P58,M,Amérique du Nord,18,18,18
+P59,M,Amérique du Nord,11,11,11
+P60,F,Amérique du Sud,0,0,0
+P61,F,Amérique du Sud,9,9,9
+P62,F,Amérique du Sud,15,15,15
+P63,F,Amérique du Sud,6,6,6
+P64,F,Amérique du Sud,8,7,7
+P65,F,Amérique du Sud,10,9,10
+P66,F,Amérique du Sud,11,11,11
+P67,F,Amérique du Sud,21,21,21
+P68,M,Amérique du Sud,7,7,6
+P69,M,Amérique du Sud,6,6,6
+P70,M,Amérique du Sud,10,10,10
+P71,M,Amérique du Sud,2,2,2
+P72,M,Amérique du Sud,8,8,8
+P73,M,Amérique du Sud,8,8,8
+P74,M,Amérique du Sud,2,2,2
+P75,M,Amérique du Sud,7,7,7
+P76,M,Amérique du Sud,0,0,0
+P77,M,Amérique du Sud,5,5,5
+P78,F,Océanie,22,22,22
+P79,F,Océanie,17,16,17
+P80,F,Océanie,1,1,1
+P81,F,Océanie,17,17,17
+P82,F,Océanie,13,13,13
+P83,F,Océanie,21,21,21
+P84,M,Océanie,14,14,13
+P85,M,Océanie,16,16,16
+P86,M,Océanie,7,7,7
+P87,M,Océanie,9,9,9
+P88,M,Océanie,23,22,23
+P89,M,Océanie,11,11,11
+P90,M,Océanie,5,5,5
