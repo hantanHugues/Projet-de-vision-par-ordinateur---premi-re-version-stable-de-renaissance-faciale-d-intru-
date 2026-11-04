@@ -569,3 +569,11 @@ Limites : le jeton reste absent de plusieurs routes appelées par le client Open
 - **Erreur corrigée** : la première version de la reconnaissance (distance au sosie le plus proche) dépendait du nombre de photos validées par personne ; invalide, remplacée par une part de comparaisons avec au plus 5 vecteurs par personne.
 - **Limites** : sensibilité du clignement (œil fermé) non mesurée ; célébrités ; aucun visage vérifié à la main ; 11 à 16 personnes par région : l'échantillon est décrit, aucun biais n'est démontré ni exclu.
 - **Cadre légal** : état du code détaillé dans `docs/INFOS_EQUITE_ET_CADRE_LEGAL.md`.
+
+### Entrée 035 — Phase 32 : détecteur de silhouettes (YOLOv8n) selon la région et le sexe
+- **Date** : 2026-11-04
+- **Objectif** : vérifier la première étape de la chaîne (`tests/mesures/mesure_yolo_equite.py`, `docs/mesures/equite_yolo/`). Protocole écrit avant les résultats dans l'en-tête du script.
+- **Méthode** : photos Wikimedia déjà téléchargées (aucune requête réseau), 939 photos admises (un seul visage vu par MediaPipe), appel de YOLO identique à la production, réussite = silhouette contenant le centre du visage ; unité = la personne (75 personnes) ; contrôle du cadrage ; sensibilité à 640 px.
+- **Résultats** : 98,4 % à 100,0 % selon la région, 98,6 % (femmes) et 99,7 % (hommes) ; identique à 640 px ; cadrage sans effet notable.
+- **Limites** : test facile (portraits), taux proches de 100 % : il ne révèle pas d'écart en conditions difficiles (silhouette entière, éloignement, faible lumière) ; photos de presse ; effectifs de 12 à 14 personnes par région ; aucune étude publiée sur YOLOv8n trouvée.
+
