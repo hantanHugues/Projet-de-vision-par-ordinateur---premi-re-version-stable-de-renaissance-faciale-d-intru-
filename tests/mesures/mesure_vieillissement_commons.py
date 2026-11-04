@@ -73,9 +73,13 @@ def annee(valeur):
     return int(m.group(1)) if m else None
 
 
-def get(params, essais=4):
+def get(params, essais=8):
     for i in range(essais):
-        r = requests.get(API, params=params, headers=UA, timeout=60)
+        try:
+            r = requests.get(API, params=params, headers=UA, timeout=60)
+        except requests.exceptions.ConnectionError:
+            time.sleep(5 * (i + 1))  # coupure réseau côté Commons : on réessaie
+            continue
         if r.status_code == 429:
             time.sleep(5 * (i + 1))
             continue
