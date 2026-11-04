@@ -27,8 +27,8 @@
 \newcommand{\seqactiv}[3]{\draw[fill=white] (#1-0.09,#2) rectangle (#1+0.09,#3);}
 \newcommand{\seqself}[4]{\draw[-{Stealth[length=2mm]}] (#1,#2) -- ++(0.6,0) -- ++(0,-0.45) -- ++(-0.6,0); \node[right, font=\tiny, align=left, text width=#4, inner sep=1pt, anchor=north west] at (#1+0.65,#2+0.05) {#3};}
 % Emplacement d'image : affiche l'image si le fichier existe, sinon un cadre rouge à compléter
-\newcommand{\imageouplace}[4]{\begin{figure}[!htbp]\centering\IfFileExists{images/#1}{\includegraphics[width=#2]{images/#1}}{\fbox{\parbox{#2}{\centering\vspace{1.4cm}\textcolor{red}{\textbf{[Image à fournir : #3]}}\vspace{1.4cm}}}}\caption{#3}\label{#4}\end{figure}}
-\setlength{\glsdescwidth}{0.88\textwidth}
+\newcommand{\imageouplace}[4]{\begin{figure}[H]\centering\IfFileExists{images/#1}{\includegraphics[width=#2]{images/#1}}{\fbox{\parbox{#2}{\centering\vspace{1.4cm}\textcolor{red}{\textbf{[Image à fournir : #3]}}\vspace{1.4cm}}}}\caption{#3}\label{#4}\end{figure}}
+\setlength{\glsdescwidth}{0.65\textwidth}
 \setlength{\emergencystretch}{2em}
 % \usepackage{lscape}
 
@@ -92,7 +92,7 @@
 \setcounter{tocdepth}{0}
 \startlist{toc}
 \printlist{toc}{}{\chapter*{Sommaire}}
-\setcounter{tocdepth}{2}
+\setcounter{tocdepth}{5}
 
 %% rdedicaces
 \include{0-dedicace}
@@ -122,12 +122,12 @@
 
 % Les sigles et acronymes
 \setglossarystyle{altlist}
-{\small\printglossary[title=Liste des acronymes, toctitle=Liste des acronymes, type=\acronymtype]}
+\printglossary[title=Liste des acronymes, toctitle=Liste des acronymes, type=\acronymtype]
 \newpage
 
 % Le glossaire proprement dit
 \setglossarystyle{altlist}
-{\small\printglossary[type=main]}
+\printglossary[type=main]
 \clearpage
 \pagenumbering{arabic}
 \setcounter{page}{1}
@@ -156,12 +156,12 @@
 
 %%biblio
 \bibliographystyle{abbrv}
-{\small\bibliography{biblio}}
+\bibliography{biblio}
 
 
 %\include{annexe}
 
 \newpage
-{\small\tableofcontents}
+\tableofcontents
 
 \end{document}

@@ -27,7 +27,7 @@ Le système doit répondre aux besoins suivants :
   \item \textbf{Réactivité} : la fenêtre d'identification d'un visage inconnu est d'une seconde par défaut ;
   \item \textbf{Sobriété} : les modèles retenus sont légers, l'image est réduite avant la détection et les vecteurs des profils sont gardés en mémoire pour éviter d'interroger la base à chaque image ;
   \item \textbf{Résilience} : la caméra se reconnecte seule au dernier réseau Wi-Fi enregistré et la purge des photos s'exécute aussi au démarrage du serveur, ce qui rattrape un arrêt prolongé du serveur ;
-  \item \textbf{Fiabilité des alertes} : une fenêtre de grâce, de 60 secondes par défaut, évite d'alerter à tort pour un résident pas encore identifié ;
+  \item \textbf{Fiabilité des alertes} : une fenêtre de grâce\glsadd{fenetregrace}, de 60 secondes par défaut, évite d'alerter à tort pour un résident pas encore identifié ;
   \item \textbf{Contrôle des accès au système} : la caméra et le tableau de bord sont protégés par une clé ou par un code de couplage.
 \end{itemize}
 
@@ -57,9 +57,9 @@ Cinq acteurs interagissent avec le système :
 \end{itemize}
 La figure~\ref{fig:usecase} représente les cas d'utilisation. La reconnaissance d'une personne devant la caméra en est le cas central. Le test de vivacité et la validation d'empreinte l'étendent lorsque l'authentification multifacteur est activée. Un visage inconnu déclenche l'alerte d'intrusion, envoyée au service Telegram.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
 \centering
-\resizebox{0.85\textwidth}{!}{\begin{tikzpicture}[>={Stealth[length=2mm]},
+\begin{tikzpicture}[>={Stealth[length=2mm]},
   uc/.style={draw, ellipse, align=center, font=\scriptsize, minimum width=3.7cm, minimum height=1.0cm, inner sep=1pt},
   ext/.style={font=\tiny, fill=white, inner sep=1pt}]
   % acteurs
@@ -89,7 +89,7 @@ La figure~\ref{fig:usecase} représente les cas d'utilisation. La reconnaissance
   % extensions
   \draw[dashed, -{Straight Barb[length=2mm]}] (U2.north) -- node[ext, right] {\guillemotleft{} extend \guillemotright{}} (U1.south);
   \draw[dashed, -{Straight Barb[length=2mm]}] (U3.west) to[bend left=35] node[ext, left] {\guillemotleft{} extend \guillemotright{}} (U1.west);
-\end{tikzpicture}}
+\end{tikzpicture}
 \caption{Diagramme de cas d'utilisation de BioGate}\label{fig:usecase}
 \end{figure}
 
@@ -101,9 +101,9 @@ Cette section décrit l'organisation de BioGate et l'état de chaque composant d
 
 BioGate sépare l'acquisition des images, l'intelligence artificielle et la supervision. La caméra envoie son flux au serveur local, qui analyse les images, décide de l'accès, enregistre les événements et alimente le tableau de bord. La figure~\ref{fig:architecture} présente cette organisation, et le tableau~\ref{tab:composants} indique l'état de chaque composant.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
 \centering
-\resizebox{0.85\textwidth}{!}{\begin{tikzpicture}[>={Stealth[length=2mm]},
+\begin{tikzpicture}[>={Stealth[length=2mm]},
   box/.style={draw, rounded corners, align=center, minimum height=1.1cm, inner sep=4pt, font=\footnotesize},
   sim/.style={box, dashed}]
   \node[box, minimum width=3cm] (cam) at (0,0) {Caméra BW21-CBV\\flux MJPEG protégé};
@@ -115,11 +115,11 @@ BioGate sépare l'acquisition des images, l'intelligence artificielle et la supe
   \draw[<->] (srv) -- (dash);
   \draw[->] (srv) -- (alert);
   \draw[<->, dashed] (srv) -- (iot);
-\end{tikzpicture}}
+\end{tikzpicture}
 \caption{Architecture de BioGate (les éléments en pointillés sont simulés dans le prototype)}\label{fig:architecture}
 \end{figure}
 
-\begin{table}[!htbp]
+\begin{table}[H]
 \centering
 \caption{Composants du système et état dans le prototype}\label{tab:composants}
 \small
@@ -144,9 +144,9 @@ Trois choix améliorent les performances : l'image est réduite avant la détect
 La figure~\ref{fig:reseau} montre l'organisation du réseau prévue. Un routeur Wi-Fi dédié forme un réseau local fermé, séparé de la box Internet. Une alimentation de secours, par exemple une petite batterie, alimente le routeur, le serveur et la caméra pour couvrir les courtes coupures de courant. Le seul lien avec Internet part du serveur vers Telegram, pour l'alerte. Dans le prototype, l'alimentation de secours, la gâche, le lecteur d'empreinte et l'éclairage ne sont pas réalisés.
 \end{maj}
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
 \centering
-\resizebox{0.8\textwidth}{!}{\begin{tikzpicture}[>={Stealth[length=2mm]},
+\begin{tikzpicture}[>={Stealth[length=2mm]},
   box/.style={draw, rounded corners, align=center, minimum height=0.9cm, inner sep=3pt, font=\footnotesize},
   sim/.style={box, dashed}]
   \node[box, minimum width=2.8cm] (cam) at (0,1.3) {Caméra\\BW21-CBV};
@@ -163,7 +163,7 @@ La figure~\ref{fig:reseau} montre l'organisation du réseau prévue. Un routeur 
   \draw[->] (srv) -- node[right, font=\scriptsize] {alerte} (tg);
   \draw[->, dashed] (ups) -- (rt);
   \draw[->, dashed] (ups) -- (srv);
-\end{tikzpicture}}
+\end{tikzpicture}
 \caption{Réseau local fermé prévu (les éléments en pointillés ne sont pas réalisés ou sont simulés)}\label{fig:reseau}
 \end{figure}
 
@@ -175,18 +175,25 @@ Elle a été retenue pour cette connectivité bi-bande et pour la qualité de so
 
 \imageouplace{bw21_carte.jpg}{0.5\textwidth}{Kit Ai-Thinker BW21-CBV. Source de l'image : Youpilab}{fig:carte}
 
-Le micrologiciel diffuse l'image en format \gls{mjpeg}, en 640 par 480 pixels, taille analysée par le serveur. \begin{maj}
-Quatre mesures protègent le flux. L'accès exige un identifiant et une clé de 12 à 32 caractères alphanumériques, choisie par l'utilisateur, saisie avec le réseau Wi-Fi sur le port série au premier démarrage puis mémorisée dans la mémoire flash de la carte. La clé est comparée en temps constant : la durée de la réponse ne révèle pas à partir de quel caractère elle diffère. La lecture de la requête est limitée à 1\,024 octets et à 3 secondes, ce qui empêche un client silencieux de bloquer la caméra. Enfin, après cinq refus de suite, la caméra refuse toute connexion pendant trente secondes.
-\end{maj}
+Le micrologiciel diffuse l'image en format \gls{mjpeg}, en 640 par 480 pixels, taille analysée par le serveur. Quatre mesures protègent le flux :
+\begin{itemize}
+  \item \textbf{Authentification} : l'accès exige un identifiant et une clé de 12 à 32 caractères alphanumériques, choisie par l'utilisateur. La clé est saisie, avec le réseau Wi-Fi, sur le port série au premier démarrage, puis mémorisée dans la mémoire flash de la carte ;
+  \item \textbf{Comparaison en temps constant} : la durée de la réponse ne révèle pas à partir de quel caractère la clé diffère ;
+  \item \textbf{Requête bornée} : la lecture est limitée à 1\,024 octets et à 3 secondes, ce qui empêche un client silencieux de bloquer la caméra ;
+  \item \textbf{Verrouillage} : après cinq refus de suite, la caméra refuse toute connexion pendant trente secondes.
+\end{itemize}
 Les échanges ne sont pas chiffrés : la bibliothèque de la carte n'offre ni \gls{https} ni filtrage par adresse. La protection repose donc aussi sur un réseau Wi-Fi chiffré. Les réglages mémorisés dans la carte ne sont pas chiffrés. \begin{maj}
 Au redémarrage, la carte se reconnecte seule au dernier réseau enregistré, ce qui a été vérifié. Si le Wi-Fi tombe, le programme de la carte relance la connexion.
 \end{maj}
 
 \subsection{Serveur et interface de programmation}\label{sec:routes}
 
-Le serveur est une application Python bâtie avec FastAPI~\cite{fastapi_docs}. Il expose 37 routes de type \gls{api}. Une route\glsadd{route} est une adresse du serveur à laquelle un programme adresse une demande, par exemple la liste des profils. Le jeton\glsadd{jeton} est un code secret que le serveur remet au tableau de bord après le couplage (section~\ref{sec:couplage}) et que celui-ci joint à chaque demande. 26 routes exigent ce jeton. \begin{maj}
-Les 11 autres sont le couplage (deux routes), la vérification de santé, six routes appelées par le programme client de développement (analyse d'une image, enrôlement, état de l'accès, résultat de l'empreinte, demande et résultat du test de vivacité) et deux routes des profils de sécurité (liste et application d'un profil), que le tableau de bord appelle.
-\end{maj}
+Le serveur est une application Python bâtie avec FastAPI~\cite{fastapi_docs}. Il expose 37 routes de type \gls{api}. Une route\glsadd{route} est une adresse du serveur à laquelle un programme adresse une demande, par exemple la liste des profils. Le jeton\glsadd{jeton} est un code secret que le serveur remet au tableau de bord après le couplage (section~\ref{sec:couplage}) et que celui-ci joint à chaque demande. 26 routes exigent ce jeton. Les 11 autres se répartissent ainsi :
+\begin{itemize}
+  \item le couplage (deux routes) et la vérification de santé ;
+  \item les six routes appelées par le programme client de développement : analyse d'une image, enrôlement, état de l'accès, résultat de l'empreinte, demande et résultat du test de vivacité ;
+  \item les deux routes des profils de sécurité (liste et application d'un profil), que le tableau de bord appelle.
+\end{itemize}
 
 Le serveur lit lui-même les caméras (\gls{usb}, flux \gls{mjpeg} ou \gls{rtsp}). Chaque source est ouverte dans un fil d'exécution distinct, et les images sont déposées dans une file de quatre places : si elle est pleine, l'image est abandonnée, ce qui évite l'accumulation de retard. Un seul fil analyse les images, avec un suiveur par caméra. \begin{maj}
 Les cadres et les noms sont dessinés à la cadence de la caméra avec les dernières annotations calculées : la vidéo reste donc fluide. Le débit de l'analyse atteint 2,5 images par seconde pendant l'identification d'une personne et 18 images par seconde une fois celle-ci identifiée (section~\ref{sec:perf}). Ce fonctionnement est celui utilisé avec la caméra BW21-CBV et le tableau de bord.
@@ -220,9 +227,9 @@ Dans le prototype, le code s'affiche dans le terminal du serveur. Dans une insta
 
 Cette section décrit la chaîne de traitement, ou pipeline : les étapes appliquées à chaque image et la raison de chacune. La figure~\ref{fig:pipeline} les résume.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
 \centering
-\resizebox{0.9\textwidth}{!}{\begin{tikzpicture}[>={Stealth[length=2mm]},
+\begin{tikzpicture}[>={Stealth[length=2mm]},
   box/.style={draw, rounded corners, align=center, minimum height=1.2cm, minimum width=3cm, inner sep=3pt, font=\scriptsize},
   ext/.style={box, dashed}]
   \node[box] (a) at (0,0) {1. Détection\\des personnes\\(YOLOv8n)};
@@ -235,7 +242,7 @@ Cette section décrit la chaîne de traitement, ou pipeline : les étapes appliq
   \node[ext] (h) at (0,-2.2) {Score, journal,\\photo, alerte};
   \draw[->] (a) -- (b); \draw[->] (b) -- (c); \draw[->] (c) -- (d);
   \draw[->] (d) -- (e); \draw[->] (e) -- (f); \draw[->] (f) -- (g); \draw[->] (g) -- (h);
-\end{tikzpicture}}
+\end{tikzpicture}
 \caption{Chaîne de traitement d'une image (pas de visage de face : l'analyse s'arrête à l'étape~3)}\label{fig:pipeline}
 \end{figure}
 
@@ -246,7 +253,7 @@ Cette section décrit la chaîne de traitement, ou pipeline : les étapes appliq
   \item \textbf{Filtre de visage de face} : le modèle de reconnaissance est lourd, il n'est donc lancé que sur un visage de face, et non sur une personne de dos, de profil ou la tête baissée. Une cascade de Haar~\cite{viola2001rapid,opencv_cascade} cherche un visage dans la silhouette, sur une image en niveaux de gris dont le contraste est égalisé. Trois réglages précisent la recherche : l'échelle de 1,1 est le pas de réduction de l'image entre deux passages, les cinq voisins sont le nombre de détections voisines qui doivent concorder, et la taille minimale de 30 par 30 pixels est celle du plus petit visage cherché. Cette méthode peut prendre pour un visage un pli de vêtement, comme le col d'une chemise avec son bouton. Un second avis, fourni par le modèle de points du visage de MediaPipe, confirme ou écarte chaque visage trouvé.
   \item \textbf{Correction du contraste} : la méthode \gls{clahe}~\cite{zuiderveld1994clahe,opencv_clahe} est appliquée à la luminosité du visage, l'un des trois canaux de l'espace de couleur LAB. Elle égalise localement le contraste du visage avant le calcul du vecteur, ce qui rend les mesures plus stables d'une image à l'autre.
   \item \textbf{Représentation du visage} : le modèle FaceNet512, de la bibliothèque DeepFace, transforme le visage aligné (yeux redressés) en un vecteur de 512 nombres~\cite{schroff2015facenet,serengil2020lightface}. Le FaceNet décrit au chapitre~\ref{chap:1} produit 128 nombres ; DeepFace en propose une variante à 512, utilisée ici.
-  \item \textbf{Comparaison} : le vecteur est comparé à ceux des profils par la distance cosinus définie en section~\ref{sec:cosinus}. Une personne est reconnue si la distance au profil le plus proche est inférieure au seuil de décision de 0,35. La confiance affichée vaut $(1 - d) \times 100$, où $d$ est la distance : elle est de 65~\% au seuil. Une distance de 0,22 donne par exemple une confiance de 78~\% et une reconnaissance ; une distance de 0,40 donne 60~\% et un refus. Les vecteurs sont chargés en mémoire au démarrage et rechargés après chaque enrôlement ou mise à jour, ce qui évite d'interroger la base de données à chaque image.
+  \item \textbf{Comparaison} : le vecteur est comparé à ceux des profils par la distance cosinus\glsadd{distancecosinus} définie en section~\ref{sec:cosinus}. Une personne est reconnue si la distance au profil le plus proche est inférieure au seuil de décision de 0,35. La confiance affichée vaut $(1 - d) \times 100$, où $d$ est la distance : elle est de 65~\% au seuil. Une distance de 0,22 donne par exemple une confiance de 78~\% et une reconnaissance ; une distance de 0,40 donne 60~\% et un refus. Les vecteurs sont chargés en mémoire au démarrage et rechargés après chaque enrôlement ou mise à jour, ce qui évite d'interroger la base de données à chaque image.
   \item \textbf{Décision} :
     \begin{itemize}
       \item un résident est accepté dès la première correspondance sous le seuil ;
@@ -282,7 +289,7 @@ Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etat
   \item \textbf{Intrus confirmé} : la fenêtre de grâce s'est terminée sans que l'individu soit reconnu comme résident.
 \end{itemize}
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[>={Straight Barb[length=2mm]},
   st/.style={draw, rounded corners, align=center, minimum height=1cm, inner sep=3pt, font=\scriptsize},
@@ -321,7 +328,7 @@ Un seul réglage commande le second facteur : \emph{MFA obligatoire}, dans la pa
 Il active l'\gls{mfa}, qui exige plus d'un facteur d'authentification~\cite{nist80063b}. Le tableau de bord propose quatre profils de sécurité : portail, domicile, bureau et haute sécurité. Chaque profil regroupe des réglages adaptés à un type de lieu (section~\ref{sec:profils}). Le réglage est désactivé dans le profil domicile, retenu par défaut, et activé dans les profils bureau et haute sécurité. Le tableau~\ref{tab:mfa} compare les deux états.
 \end{maj}
 
-\begin{table}[!htbp]
+\begin{table}[H]
 \centering
 \caption{Fonctionnement selon que le second facteur est exigé ou non}\label{tab:mfa}
 \small
@@ -387,9 +394,9 @@ Trois diagrammes de séquence détaillent les échanges, à partir du code du se
 
 Le premier (figure~\ref{fig:seq1}) concerne un résident qui se présente devant la caméra. Le serveur détecte la personne, calcule le vecteur de son visage et le compare à ceux des profils. Si la distance est inférieure au seuil, l'événement est enregistré et le tableau de bord reçoit l'identité et le score. Lorsque l'authentification multifacteur est activée, le tableau de bord affiche le geste demandé, que la personne exécute devant la caméra.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
 \centering
-\resizebox{0.8\textwidth}{!}{\begin{tikzpicture}[>={Stealth[length=2mm]}]
+\begin{tikzpicture}[>={Stealth[length=2mm]}]
   \seqhead{A}{0}{Résident}
   \seqhead{B}{2.9}{Caméra}
   \seqhead{C}{6.0}{Serveur}
@@ -412,15 +419,15 @@ Le premier (figure~\ref{fig:seq1}) concerne un résident qui se présente devant
   \seqasync{2.9}{6.0}{-7.7}{images}
   \seqself{6.0}{-8.1}{geste vérifié (85 \%)}{2.2cm}
   \seqasync{6.0}{12.0}{-9.0}{accès accordé}
-\end{tikzpicture}}
+\end{tikzpicture}
 \caption{Diagramme de séquence : reconnaissance d'un résident}\label{fig:seq1}
 \end{figure}
 
 Le deuxième (figure~\ref{fig:seq2}) concerne un visage inconnu. Une seconde après l'apparition du visage, l'individu devient un intrus provisoire et une photo est prise. Pendant la fenêtre de grâce, la reconnaissance d'un résident annule l'alerte et supprime la photo. Sinon, l'intrus est confirmé et le message part vers Telegram avec la photo.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
 \centering
-\resizebox{0.8\textwidth}{!}{\begin{tikzpicture}[>={Stealth[length=2mm]}]
+\begin{tikzpicture}[>={Stealth[length=2mm]}]
   \seqhead{A}{0}{Inconnu}
   \seqhead{B}{2.7}{Caméra}
   \seqhead{C}{5.5}{Serveur}
@@ -450,15 +457,15 @@ Le deuxième (figure~\ref{fig:seq2}) concerne un visage inconnu. Une seconde apr
   \seqsync{5.5}{8.3}{-9.9}{INTRUDER\_CONFIRMED}
   \seqasync{5.5}{10.9}{-10.5}{message et photo}
   \seqasync{10.9}{13.5}{-11.1}{notification}
-\end{tikzpicture}}
+\end{tikzpicture}
 \caption{Diagramme de séquence : détection d'un visage inconnu et alerte}\label{fig:seq2}
 \end{figure}
 
 Le troisième (figure~\ref{fig:seq3}) concerne l'enrichissement d'un profil. Si l'empreinte est validée, le vecteur mis de côté est ajouté au profil, puis la mémoire des vecteurs est rechargée.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
 \centering
-\resizebox{0.8\textwidth}{!}{\begin{tikzpicture}[>={Stealth[length=2mm]}]
+\begin{tikzpicture}[>={Stealth[length=2mm]}]
   \seqhead{A}{0}{Résident}
   \seqhead{B}{3.3}{Serveur}
   \seqhead{C}{6.8}{Lecteur d'empreinte\\(simulé)}
@@ -475,7 +482,7 @@ Le troisième (figure~\ref{fig:seq3}) concerne l'enrichissement d'un profil. Si 
   \seqsync{3.3}{10.2}{-5.0}{ajoute le vecteur (30 au plus)}
   \seqret{10.2}{3.3}{-5.5}{ok}
   \seqself{3.3}{-6.0}{recharge les vecteurs en mémoire}{2.3cm}
-\end{tikzpicture}}
+\end{tikzpicture}
 \caption{Diagramme de séquence : apprentissage continu confirmé par l'empreinte}\label{fig:seq3}
 \end{figure}
 
@@ -485,7 +492,7 @@ Cette section décrit la base de données et les mesures qui limitent la conserv
 
 La base est un fichier SQLite~\cite{sqlite_about} local, exclu du dépôt de code. Elle contient six tables (figure~\ref{fig:donnees}). Un profil peut avoir plusieurs vecteurs, au plus 30, et plusieurs événements au journal. Les tables de configuration, des caméras et des messages Telegram sont indépendantes des autres.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[tbl/.style={draw, rectangle split, rectangle split parts=2, font=\scriptsize, align=left, minimum width=4.2cm, rectangle split part fill={gray!15, white}}]
   \node[tbl] (P) at (0,0) {\textbf{profiles}\nodepart{two}\underline{id}\\name (unique)\\role (VIP ou INTRUS)\\created\_at};
@@ -545,7 +552,7 @@ Cette section présente les réglages du système et les profils de sécurité. 
 Quatre profils regroupent des valeurs prêtes à l'emploi pour un type de lieu : portail, domicile, bureau et haute sécurité. Le profil domicile est celui retenu par défaut. Chaque réglage reste modifiable. Au premier démarrage, les valeurs du fichier de configuration s'appliquent : elles sont celles du profil domicile, sauf les alertes à distance, désactivées. La conservation des photos pendant 72 heures limite la durée de détention des images (section~\ref{sec:vieprivee}) ; les autres valeurs ont été réglées pendant les essais.
 \end{maj} Le tableau~\ref{tab:profils} donne les principaux réglages des profils.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 \centering
 \caption{Principaux réglages des profils de sécurité}\label{tab:profils}
 \small
@@ -599,18 +606,19 @@ Trois pannes ne sont pas traitées :
 
 \begin{maj}
 Cette section justifie les choix techniques de BioGate, classés par fonction.
+
 \begin{itemize}
-  \item \textbf{Détection des personnes, YOLOv8 nano} : le plus petit modèle de la famille YOLOv8, entraîné sur la base \gls{coco}~\cite{lin2014coco}, qui comprend une classe \og personne \fg{}~\cite{ultralytics_yolov8docs}. Sa légèreté permet de l'exécuter sur un simple processeur ;
-  \item \textbf{Suivi, centroïde} : calcul très léger, adapté à un petit matériel : il suffit de comparer les centres des boîtes et un histogramme de couleur par individu ;
-  \item \textbf{Détection du visage, cascade de Haar} : méthode rapide de Viola et Jones, fournie avec OpenCV~\cite{viola2001rapid,opencv_cascade}, qui évite de lancer le calcul lourd sur autre chose qu'un visage de face ;
-  \item \textbf{Contraste, \gls{clahe}} : égalisation adaptative de l'histogramme qui agit par zones de l'image~\cite{zuiderveld1994clahe,opencv_clahe} ;
-  \item \textbf{Reconnaissance, FaceNet512 avec DeepFace} : VGG-Face, associé à une détection de visage basique, s'est révélé trop imprécis sous la lumière d'une webcam ; FaceNet512 a été retenu pour sa robustesse aux conditions lumineuses~\cite{schroff2015facenet,serengil_deepface}. DeepFace, sous licence MIT, propose plusieurs modèles derrière une même interface et gère l'alignement du visage ;
-  \item \textbf{Test de vivacité, MediaPipe} : ses 52 coefficients d'expression~\cite{google_facelandmarker} évitent de calculer à la main l'ouverture des yeux et de la bouche ; le modèle est sous licence Apache~2.0~\cite{mediapipe_blendshape_card} ;
-  \item \textbf{Serveur, FastAPI avec Python 3.11} : FastAPI est un cadre rapide fondé sur les annotations de types~\cite{fastapi_docs}. Écrit dans le même langage que les modèles d'intelligence artificielle, il les appelle directement. Python 3.11 a été préféré à 3.13, incompatible avec certaines bibliothèques de calcul et de vision ;
-  \item \textbf{Base de données, SQLite} : moteur intégré au programme, sans serveur ni configuration, qui tient une base complète dans un seul fichier~\cite{sqlite_about} ;
-  \item \textbf{Tableau de bord, Electron avec React et Vite} : Electron fournit une seule base de code pour Windows, macOS et Linux~\cite{electron_docs} et stocke le jeton chiffré par le système d'exploitation. React avec Vite a été préféré à Next.js, conçu pour le rendu côté serveur des sites web, inutile dans une application de bureau ;
-  \item \textbf{Alertes, Telegram} : préféré à WhatsApp, dont l'interface officielle exige un portefeuille d'entreprise Meta et facture au message depuis le 1\ier{} juillet 2025~\cite{meta_wa_overview,meta_wa_pricing}. Un robot Telegram est gratuit par défaut~\cite{telegram_botfaq} et accepte une photo de 10~Mo au plus~\cite{telegram_botapi} ;
-  \item \textbf{Caméra, BW21-CBV} : préférée à l'ESP32-CAM, limité au 2,4~GHz~\cite{aithinker_bw21_spec,aithinker_esp32cam,espressif_esp32}, pour son Wi-Fi bi-bande et son image lumineuse en faible éclairage.
+  \item \textbf{Détection des personnes, YOLOv8 nano} : c'est le plus petit modèle de la famille YOLOv8, avec 3,2 millions de paramètres. Il est entraîné sur la base \gls{coco}~\cite{lin2014coco}, qui comprend une classe \og personne \fg{}~\cite{ultralytics_yolov8docs}. Sa légèreté permet de l'exécuter sur un simple processeur ;
+  \item \textbf{Suivi, centroïde} : ce calcul est très léger et convient à un traitement local sur un petit matériel. Il suffit de comparer les centres des boîtes et un histogramme de couleur par individu ;
+  \item \textbf{Détection du visage, cascade de Haar} : cette méthode de détection, proposée par Viola et Jones et fournie avec OpenCV~\cite{viola2001rapid,opencv_cascade}, est rapide. Elle permet de ne lancer le calcul lourd que sur les visages de face ;
+  \item \textbf{Contraste, \gls{clahe}} : cette égalisation adaptative de l'histogramme limite le contraste~\cite{zuiderveld1994clahe,opencv_clahe}. Elle agit par zones de l'image, ce qui égalise le contraste du visage ;
+  \item \textbf{Reconnaissance, FaceNet512 avec DeepFace} : VGG-Face, associé à une détection de visage basique, s'est révélé trop imprécis sous la lumière d'une webcam. FaceNet512 a été retenu pour sa robustesse aux conditions lumineuses~\cite{schroff2015facenet,serengil_deepface}. La bibliothèque DeepFace, publiée sous licence MIT, propose plusieurs modèles derrière une même interface et gère l'alignement du visage ;
+  \item \textbf{Test de vivacité, MediaPipe} : les 52 coefficients d'expression fournis par son modèle de points du visage~\cite{google_facelandmarker} évitent de calculer à la main l'ouverture des yeux et de la bouche. Le modèle est publié sous licence Apache~2.0~\cite{mediapipe_blendshape_card} ;
+  \item \textbf{Serveur, FastAPI avec Python 3.11} : FastAPI est un cadre rapide pour construire des interfaces de programmation en Python, fondé sur les annotations de types~\cite{fastapi_docs}. Écrit dans le même langage que les modèles d'intelligence artificielle (YOLO, DeepFace, MediaPipe, OpenCV), il les appelle directement, sans passerelle entre deux langages. Python 3.11 a été préféré à 3.13, dont les incompatibilités avec les bibliothèques de calcul et de vision, notamment NumPy et OpenCV, posaient problème ;
+  \item \textbf{Base de données, SQLite} : ce moteur est intégré au programme, sans serveur et sans configuration. Il tient une base complète, avec ses tables et ses index, dans un seul fichier~\cite{sqlite_about}. Il convient à une installation locale unique et se sauvegarde en copiant ce fichier ;
+  \item \textbf{Tableau de bord, Electron avec React et Vite} : Electron permet de maintenir une seule base de code JavaScript, HTML et CSS pour des applications qui fonctionnent sous Windows, macOS et Linux~\cite{electron_docs}. Il stocke le jeton chiffré par le système d'exploitation. React avec Vite a été préféré à Next.js, conçu pour le rendu côté serveur des sites web, ce qui est inutile dans une application de bureau : Next.js exige un processus Node.js séparé et pose des incompatibilités avec le système de fichiers d'Electron, alors que React avec Vite est plus simple et se recharge rapidement pendant le développement ;
+  \item \textbf{Alertes, Telegram} : Telegram a été préféré à WhatsApp, dont l'interface officielle exige un portefeuille d'entreprise Meta et, depuis le 1\ier{} juillet 2025, facture au message les envois faits par l'entreprise~\cite{meta_wa_overview,meta_wa_pricing}. Un robot Telegram est gratuit par défaut~\cite{telegram_botfaq} et accepte l'envoi d'une photo de 10~Mo au plus~\cite{telegram_botapi} ;
+  \item \textbf{Caméra, BW21-CBV} : cette carte a été préférée à l'ESP32-CAM. Son Wi-Fi est bi-bande, alors que le module ESP32-CAM, bâti sur l'ESP32, n'émet qu'en 2,4~GHz~\cite{aithinker_bw21_spec,aithinker_esp32cam,espressif_esp32}. Son capteur donne en outre une image lumineuse en faible éclairage, ce qui convient à la reconnaissance dans une pièce sombre.
 \end{itemize}
 
 Ensemble, ces choix donnent un système local, léger et sans abonnement : chaque composant s'exécute sur un ordinateur ordinaire, et le seul service extérieur du fonctionnement de base est l'envoi de l'alerte.
