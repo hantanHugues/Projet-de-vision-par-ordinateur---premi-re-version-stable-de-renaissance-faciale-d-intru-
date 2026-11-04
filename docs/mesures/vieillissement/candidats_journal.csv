@@ -1,0 +1,91 @@
+nom,region,sexe,statut,detail,aucun,plusieurs,non_confirme,ok
+Angélique Kidjo,Afrique,F,identité douteuse,distances 0.88/0.92/0.90,13,3,1,5
+Charlize Theron,Afrique,F,retenu,2006 / 2016 / 2026,4,10,0,13
+Chimamanda Ngozi Adichie,Afrique,F,retenu,2010 / 2017 / 2025,4,7,2,7
+Genevieve Nnaji,Afrique,F,moins de 3 photos valides,"2 fichiers, 0 admissibles, 0 avec un seul visage de face",0,0,0,0
+Lupita Nyong'o,Afrique,F,écart d'années ou photo intermédiaire insuffisant,écart de 5 ans entre les photos valides (minimum 8),5,4,6,3
+Miriam Makeba,Afrique,F,écart d'années ou photo intermédiaire insuffisant,aucune photo valide strictement entre la plus ancienne et la plus récente,26,2,2,3
+Tiwa Savage,Afrique,F,retenu,2012 / 2013 / 2025,3,2,0,3
+Yvonne Chaka Chaka,Afrique,F,moins de 3 photos valides,"7 fichiers, 4 admissibles, 0 avec un seul visage de face",3,1,0,0
+Burna Boy,Afrique,M,moins de 3 photos valides,"95 fichiers, 46 admissibles, 0 avec un seul visage de face",4,0,1,0
+Didier Drogba,Afrique,M,identité douteuse,distances 1.14/1.22/0.16,13,4,2,6
+Djimon Hounsou,Afrique,M,écart d'années ou photo intermédiaire insuffisant,écart de 7 ans entre les photos valides (minimum 8),1,3,1,6
+Mohamed Salah,Afrique,M,retenu,2012 / 2017 / 2022,11,2,6,4
+Sadio Mané,Afrique,M,moins de 3 photos valides,"654 fichiers, 34 admissibles, 1 avec un seul visage de face",8,2,3,1
+Samuel Eto'o,Afrique,M,moins de 3 photos valides,"71 fichiers, 15 admissibles, 1 avec un seul visage de face",3,3,3,1
+Trevor Noah,Afrique,M,écart d'années ou photo intermédiaire insuffisant,écart de 7 ans entre les photos valides (minimum 8),3,3,0,4
+Wole Soyinka,Afrique,M,retenu,2015 / 2018 / 2023,2,2,2,5
+Youssou N'Dour,Afrique,M,moins de 3 photos valides,"54 fichiers, 38 admissibles, 1 avec un seul visage de face",3,2,3,1
+Aishwarya Rai Bachchan,Asie,F,moins de 3 photos valides,"0 fichiers, 0 admissibles, 0 avec un seul visage de face",0,0,0,0
+Anushka Sharma,Asie,F,retenu,2012 / 2019 / 2022,2,8,6,5
+Deepika Padukone,Asie,F,retenu,2009 / 2016 / 2023,1,11,7,17
+Gong Li,Asie,F,retenu,2007 / 2011 / 2016,0,4,0,3
+Kajol,Asie,F,identité douteuse,distances 0.98/0.82/0.39,2,19,2,8
+Michelle Yeoh,Asie,F,retenu,2000 / 2013 / 2026,3,6,1,18
+Aamir Khan,Asie,M,écart d'années ou photo intermédiaire insuffisant,écart de 7 ans entre les photos valides (minimum 8),5,10,3,9
+Akshay Kumar,Asie,M,moins de 3 photos valides,"147 fichiers, 52 admissibles, 2 avec un seul visage de face",4,15,5,2
+Hrithik Roshan,Asie,M,retenu,2001 / 2013 / 2025,1,7,4,6
+Jackie Chan,Asie,M,retenu,2002 / 2013 / 2025,14,12,2,5
+Jet Li,Asie,M,moins de 3 photos valides,"15 fichiers, 5 admissibles, 2 avec un seul visage de face",0,2,1,2
+Ken Watanabe,Asie,M,moins de 3 photos valides,"15 fichiers, 9 admissibles, 0 avec un seul visage de face",1,6,0,0
+Lee Byung-hun,Asie,M,écart d'années ou photo intermédiaire insuffisant,écart de 6 ans entre les photos valides (minimum 8),1,1,3,6
+Shah Rukh Khan,Asie,M,moins de 3 photos valides,"2 fichiers, 0 admissibles, 0 avec un seul visage de face",0,0,0,0
+Takeshi Kitano,Asie,M,moins de 3 photos valides,"78 fichiers, 22 admissibles, 1 avec un seul visage de face",1,5,1,1
+Angela Merkel,Europe,F,identité douteuse,distances 0.93/0.79/0.16,14,11,3,8
+Emma Watson,Europe,F,identité douteuse,distances 0.40/1.07/0.95,6,7,1,12
+Helen Mirren,Europe,F,retenu,2010 / 2016 / 2023,4,12,2,13
+Kate Winslet,Europe,F,retenu,2006 / 2014 / 2023,3,4,2,15
+Keira Knightley,Europe,F,écart d'années ou photo intermédiaire insuffisant,écart de 7 ans entre les photos valides (minimum 8),2,7,0,8
+Marion Cotillard,Europe,F,retenu,2009 / 2018 / 2026,10,3,6,13
+Penélope Cruz,Europe,F,retenu,1992 / 2009 / 2024,3,12,3,18
+Colin Firth,Europe,M,retenu,2005 / 2011 / 2017,5,12,0,8
+Cristiano Ronaldo,Europe,M,écart d'années ou photo intermédiaire insuffisant,écart de 7 ans entre les photos valides (minimum 8),16,4,12,4
+Daniel Radcliffe,Europe,M,retenu,2007 / 2011 / 2015,8,2,5,9
+Ewan McGregor,Europe,M,retenu,2006 / 2012 / 2023,2,7,1,12
+Javier Bardem,Europe,M,retenu,2010 / 2018 / 2026,4,3,1,14
+Beyoncé,Amérique du Nord,F,moins de 3 photos valides,"0 fichiers, 0 admissibles, 0 avec un seul visage de face",0,0,0,0
+Jennifer Lawrence,Amérique du Nord,F,retenu,2011 / 2017 / 2025,6,10,0,12
+Lady Gaga,Amérique du Nord,F,moins de 3 photos valides,"491 fichiers, 189 admissibles, 1 avec un seul visage de face",13,11,11,1
+Oprah Winfrey,Amérique du Nord,F,écart d'années ou photo intermédiaire insuffisant,écart de 7 ans entre les photos valides (minimum 8),7,13,2,5
+Salma Hayek,Amérique du Nord,F,retenu,2008 / 2018 / 2025,8,11,1,15
+Scarlett Johansson,Amérique du Nord,F,retenu,2009 / 2016 / 2024,6,10,4,16
+Taylor Swift,Amérique du Nord,F,retenu,2006 / 2013 / 2019,18,5,6,7
+Barack Obama,Amérique du Nord,M,moins de 3 photos valides,"551 fichiers, 179 admissibles, 2 avec un seul visage de face",23,5,5,2
+Chris Evans,Amérique du Nord,M,moins de 3 photos valides,"0 fichiers, 0 admissibles, 0 avec un seul visage de face",0,0,0,0
+Denzel Washington,Amérique du Nord,M,retenu,1999 / 2012 / 2025,3,9,1,9
+Dwayne Johnson,Amérique du Nord,M,retenu,2008 / 2018 / 2025,10,10,2,10
+Gael García Bernal,Amérique du Nord,M,identité douteuse,distances 0.94/0.29/0.82,3,10,1,11
+Keanu Reeves,Amérique du Nord,M,identité douteuse,distances 0.94/0.89/0.35,5,5,5,14
+Leonardo DiCaprio,Amérique du Nord,M,retenu,2002 / 2010 / 2019,10,5,6,15
+Morgan Freeman,Amérique du Nord,M,retenu,2006 / 2010 / 2023,13,11,3,4
+Anitta,Amérique du Sud,F,moins de 3 photos valides,"4 fichiers, 2 admissibles, 0 avec un seul visage de face",2,0,0,0
+Fernanda Montenegro,Amérique du Sud,F,retenu,2003 / 2012 / 2019,2,5,1,9
+Gisele Bündchen,Amérique du Sud,F,identité douteuse,distances 0.82/0.61/0.92,9,4,6,8
+Isabel Allende,Amérique du Sud,F,identité douteuse,distances 0.78/1.02/1.12,0,1,2,4
+Lali Espósito,Amérique du Sud,F,identité douteuse,distances 0.95/0.74/0.60,2,5,7,5
+Natalia Oreiro,Amérique du Sud,F,retenu,2010 / 2016 / 2018,3,7,2,4
+Shakira,Amérique du Sud,F,retenu,2002 / 2011 / 2017,18,4,7,7
+Sofía Vergara,Amérique du Sud,F,retenu,2013 / 2019 / 2024,2,16,1,8
+Diego Maradona,Amérique du Sud,M,moins de 3 photos valides,"262 fichiers, 144 admissibles, 2 avec un seul visage de face",16,11,7,2
+James Rodríguez,Amérique du Sud,M,écart d'années ou photo intermédiaire insuffisant,écart de 3 ans entre les photos valides (minimum 8),3,2,5,3
+Juanes,Amérique du Sud,M,identité douteuse,distances 1.12/0.72/1.18,8,6,6,6
+Lionel Messi,Amérique du Sud,M,moins de 3 photos valides,"864 fichiers, 315 admissibles, 1 avec un seul visage de face",24,8,3,1
+Luis Suárez,Amérique du Sud,M,moins de 3 photos valides,"339 fichiers, 78 admissibles, 2 avec un seul visage de face",10,14,9,2
+Neymar,Amérique du Sud,M,moins de 3 photos valides,"465 fichiers, 135 admissibles, 2 avec un seul visage de face",16,12,6,2
+Pedro Pascal,Amérique du Sud,M,écart d'années ou photo intermédiaire insuffisant,écart de 3 ans entre les photos valides (minimum 8),1,8,3,3
+Pelé,Amérique du Sud,M,écart d'années ou photo intermédiaire insuffisant,écart de 3 ans entre les photos valides (minimum 8),17,8,8,3
+Ronaldinho,Amérique du Sud,M,moins de 3 photos valides,"0 fichiers, 0 admissibles, 0 avec un seul visage de face",0,0,0,0
+Sergio Agüero,Amérique du Sud,M,moins de 3 photos valides,"68 fichiers, 24 admissibles, 2 avec un seul visage de face",9,2,0,2
+Cate Blanchett,Océanie,F,identité douteuse,distances 0.48/1.06/0.77,5,11,4,16
+Kylie Minogue,Océanie,F,retenu,2007 / 2015 / 2024,11,8,5,12
+Lorde,Océanie,F,moins de 3 photos valides,"84 fichiers, 26 admissibles, 1 avec un seul visage de face",8,3,2,1
+Margot Robbie,Océanie,F,retenu,2011 / 2018 / 2026,1,10,4,12
+Naomi Watts,Océanie,F,retenu,2005 / 2015 / 2026,4,7,2,14
+Nicole Kidman,Océanie,F,retenu,2001 / 2013 / 2025,2,14,5,15
+Chris Hemsworth,Océanie,M,retenu,2010 / 2018 / 2026,2,9,3,11
+Hugh Jackman,Océanie,M,retenu,2009 / 2015 / 2022,5,11,8,10
+Keith Urban,Océanie,M,écart d'années ou photo intermédiaire insuffisant,aucune photo valide strictement entre la plus ancienne et la plus récente,16,6,2,3
+Liam Hemsworth,Océanie,M,écart d'années ou photo intermédiaire insuffisant,écart de 4 ans entre les photos valides (minimum 8),4,3,2,4
+Russell Crowe,Océanie,M,retenu,1999 / 2012 / 2026,6,11,3,11
+Sam Neill,Océanie,M,identité douteuse,distances 0.73/1.09/1.23,4,6,2,4
+Taika Waititi,Océanie,M,moins de 3 photos valides,"64 fichiers, 43 admissibles, 2 avec un seul visage de face",3,7,2,2
