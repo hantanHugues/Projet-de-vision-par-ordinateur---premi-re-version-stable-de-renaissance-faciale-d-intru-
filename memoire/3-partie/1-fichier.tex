@@ -1,7 +1,7 @@
 \addcontentsline{toc}{section}{Introduction}
 \section*{Introduction}
 
-Ce chapitre présente la réalisation de BioGate, les essais menés et les enseignements qu'ils apportent. Il décrit d'abord l'implémentation de la caméra, du serveur et du tableau de bord. Il expose ensuite l'évaluation expérimentale : le protocole, les tests automatiques, les performances mesurées, les taux de fausse acceptation et de faux rejet, les essais d'adaptation et de vivacité, ainsi que la purge des photos. Une discussion critique dresse enfin le bilan, les défauts découverts puis corrigés et les limites du prototype. Les perspectives concluent le chapitre.
+Ce chapitre présente la réalisation de BioGate, les essais menés et les enseignements qu'ils apportent. Il décrit d'abord l'implémentation de la caméra, du serveur et du tableau de bord. Il expose ensuite l'évaluation expérimentale : le protocole, les tests de vérification du code, les performances mesurées, les taux de fausse acceptation et de faux rejet, les essais d'adaptation et de vivacité, ainsi que la purge des photos. Une discussion critique dresse enfin le bilan, les défauts découverts puis corrigés et les limites du prototype. Les perspectives concluent le chapitre.
 
 \section{Implémentation}
 
@@ -92,13 +92,13 @@ Les essais ont été menés sur un ordinateur personnel équipé d'un processeur
 \toprule
 \textbf{Test} & \textbf{But} & \textbf{Base utilisée} & \textbf{But atteint ? Résultat} \\
 \midrule
-Vérification automatique de chaque module & Contrôler que chaque partie du système réagit comme prévu & Programmes de test, exécutés sans caméra & Atteint : les 180 tests réussissent \\
+Tests de vérification du code & Contrôler que chaque fonction du programme réagit comme prévu dans une situation donnée & Petits programmes de test, exécutés sans caméra & Atteint : les 180 tests réussissent \\
 Vitesse de traitement & Vérifier que le système fonctionne sur un simple processeur & Une photographie placée sur un fond noir & Atteint : 2,5 images analysées par seconde pendant l'identification d'une personne, 18 une fois la personne identifiée \\
 Erreurs de reconnaissance (fausses acceptations et faux rejets) & Choisir la distance maximale (0,35) à laquelle deux visages sont jugés identiques & 1\,000 paires de photographies de la base LFW & Atteint en partie : aucun inconnu accepté, mais 52~\% des paires d'une même personne refusées ; la cause de l'écart avec les performances publiées n'est pas établie \\
-Reconnaissance selon la lumière & Vérifier qu'une personne est reconnue en faible lumière, en pleine lumière et à contre-jour & Webcam, trois séances & Atteint en partie : personne reconnue dans les deux premiers cas, visage non détecté à contre-jour \\
+Reconnaissance selon la lumière & Vérifier qu'une personne est reconnue en faible lumière et en pleine lumière & Webcam & Atteint : personne reconnue dans les deux cas \\
 Mise à jour du profil, 150 personnes & Mesurer ce que la mise à jour par l'empreinte apporte à la reconnaissance & 150 personnes de la base LFW & Atteint : de 47,8~\% à 71,6~\% des photographies reconnues \\
 Mise à jour du profil, 38 personnes à plusieurs années d'écart & Vérifier cet effet quand les photographies sont prises des années plus tard & Photographies datées de Wikimedia Commons & Atteint : de 34~\% à 60~\% des personnes reconnues \\
-Mise à jour du profil, une personne & Illustrer sur un cas l'effet d'un changement d'apparence (barbe), puis le vérifier à la webcam & Trois photographies datées ; webcam & Atteint en partie : cas illustré (distance de 0,47 à 0,22) ; la mesure à la webcam, faite avec un éclairage faible, reste à refaire en pleine lumière \\
+Mise à jour du profil, une personne & Illustrer sur un cas l'effet d'un changement d'apparence (barbe), puis le vérifier à la webcam & Trois photographies datées ; webcam & Atteint : cas illustré (distance de 0,47 à 0,22) ; à la webcam, avec un éclairage faible, distance moyenne de 0,209 à 0,203 \\
 Test de vivacité & Vérifier que les gestes demandés sont reconnus et que les photographies sont refusées & Webcam ; photographies fixes ; une vidéo & Atteint en partie : gestes reconnus, photographies refusées ; une vidéo où la personne sourit et cligne des yeux sans cesse franchit le test \\
 Fonctionnement selon la région et le sexe & Vérifier que chaque étape du traitement marche aussi bien pour tous les groupes & 90 personnes de Wikimedia Commons, six régions, deux sexes & Non concluant : aucun écart net sauf pour la détection du visage ; l'échantillon est trop petit pour prouver l'absence de biais \\
 Suppression automatique des photos & Vérifier que les photographies d'intrus sont supprimées après 72 heures & Serveur réel & Atteint : 41 photographies anciennes supprimées au premier démarrage \\
@@ -129,15 +129,15 @@ Photographies du faux visage & Une photographie de chemise et trois portraits. E
 \end{tabularx}
 \end{table}
 
-\subsection{Tests automatiques}
+\subsection{Tests de vérification du code}
 
 \begin{maj}
-Le prototype est accompagné de 180 tests automatiques, répartis par domaine dans le tableau~\ref{tab:tests}. Un test automatique est un petit programme qui place le système dans une situation précise et vérifie que sa réaction est celle attendue. Ces tests s'exécutent sans caméra, avec une base de données temporaire, et peuvent être relancés après chaque modification. Les 180 tests réussissent. Pour chaque correctif important, le test a été vérifié en retirant volontairement le correctif : le test échoue alors, ce qui prouve qu'il détecte bien le défaut visé.
+Le prototype est accompagné de 180 tests de vérification du code, répartis par domaine dans le tableau~\ref{tab:tests}. Un test de vérification du code est un petit programme qui place une partie du code dans une situation précise, avec des données simulées, et contrôle que sa réaction est celle attendue ; il ne mesure ni la rapidité ni la précision de la reconnaissance. Ces tests s'exécutent sans caméra, avec une base de données temporaire, et peuvent être relancés après chaque modification. Les 180 tests réussissent. Pour chaque correctif important, le test a été vérifié en retirant volontairement le correctif : le test échoue alors, ce qui prouve qu'il détecte bien le défaut visé.
 \end{maj}
 
 \begin{table}[H]
 \centering
-\caption{Tests automatiques par domaine\majmark}\label{tab:tests}
+\caption{Tests de vérification du code, par domaine\majmark}\label{tab:tests}
 \small
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.9cm}c>{\raggedright\arraybackslash}X@{}}
 \toprule
@@ -410,7 +410,7 @@ Sur cet échantillon, aucun écart net n'apparaît à la détection des silhouet
 \subsection{Purge des photos}
 
 \begin{maj}
-La conservation des photos est limitée à 72 heures. Une purge automatique supprime les photos expirées et celles qui ne sont rattachées à aucun événement, au démarrage du serveur puis toutes les heures, et conserve les lignes du journal pour les statistiques. Elle a été vérifiée sur le serveur réel : à un premier démarrage, elle a supprimé 41 photos de plus de 100 jours, puis, à un démarrage ultérieur, 9 photos expirées et une photo sans événement. L'heure limite est calculée en temps universel, comme l'horodatage de la base de données, pour qu'un événement récent ne soit jamais supprimé à tort. Vingt-cinq tests automatiques vérifient ce comportement.
+La conservation des photos est limitée à 72 heures. Une purge automatique supprime les photos expirées et celles qui ne sont rattachées à aucun événement, au démarrage du serveur puis toutes les heures, et conserve les lignes du journal pour les statistiques. Elle a été vérifiée sur le serveur réel : à un premier démarrage, elle a supprimé 41 photos de plus de 100 jours, puis, à un démarrage ultérieur, 9 photos expirées et une photo sans événement. L'heure limite est calculée en temps universel, comme l'horodatage de la base de données, pour qu'un événement récent ne soit jamais supprimé à tort. Vingt-cinq tests de vérification du code vérifient ce comportement.
 \end{maj}
 
 \subsection{Résilience}\label{sec:resilience}
@@ -442,7 +442,7 @@ Le tableau~\ref{tab:synthese} résume chaque mesure, son but, son résultat, ses
 Vitesse de traitement & Fonctionner sur un simple processeur & Identification d'une personne : 401 ms par image (2,5 images par seconde) ; personne identifiée : 30 ms (jusqu'à 18 images par seconde) & Mesuré sur une seule scène fixe et un seul ordinateur ; rien n'est établi pour un Raspberry Pi \\
 Erreurs de reconnaissance & Justifier la distance maximale de 0,35 & Aucun inconnu accepté ; 52,0~\% des paires d'une même personne refusées ; les deux erreurs sont égales (13,1~\%) pour une distance de 0,74 & Une seule photographie enregistrée par personne : le taux de refus réel de BioGate n'est pas connu \\
 Score de confiance & Graduer la confiance accordée à une personne & 75,2~\% en faible éclairage, de 88,5~\% à 97,4~\% de jour ; 85~\% après un geste réussi, 100~\% après une empreinte & Le score mesure la ressemblance de deux visages, pas la probabilité qu'une personne soit la bonne \\
-Reconnaissance selon la lumière & Vérifier la reconnaissance dans plusieurs éclairages & Distance moyenne entre visages de 0,178 en faible lumière et de 0,110 en pleine lumière (plus elle est basse, mieux c'est) ; visage non détecté à contre-jour & Un seul visage, trois séances \\
+Reconnaissance selon la lumière & Vérifier la reconnaissance dans plusieurs éclairages & Distance moyenne entre visages de 0,178 en faible lumière et de 0,110 en pleine lumière (plus elle est basse, mieux c'est) & Un seul visage \\
 Mise à jour du profil, 150 personnes & Mesurer l'apport de la mise à jour par l'empreinte & De 47,8~\% à 71,6~\% des photographies reconnues ; fausses acceptations de 0,1~\% à 0,3~\% & Photographies sans date ; l'empreinte est simulée \\
 Mise à jour du profil, 38 personnes & Même mesure à plusieurs années d'écart & De 34,2~\% à 60,5~\% des personnes reconnues, quel que soit le contrôle d'identité & Personnalités ; aucune conclusion sur les régions ni sur les sexes \\
 Mise à jour du profil à la webcam & Vérifier sur le terrain & Distance moyenne de 0,209 avant la mise à jour et de 0,203 après ; pire image de 0,436 à 0,273 & Une personne, une séance, éclairage faible \\
@@ -466,7 +466,7 @@ Deuxièmement, un test de vivacité actif est en place. Il tire au sort un geste
 
 Troisièmement, l'adaptation aux changements d'apparence fonctionne. Sur 150 sujets de LFW, deux validations font passer la reconnaissance de 47,8~\% à 71,6~\%, et sur 38 personnes photographiées à plusieurs années d'écart, elle passe de 34~\% à 60~\%. L'empreinte est simulée, et l'adaptation n'a lieu que si le second facteur est exigé.
 
-Par ailleurs, les essais en conditions réelles ont permis de découvrir des défauts que les tests automatiques ne détectaient pas, ce qui en montre l'intérêt.
+Par ailleurs, les essais en conditions réelles ont permis de découvrir des défauts que les tests de vérification du code ne détectaient pas, ce qui en montre l'intérêt.
 \end{maj}
 
 \subsection{Défauts découverts et corrigés}
@@ -495,7 +495,7 @@ Messages d'alerte conservés sur Telegram & La suppression automatique ne concer
 \end{table}
 
 \begin{maj}
-Un enseignement général s'en dégage : aucun des tests automatiques n'avait détecté le défaut des inconnus sans cadre, car aucun ne faisait fonctionner le traitement multi-caméras avec une personne inconnue. Il a fallu un essai réel et la lecture du journal du serveur.
+Un enseignement général s'en dégage : aucun des tests de vérification du code n'avait détecté le défaut des inconnus sans cadre, car aucun ne faisait fonctionner le traitement multi-caméras avec une personne inconnue. Il a fallu un essai réel et la lecture du journal du serveur.
 \end{maj}
 
 \subsection{Respect du cadre légal}
