@@ -88,22 +88,22 @@ Les essais ont été menés sur un ordinateur personnel équipé d'un processeur
 \centering
 \caption{Tests réalisés, but et issue\majmark}\label{tab:alltests}
 \small
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{3.4cm}@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{4.2cm}@{}}
 \toprule
-\textbf{Test} & \textbf{But} & \textbf{Base utilisée} & \textbf{But atteint ?} \\
+\textbf{Test} & \textbf{But} & \textbf{Base utilisée} & \textbf{But atteint ? Résultat} \\
 \midrule
-Tests automatiques & Vérifier le comportement de chaque module de façon répétable & Programmes de test, sans caméra & Oui : 180 tests réussis \\
-Temps de traitement & Vérifier que la chaîne s'exécute sur un simple processeur & Photographie fixe sur fond noir & Oui : 2,5 images par seconde en identification, 18 ensuite \\
-Taux d'erreur & Justifier le seuil de décision & LFW, 1\,000 paires & En partie : seuil prudent, écart avec les performances publiées non expliqué \\
-Conditions de prise de vue & Vérifier la reconnaissance en faible éclairage et à contre-jour & Webcam, trois séances & En partie : bonne reconnaissance, détection du visage en échec à contre-jour \\
-Apprentissage, 150 sujets & Mesurer l'effet de la mise à jour confirmée par l'empreinte & LFW & Oui \\
-Apprentissage, 38 personnes & Vérifier cet effet sur des visages photographiés à plusieurs années d'écart & Wikimedia Commons & Oui \\
-Apprentissage, une personne & Illustrer l'effet d'un changement d'apparence ; le vérifier à la webcam & Wikimedia Commons ; webcam & En partie : seconde lecture à la webcam à refaire \\
-Test de vivacité & Vérifier que les gestes sont reconnus et que l'usurpation est limitée & Webcam, photographies fixes, une vidéo & En partie : gestes reconnus, photographies rejetées, une vidéo franchit le test \\
-Équité de la chaîne & Vérifier que chaque étape fonctionne aussi bien selon la région et le sexe & Wikimedia Commons, 90 personnes & Non concluant : l'échantillon est décrit, aucun biais n'est démontré ni exclu \\
-Purge des photos & Vérifier la suppression automatique & Serveur réel & Oui \\
-Résilience & Vérifier la reprise après un redémarrage de la caméra et l'envoi des alertes & Carte, Telegram & En partie : voir la section~\ref{sec:resilience} \\
-Essais en conditions réelles & Découvrir les défauts du système en usage & Webcam et tableau de bord & Oui : défauts trouvés et corrigés (tableau~\ref{tab:defauts}) \\
+Vérification automatique de chaque module & Contrôler que chaque partie du système réagit comme prévu & Programmes de test, exécutés sans caméra & Atteint : les 180 tests réussissent \\
+Vitesse de traitement & Vérifier que le système fonctionne sur un simple processeur & Une photographie placée sur un fond noir & Atteint : 2,5 images analysées par seconde pendant l'identification d'une personne, 18 une fois la personne identifiée \\
+Erreurs de reconnaissance (fausses acceptations et faux rejets) & Choisir la distance maximale (0,35) à laquelle deux visages sont jugés identiques & 1\,000 paires de photographies de la base LFW & Atteint en partie : aucun inconnu accepté, mais 52~\% des paires d'une même personne refusées ; la cause de l'écart avec les performances publiées n'est pas établie \\
+Reconnaissance selon la lumière & Vérifier qu'une personne est reconnue en faible lumière, en pleine lumière et à contre-jour & Webcam, trois séances & Atteint en partie : personne reconnue dans les deux premiers cas, visage non détecté à contre-jour \\
+Mise à jour du profil, 150 personnes & Mesurer ce que la mise à jour par l'empreinte apporte à la reconnaissance & 150 personnes de la base LFW & Atteint : de 47,8~\% à 71,6~\% des photographies reconnues \\
+Mise à jour du profil, 38 personnes à plusieurs années d'écart & Vérifier cet effet quand les photographies sont prises des années plus tard & Photographies datées de Wikimedia Commons & Atteint : de 34~\% à 60~\% des personnes reconnues \\
+Mise à jour du profil, une personne & Illustrer sur un cas l'effet d'un changement d'apparence (barbe), puis le vérifier à la webcam & Trois photographies datées ; webcam & Atteint en partie : cas illustré (distance de 0,47 à 0,22) ; la mesure à la webcam, faite avec un éclairage faible, reste à refaire en pleine lumière \\
+Test de vivacité & Vérifier que les gestes demandés sont reconnus et que les photographies sont refusées & Webcam ; photographies fixes ; une vidéo & Atteint en partie : gestes reconnus, photographies refusées ; une vidéo où la personne sourit et cligne des yeux sans cesse franchit le test \\
+Fonctionnement selon la région et le sexe & Vérifier que chaque étape du traitement marche aussi bien pour tous les groupes & 90 personnes de Wikimedia Commons, six régions, deux sexes & Non concluant : aucun écart net sauf pour la détection du visage ; l'échantillon est trop petit pour prouver l'absence de biais \\
+Suppression automatique des photos & Vérifier que les photographies d'intrus sont supprimées après 72 heures & Serveur réel & Atteint : 41 photographies anciennes supprimées au premier démarrage \\
+Reprise après incident & Vérifier que le système reprend seul après un redémarrage de la caméra et que l'alerte Telegram arrive & Caméra BW21-CBV, application Telegram & Atteint en partie : flux repris et alerte reçue avec sa photographie ; envoi par courrier électronique non testé en réel \\
+Essais en conditions réelles & Découvrir les défauts du système en usage & Webcam et tableau de bord & Atteint : sept défauts trouvés et corrigés (tableau~\ref{tab:defauts}) \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -116,15 +116,15 @@ Les bases de données utilisées comme matériel d'essai sont décrites dans le 
 \centering
 \caption{Bases de données utilisées et leurs défauts\majmark}\label{tab:bases}
 \small
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{5cm}>{\raggedright\arraybackslash}X@{}}
 \toprule
-\textbf{Base} & \textbf{Source et usage} & \textbf{Défauts} \\
+\textbf{Base} & \textbf{Contenu et usage} & \textbf{Défauts} \\
 \midrule
-LFW (13\,233 images de visages) & Huang et collègues~\cite{huang2007lfw}, version alignée~\cite{huang2007funneling}. Taux d'erreur et apprentissage sur 150 sujets & Photographies de personnalités et de presse, différentes de celles d'une caméra installée à l'entrée d'un lieu ; population non équilibrée ; photographies non datées \\
-Wikimedia Commons & Photographies libres de droits~\cite{wikimedia_commons}. Apprentissage sur 38 personnes, équité de la chaîne, essai sur une personne & Personnalités ; l'identité repose sur le nom du fichier, contrôlée par la distance entre les photographies ; sélection qui favorise les portraits nets (23 femmes pour 15 hommes) ; région = continent du pays de nationalité ; de 4 à 8 personnes par région pour le vieillissement et de 11 à 16 pour l'équité \\
-Enregistrements de la webcam & Réalisés pour ce travail. Vivacité, éclairage, apprentissage à la webcam & Une personne, un matériel, peu de conditions de lumière \\
-Photographie fixe & Portrait d'une personne sur fond noir de 640 par 480 pixels. Temps de traitement & Scène reproductible mais peu réaliste : une seule personne, sans mouvement \\
-Photographies de test du faux visage & Une photographie de chemise et trois portraits. Test du filtre de visage & Un seul cas de faux visage \\
+LFW & 13\,233 photographies de visages de personnalités, prises dans des conditions non contrôlées, publiées par l'université du Massachusetts~\cite{huang2007lfw}, en version alignée~\cite{huang2007funneling}. Elles servent aux erreurs de reconnaissance et à la mise à jour sur 150 personnes & Photographies de presse, différentes de celles d'une caméra installée à l'entrée d'un lieu ; population non équilibrée ; photographies sans date \\
+Wikimedia Commons & Photographies libres de droits de personnalités, avec leur date de prise de vue~\cite{wikimedia_commons}. Elles servent à la mise à jour sur 38 personnes, au fonctionnement selon la région et le sexe, et à l'essai sur une personne & L'identité d'une personne est celle du nom du fichier, contrôlée en comparant ses trois photographies ; portraits nets favorisés ; la région est le continent du pays de nationalité de la personne ; 23 femmes pour 15 hommes ; de 4 à 8 personnes par région pour la mise à jour, de 11 à 16 pour la comparaison entre régions \\
+Enregistrements de la webcam & Images du visage de l'utilisateur filmées pour ce travail. Elles servent au test de vivacité, à la reconnaissance selon la lumière et à la mise à jour à la webcam & Une seule personne, un seul matériel, peu de conditions de lumière \\
+Photographie sur fond noir & Portrait d'une personne placé sur un fond noir de 640 par 480 pixels. Il sert à mesurer la vitesse de traitement & Scène reproductible mais peu réaliste : une personne, sans mouvement \\
+Photographies du faux visage & Une photographie de chemise et trois portraits. Elles servent à tester le filtre qui écarte les faux visages & Un seul cas de faux visage \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -143,12 +143,12 @@ Le prototype est accompagné de 180 tests automatiques, répartis par domaine da
 \toprule
 \textbf{Domaine} & \textbf{Cas} & \textbf{Ce qui est vérifié} \\
 \midrule
-Alertes à distance & 46 & Envoi du message et de la photo par Telegram et par courrier électronique, délai minimal entre deux alertes, gestion des erreurs d'envoi, masquage du jeton et du mot de passe dans l'interface, suppression de la photo quand l'alerte est annulée \\
+Alertes à distance & 46 & Envoi du message et de la photographie par Telegram et par courrier électronique, délai minimal entre deux alertes, erreurs d'envoi, masquage du jeton et du mot de passe dans l'interface, suppression de la photographie quand l'alerte est annulée \\
 Suppression des messages Telegram & 11 & Enregistrement de chaque message envoyé, suppression après le délai prévu (24 heures, au plus 47), cas où Telegram refuse la suppression ou où le réseau est coupé \\
-Visage de face et silhouettes sans visage & 28 & Position de l'encadré du visage, délai avant de classer une silhouette sans visage, traces de passage sans visage, alertes de fuite \\
-Purge des photos & 25 & Suppression des photos de plus de 72 heures, conservation des lignes du journal, photos sans événement, heure de coupure en temps universel, tâche répétée toutes les heures, accès réservé au tableau de bord \\
+Détection du visage de face & 28 & Position du rectangle autour du visage, délai avant de classer une personne dont on ne voit pas le visage, traces laissées par un simple passage, alerte quand une personne s'enfuit \\
+Suppression des photographies & 25 & Suppression des photographies de plus de 72 heures, conservation des lignes du journal, photographies sans événement, heure de coupure en temps universel, tâche répétée toutes les heures, accès réservé au tableau de bord \\
 Sources vidéo et caméras & 37 & Lecture d'un flux protégé par mot de passe (avec un faux flux qui imite la carte), masquage de la clé dans l'adresse, redémarrage d'une caméra modifiée, affichage en miroir de la webcam \\
-Classement des individus & 20 & Faux visage sur une chemise, résident remis en question puis reconnu de nouveau, annulation d'un intrus provisoire reconnu comme résident, compteur d'intrus \\
+Classement des personnes (résident, inconnu, intrus) & 20 & Faux visage sur une chemise, résident remis en question puis reconnu de nouveau, annulation d'un intrus provisoire reconnu comme résident, comptage des intrus \\
 Test de vivacité & 8 & Activation du geste selon le réglage, prise en compte immédiate d'un changement de réglage, accès par l'empreinte seule quand le test est désactivé \\
 Installation du modèle de points du visage & 5 & Téléchargement du modèle de MediaPipe et contrôle de son intégrité \\
 \midrule
@@ -393,12 +393,12 @@ Cette section vérifie si chaque étape de la chaîne fonctionne aussi bien selo
 \small
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{3cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\textbf{Étape} & \textbf{Mesure} & \textbf{Résultat} & \textbf{Ce que l'on peut conclure} \\
+\textbf{Étape de la chaîne} & \textbf{Mesure} & \textbf{Résultat} & \textbf{Ce que l'on peut conclure} \\
 \midrule
-Détection des silhouettes (YOLOv8 nano) & Part des photographies où une silhouette contient le visage & De 98,4~\% à 100~\% selon la région ; 98,6~\% pour les femmes, 99,7~\% pour les hommes & Aucun écart net, mais le test est facile : portraits de presse \\
-Filtre de visage (Haar et MediaPipe) & Part des photographies où un visage de face est validé & De 20,6~\% à 42,4~\% selon la région ; 33,8~\% pour les femmes, 25,1~\% pour les hommes & Écart visible ; le type de photographie (événements, groupes) pèse autant que le détecteur \\
-Clignement (MediaPipe) & Score d'un œil ouvert, à comparer au seuil de 0,35 & De 0,089 à 0,149 selon la région & Loin du seuil dans tous les groupes ; la détection d'un œil fermé n'est pas mesurée \\
-Reconnaissance (FaceNet512) & Part des comparaisons entre personnes différentes sous le seuil de 0,35 & De 0,3~\% à 0,7~\% selon la région & Fausses acceptations rares dans tous les groupes ; distances élevées entre photographies d'une même personne partout \\
+Détection des personnes (YOLOv8 nano) & Part des photographies où une personne est détectée autour du visage & De 98,4~\% à 100~\% selon la région ; 98,6~\% pour les femmes, 99,7~\% pour les hommes & Aucun écart net ; le test est facile (portraits de presse) \\
+Détection du visage de face (Haar et MediaPipe) & Part des photographies où un visage de face est accepté & De 20,6~\% à 42,4~\% selon la région ; 33,8~\% pour les femmes, 25,1~\% pour les hommes & Écart visible ; le type de photographie (événements, groupes) pèse autant que le détecteur \\
+Détection des clignements (MediaPipe) & Score d'un œil ouvert (le seuil de clignement est de 0,35) & De 0,089 à 0,149 selon la région & Un œil ouvert reste loin du seuil dans tous les groupes ; la détection d'un œil fermé n'est pas mesurée \\
+Reconnaissance du visage (FaceNet512) & Part des comparaisons entre personnes différentes jugées identiques (distance sous 0,35) & De 0,3~\% à 0,7~\% selon la région & Rare dans tous les groupes ; la distance entre deux photographies d'une même personne est élevée partout \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -439,17 +439,16 @@ Le tableau~\ref{tab:synthese} résume chaque mesure, son but, son résultat, ses
 \textbf{Domaine} & \textbf{But} & \textbf{Résultat} & \textbf{Limites et conclusions impossibles} \\
 \midrule
 \endhead
-Temps de traitement & Chaîne sur un simple processeur & Identification : 401 ms (2,5 images par seconde) ; personne identifiée : 30 ms en médiane (18 images par seconde au maximum) & Scène fixe, une machine ; aucune conclusion sur un Raspberry Pi \\
-Taux d'erreur (LFW) & Justifier le seuil de 0,35 & FAR de 0,0~\% et FRR de 52,0~\% ; point d'égal taux d'erreur de 13,1~\% & Une photographie par personne ; le taux de BioGate à l'entrée d'un lieu n'est pas connu \\
-Score de confiance & Règle de décision graduée & 75,2~\% en faible éclairage, 88,5~\% à 97,4~\% de jour ; 85~\% après le geste, 100~\% après l'empreinte & Pourcentage de proximité des vecteurs, pas une probabilité \\
-Conditions de prise de vue & Reconnaissance selon l'éclairage & Distance moyenne de 0,178 (faible lumière) et de 0,110 (pleine lumière) ; échec de la détection à contre-jour & Un visage, trois séances \\
-Apprentissage (150 sujets) & Effet de la mise à jour confirmée & 47,8~\% à 71,6~\% de photographies reconnues ; fausses acceptations de 0,1~\% à 0,3~\% & Photographies non datées ; empreinte supposée fiable \\
-Apprentissage (38 personnes) & Effet sur des visages à plusieurs années d'écart & 34,2~\% à 60,5~\% de personnes reconnues, quel que soit le contrôle d'identité & Personnalités ; les années n'expliquent pas la distance ; rien sur les régions ni les sexes \\
-Apprentissage (webcam) & Vérifier sur le terrain & Moyenne de 0,209 à 0,203 ; pire image de 0,436 à 0,273 & Une personne, une séance, éclairage faible \\
-Test de vivacité & Limiter l'usurpation & Gestes reconnus ; photographies fixes rejetées ; franchi par une vidéo contenant les deux gestes & Un essai avec une vidéo ; images générées non essayées \\
-Équité de la chaîne & Mêmes performances selon la région et le sexe & Aucun écart net sauf au filtre de visage & Échantillon décrit, aucun biais démontré ni exclu \\
-Purge des photos & Limiter la conservation & Automatique ; 41 photos supprimées au premier démarrage & Serveur réel, deux démarrages \\
-Résilience & Reprise des flux et des alertes & Flux repris après un redémarrage ; alerte Telegram reçue avec photo & Une carte ; canal Telegram seul \\
+Vitesse de traitement & Fonctionner sur un simple processeur & Identification d'une personne : 401 ms par image (2,5 images par seconde) ; personne identifiée : 30 ms (jusqu'à 18 images par seconde) & Mesuré sur une seule scène fixe et un seul ordinateur ; rien n'est établi pour un Raspberry Pi \\
+Erreurs de reconnaissance & Justifier la distance maximale de 0,35 & Aucun inconnu accepté ; 52,0~\% des paires d'une même personne refusées ; les deux erreurs sont égales (13,1~\%) pour une distance de 0,74 & Une seule photographie enregistrée par personne : le taux de refus réel de BioGate n'est pas connu \\
+Score de confiance & Graduer la confiance accordée à une personne & 75,2~\% en faible éclairage, de 88,5~\% à 97,4~\% de jour ; 85~\% après un geste réussi, 100~\% après une empreinte & Le score mesure la ressemblance de deux visages, pas la probabilité qu'une personne soit la bonne \\
+Reconnaissance selon la lumière & Vérifier la reconnaissance dans plusieurs éclairages & Distance moyenne entre visages de 0,178 en faible lumière et de 0,110 en pleine lumière (plus elle est basse, mieux c'est) ; visage non détecté à contre-jour & Un seul visage, trois séances \\
+Mise à jour du profil, 150 personnes & Mesurer l'apport de la mise à jour par l'empreinte & De 47,8~\% à 71,6~\% des photographies reconnues ; fausses acceptations de 0,1~\% à 0,3~\% & Photographies sans date ; l'empreinte est simulée \\
+Mise à jour du profil, 38 personnes & Même mesure à plusieurs années d'écart & De 34,2~\% à 60,5~\% des personnes reconnues, quel que soit le contrôle d'identité & Personnalités ; aucune conclusion sur les régions ni sur les sexes \\
+Mise à jour du profil à la webcam & Vérifier sur le terrain & Distance moyenne de 0,209 avant la mise à jour et de 0,203 après ; pire image de 0,436 à 0,273 & Une personne, une séance, éclairage faible \\
+Test de vivacité & Limiter l'usurpation & Gestes reconnus ; photographies fixes refusées ; une vidéo montrant les deux gestes en continu franchit le test & Un seul essai avec une vidéo ; images générées par intelligence artificielle non essayées \\
+Fonctionnement selon la région et le sexe & Mêmes résultats pour tous les groupes & Aucun écart net, sauf pour la détection du visage, qui accepte moins de photographies pour certains groupes & L'échantillon est décrit ; aucun biais n'est démontré ni exclu \\
+Suppression des photos et reprise après incident & Limiter la conservation ; reprendre sans intervention & 41 photographies supprimées au premier démarrage ; flux de la caméra repris ; alerte Telegram reçue avec sa photographie & Vérifié sur le serveur réel et une caméra ; courrier électronique non testé \\
 \bottomrule
 \end{longtable}
 }
@@ -484,13 +483,13 @@ Le tableau~\ref{tab:defauts} recense les défauts liés aux trois objectifs, leu
 \toprule
 \textbf{Défaut} & \textbf{Cause} & \textbf{Correction} \\
 \midrule
-Photos jamais purgées & La purge n'existait qu'en commande manuelle ; 41 photos de plus de 100 jours subsistaient & Purge automatique au démarrage puis toutes les heures \\
-Inconnus sans cadre à l'écran & Une erreur de programme, interceptée sans message, supprimait les cadres de toute personne inconnue ; 996 avertissements en deux minutes & Correction, et test qui échoue si le défaut revient \\
-Faux intrus (main, torse) & Le détecteur de personnes prend parfois une main ou un torse pour une personne & Un intrus est un visage inconnu \\
-Faux visage sur une chemise & Le détecteur de Haar prend le col et un bouton pour un visage & Second avis de MediaPipe \\
-Routes sans jeton & Oubli de la vérification du jeton sur les routes du journal, de la configuration et des actionneurs & Jeton exigé sur ces routes ; 11 routes restent sans jeton (section~\ref{sec:routes}) \\
-Réglage de vivacité sans effet & Les deux chemins d'analyse du serveur ne lisaient pas le réglage & Règle commune aux deux chemins, 8 tests \\
-Messages d'alerte conservés chez Telegram & La purge ne concernait que le disque du serveur & Suppression des messages après 24 heures \\
+Photographies jamais supprimées & La suppression n'existait qu'en commande manuelle : 41 photographies de plus de 100 jours restaient sur le disque & Suppression automatique au démarrage du serveur puis toutes les heures \\
+Personnes inconnues sans rectangle sur l'écran & Une erreur de programme, non signalée, supprimait le rectangle de toute personne inconnue ; 996 avertissements en deux minutes & Erreur corrigée, avec un test qui échoue si elle revient \\
+Faux intrus (une main, un torse) & Le détecteur de personnes prend parfois une main ou un torse pour une personne & Un intrus est un visage inconnu : sans visage, la silhouette reste en attente \\
+Faux visage (col de chemise) & Le détecteur de visage prend le col et un bouton pour un visage & Second avis du modèle MediaPipe \\
+Routes (adresses du serveur) sans jeton & La vérification du jeton avait été oubliée sur les routes du journal, de la configuration et des actionneurs & Jeton exigé sur ces routes ; 11 routes restent sans jeton (section~\ref{sec:routes}) \\
+Réglage du test de vivacité sans effet & Les deux circuits d'analyse du serveur ignoraient le réglage qui active ou non le test de vivacité & Règle commune aux deux circuits, avec 8 tests \\
+Messages d'alerte conservés sur Telegram & La suppression automatique ne concernait que le disque du serveur, pas la conversation Telegram & Suppression des messages après 24 heures \\
 \bottomrule
 \end{tabularx}
 \end{table}
