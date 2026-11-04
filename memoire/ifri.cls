@@ -397,8 +397,9 @@ frame=leftline
 { \@encadrants{}}\\
 \vspace{1cm}
 
-{ \textbf{Membres du jury } : \\}
-{ \@jurys{}}\\
+%% Section « Membres du jury » masquée (à rétablir quand le jury est connu)
+%{ \textbf{Membres du jury } : \\}
+%{ \@jurys{}}\\
 
 \vfill
 \end{center}
