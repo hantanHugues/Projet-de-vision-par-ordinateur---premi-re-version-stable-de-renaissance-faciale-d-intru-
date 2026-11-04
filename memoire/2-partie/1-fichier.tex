@@ -203,17 +203,9 @@ Deux outils servent au développement et ne font pas partie du produit. Le progr
 
 \subsection{Tableau de bord}
 
-Le tableau de bord est une application de bureau développée avec Electron~\cite{electron_docs} et React. Il comporte sept pages :
-\begin{itemize}
-  \item \textbf{Surveillance} : flux annoté de la caméra, état de chaque individu, score de confiance et progression du test de vivacité ;
-  \item \textbf{Journal} : liste des événements, filtrable par période, par type et par nom, exportable au format \gls{csv}, avec un bouton de purge ;
-  \item \textbf{VIP} : liste des résidents (le tableau de bord les appelle « VIP »), enrôlement par fichier image ou par capture de la caméra, retrait d'un profil ;
-  \item \textbf{Statistiques} : indicateurs de la période, graphique des accès par jour et liste des résidents les plus actifs ;
-  \item \textbf{Configuration} : sources vidéo, profils de sécurité, réglages et état de la purge automatique ;
-  \item \textbf{Alertes} : liste des intrusions confirmées, réglage et test des canaux Telegram et courrier électronique, notifications du bureau ;
-  \item \textbf{Couplage} : saisie de l'adresse du serveur, puis du code d'accès.
-\end{itemize}
-Une notification native du système s'affiche lorsqu'une intrusion est confirmée. La figure~\ref{fig:dashboard} montre la page de surveillance.
+\begin{maj}
+Le tableau de bord est une application de bureau développée avec Electron~\cite{electron_docs} et React. Il comporte sept pages : surveillance, journal, VIP, statistiques, configuration, alertes et couplage. Elles sont décrites à la section~\ref{sec:pagesdash}. Une notification native du système s'affiche lorsqu'une intrusion est confirmée. La figure~\ref{fig:dashboard} montre la page de surveillance.
+\end{maj}
 
 \imageouplace{dashboard_surveillance.png}{0.95\textwidth}{Page de surveillance du tableau de bord pendant un essai à la webcam}{fig:dashboard}
 
@@ -256,8 +248,8 @@ Cette section décrit la chaîne de traitement, ou pipeline : les étapes appliq
 
 \begin{maj}
 \begin{enumerate}
-  \item \textbf{Détection des personnes} : le modèle \gls{yolo}v8 nano repère les silhouettes humaines dans l'image~\cite{ultralytics_yolov8docs}. Il est léger et s'exécute sur un simple processeur. L'image est réduite à 320 pixels de large avant l'analyse pour accélérer le calcul, et une détection n'est retenue que si le modèle est sûr à au moins 50~\%~\cite{ultralytics_predict}. Le modèle entoure parfois une même personne de deux boîtes, par exemple une pour le corps entier et une pour le haut du corps, ce qui ferait compter deux personnes. Le recouvrement de deux boîtes se mesure par le rapport entre leur surface commune et leur surface réunie : au-dessus de 0,35, le modèle les fusionne, puis un second tri à 0,30 écarte les boîtes voisines qui restent.
-  \item \textbf{Suivi} : un suivi par centroïde donne un identifiant à chaque individu et le conserve d'une image à l'autre. Chaque nouvelle boîte est rattachée à l'individu dont le centre est le plus proche, à moins de 150 pixels. Si l'individu disparaît, par exemple derrière un obstacle, son identifiant reste en mémoire pendant 60 images consécutives, soit environ deux secondes à 30 images par seconde. S'il réapparaît à plus de 150 pixels pendant ce délai, le suivi s'appuie sur la couleur de ses vêtements : il compare l'histogramme de teinte de la nouvelle boîte à celui mémorisé (espace \gls{hsv}, 16 classes) et rattache la boîte à l'ancien identifiant si leur corrélation, une mesure de ressemblance comprise entre $-1$ et 1, dépasse 0,85. Cette signature de couleur n'est jamais écrite dans la base de données : elle reste en mémoire vive tant que l'individu est suivi et disparaît avec son identifiant après 60 images d'absence. Une personne qui revient plus tard reçoit un nouvel identifiant et son visage est analysé de nouveau. Le suivi ne reconnaît donc pas les personnes : il évite seulement de relancer l'analyse du visage pendant une courte occultation.
+  \item \textbf{Détection des personnes} : le modèle \gls{yolo}v8 nano repère les silhouettes humaines dans l'image~\cite{ultralytics_yolov8docs}. Il est léger et s'exécute sur un simple processeur. L'image est réduite à 320 pixels de large avant l'analyse pour accélérer le calcul, et une détection n'est retenue que si le modèle est sûr à au moins 50~\%~\cite{ultralytics_predict}. Le modèle entoure parfois une même personne de deux boîtes, par exemple une pour le corps entier et une pour le haut du corps, ce qui ferait compter deux personnes. Le recouvrement de deux boîtes se mesure par le rapport entre leur surface commune et leur surface réunie~\cite{everingham2010voc} : au-dessus de 0,35, le modèle les fusionne, puis un second tri à 0,30 écarte les boîtes voisines qui restent.
+  \item \textbf{Suivi} : un suivi par centroïde donne un identifiant à chaque individu et le conserve d'une image à l'autre. Chaque nouvelle boîte est rattachée à l'individu dont le centre est le plus proche, à moins de 150 pixels. Si l'individu disparaît, par exemple derrière un obstacle, son identifiant reste en mémoire pendant 60 images consécutives, soit environ deux secondes à 30 images par seconde. S'il réapparaît à plus de 150 pixels pendant ce délai, le suivi s'appuie sur la couleur de ses vêtements : il compare l'histogramme de teinte de la nouvelle boîte à celui mémorisé (espace \gls{hsv}, 16 classes) et rattache la boîte à l'ancien identifiant si leur corrélation, une mesure de ressemblance comprise entre $-1$ et 1~\cite{opencv_histcompare}, dépasse 0,85. Cette signature de couleur n'est jamais écrite dans la base de données : elle reste en mémoire vive tant que l'individu est suivi et disparaît avec son identifiant après 60 images d'absence. Une personne qui revient plus tard reçoit un nouvel identifiant et son visage est analysé de nouveau. Le suivi ne reconnaît donc pas les personnes : il évite seulement de relancer l'analyse du visage pendant une courte occultation.
   \item \textbf{Filtre de visage de face} : le modèle de reconnaissance est lourd, il n'est donc lancé que sur un visage de face, et non sur une personne de dos, de profil ou la tête baissée. Une cascade de Haar~\cite{viola2001rapid,opencv_cascade} cherche un visage dans la silhouette, sur une image en niveaux de gris dont le contraste est égalisé. Trois réglages précisent la recherche : l'échelle de 1,1 est le pas de réduction de l'image entre deux passages, les cinq voisins sont le nombre de détections voisines qui doivent concorder, et la taille minimale de 30 par 30 pixels est celle du plus petit visage cherché. Cette méthode peut prendre pour un visage un pli de vêtement, comme le col d'une chemise avec son bouton. Un second avis, fourni par le modèle de points du visage de MediaPipe, confirme ou écarte chaque visage trouvé.
   \item \textbf{Correction du contraste} : la méthode \gls{clahe}~\cite{zuiderveld1994clahe,opencv_clahe} est appliquée à la luminosité du visage, l'un des trois canaux de l'espace de couleur LAB. Elle égalise localement le contraste du visage avant le calcul du vecteur, ce qui rend les mesures plus stables d'une image à l'autre.
   \item \textbf{Représentation du visage} : le modèle FaceNet512, de la bibliothèque DeepFace, transforme le visage aligné (yeux redressés) en un vecteur de 512 nombres~\cite{schroff2015facenet,serengil2020lightface}. Le FaceNet décrit au chapitre~\ref{chap:1} produit 128 nombres ; DeepFace en propose une variante à 512, utilisée ici.
@@ -333,7 +325,7 @@ Ce pourcentage mesure la proximité de deux vecteurs et non la probabilité que 
 \subsection{Activer et utiliser le second facteur}
 
 Un seul réglage commande le second facteur : \emph{MFA obligatoire}, dans la page de configuration. \begin{maj}
-Il active l'\gls{mfa}. Le tableau de bord propose quatre profils de sécurité : portail, domicile, bureau et haute sécurité. Chaque profil regroupe des réglages adaptés à un type de lieu (section~\ref{sec:profils}). Le réglage est désactivé dans le profil domicile, retenu par défaut, et activé dans les profils bureau et haute sécurité. Le tableau~\ref{tab:mfa} compare les deux états.
+Il active l'\gls{mfa}, qui exige plus d'un facteur d'authentification~\cite{nist80063b}. Le tableau de bord propose quatre profils de sécurité : portail, domicile, bureau et haute sécurité. Chaque profil regroupe des réglages adaptés à un type de lieu (section~\ref{sec:profils}). Le réglage est désactivé dans le profil domicile, retenu par défaut, et activé dans les profils bureau et haute sécurité. Le tableau~\ref{tab:mfa} compare les deux états.
 \end{maj}
 
 \begin{table}[H]
@@ -582,31 +574,12 @@ Silhouette sans visage classée intrus après (s) & jamais & jamais & jamais & 5
 \end{tabularx}
 \end{table}
 
-Le tableau~\ref{tab:reglages} décrit les réglages principaux : leur rôle, leur valeur par défaut et la façon de les modifier (un curseur ou un interrupteur du tableau de bord, le profil de sécurité, ou le fichier de configuration). La durée d'analyse et l'intervalle de revérification ne prennent effet qu'au redémarrage du serveur.
-
-\begin{table}[H]
-\centering
-\caption{Principaux réglages}\label{tab:reglages}
-\small
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{1.3cm}>{\raggedright\arraybackslash}p{2.3cm}@{}}
-\toprule
-\textbf{Réglage} & \textbf{Rôle, et effet d'une hausse} & \textbf{Défaut} & \textbf{Où} \\
-\midrule
-Seuil de reconnaissance & Distance maximale entre deux vecteurs pour les juger identiques. Une hausse reconnaît plus de résidents mais augmente le risque de confondre deux personnes. & 0,35 & Curseur \\
-Intervalle de revérification & Délai entre deux contrôles d'une personne identifiée. Plus long : moins de calcul, mais un remplacement de personne est détecté plus tard. & 0,8 s & Curseur \\
-Durée d'analyse d'un visage inconnu & Temps laissé à la reconnaissance avant de classer l'individu intrus provisoire. Plus long : moins de faux intrus, alerte plus tardive. & 1 s & Curseur \\
-MFA obligatoire & Exige un second facteur après la reconnaissance du visage. & non & Interrupteur, profil \\
-Vivacité activée & Inclut le test de vivacité dans le second facteur. Désactivé, seule l'empreinte reste possible. & oui & Interrupteur, profil \\
-Délai de l'empreinte & Temps accordé pour valider l'empreinte, au-delà duquel l'accès est refusé. & 15 s & Curseur \\
-Fenêtre de grâce & Délai avant de confirmer un intrus provisoire. Plus long : plus de temps pour reconnaître un résident, mais alerte plus tardive. & 60 s & Curseur \\
-Conservation des photos & Durée avant la suppression automatique des photos. & 72 h & Curseur \\
-Suppression des messages Telegram & Délai avant la suppression d'un message d'alerte dans la conversation. Plafonné à 47 h ; 0 désactive. & 24 h & Fichier \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\begin{maj}
+Les autres réglages principaux sont : le seuil de décision (0,35), l'intervalle de revérification (0,8 seconde), la durée d'analyse d'un visage inconnu (1 seconde), l'obligation d'un second facteur, l'activation du test de vivacité, le délai de l'empreinte (15 secondes), la fenêtre de grâce (60 secondes), la durée de conservation des photos (72 heures) et le délai de suppression des messages Telegram (24 heures, au plus 47). Chacun se modifie depuis le tableau de bord, par le profil de sécurité ou par le fichier de configuration. La durée d'analyse et l'intervalle de revérification ne prennent effet qu'au redémarrage du serveur.
+\end{maj}
 
 \begin{maj}
-L'ajout d'une source vidéo (webcam \gls{usb}, flux \gls{mjpeg} ou \gls{rtsp}) ne figure pas dans ces tableaux : une source n'est pas un réglage mais une caméra, enregistrée séparément dans la table des caméras. La page de configuration permet de l'ajouter, de la modifier et de la supprimer.
+L'ajout d'une source vidéo (webcam \gls{usb}, flux \gls{mjpeg} ou \gls{rtsp}) ne figure pas dans ces réglages : une source n'est pas un réglage mais une caméra, enregistrée séparément dans la table des caméras. La page de configuration permet de l'ajouter, de la modifier et de la supprimer.
 \end{maj}
 
 \section{Gestion des erreurs et des pannes}
@@ -635,7 +608,7 @@ Trois pannes ne sont pas traitées :
 Cette section justifie les choix techniques de BioGate, classés par fonction.
 
 \begin{itemize}
-  \item \textbf{Détection des personnes, YOLOv8 nano} : c'est le plus petit modèle de la famille YOLOv8, avec 3,2 millions de paramètres. Il est entraîné sur la base \gls{coco}, qui comprend une classe \og personne \fg{}~\cite{ultralytics_yolov8docs}. Sa légèreté permet de l'exécuter sur un simple processeur ;
+  \item \textbf{Détection des personnes, YOLOv8 nano} : c'est le plus petit modèle de la famille YOLOv8, avec 3,2 millions de paramètres. Il est entraîné sur la base \gls{coco}~\cite{lin2014coco}, qui comprend une classe \og personne \fg{}~\cite{ultralytics_yolov8docs}. Sa légèreté permet de l'exécuter sur un simple processeur ;
   \item \textbf{Suivi, centroïde} : ce calcul est très léger et convient à un traitement local sur un petit matériel. Il suffit de comparer les centres des boîtes et un histogramme de couleur par individu ;
   \item \textbf{Détection du visage, cascade de Haar} : cette méthode de détection, proposée par Viola et Jones et fournie avec OpenCV~\cite{viola2001rapid,opencv_cascade}, est rapide. Elle permet de ne lancer le calcul lourd que sur les visages de face ;
   \item \textbf{Contraste, \gls{clahe}} : cette égalisation adaptative de l'histogramme limite le contraste~\cite{zuiderveld1994clahe,opencv_clahe}. Elle agit par zones de l'image, ce qui égalise le contraste du visage ;
