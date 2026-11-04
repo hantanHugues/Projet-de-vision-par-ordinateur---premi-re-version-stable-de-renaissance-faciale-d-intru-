@@ -7,6 +7,10 @@ Ce chapitre présente la conception de BioGate. Dans un premier temps, les besoi
 
 Cette section identifie ce que le système doit faire, les contraintes du projet et les acteurs concernés.
 
+\begin{maj}
+BioGate est un système de contrôle d'accès destiné aux lieux dont l'entrée est réservée à des personnes enregistrées : habitation, bureau, laboratoire, banque, établissement pénitentiaire. Le niveau d'exigence varie d'un lieu à l'autre ; les quatre profils de la section~\ref{sec:profils} (portail, domicile, bureau, haute sécurité) en couvrent la gamme.
+\end{maj}
+
 \subsection{Besoins fonctionnels}
 
 Le système doit répondre aux besoins suivants :
@@ -15,7 +19,7 @@ Le système doit répondre aux besoins suivants :
   \item identifier les personnes enrôlées à partir de leur visage ;
   \item exiger, selon le profil de sécurité choisi, un second facteur : une empreinte digitale ou un test de vivacité ;
   \item adapter les profils enrôlés aux changements d'apparence ;
-  \item classer en intrus un visage inconnu, conserver une photo et alerter le propriétaire à distance ;
+  \item classer en intrus un visage inconnu, conserver une photo et alerter le responsable du lieu à distance ;
   \item journaliser les événements et permettre leur consultation ;
   \item permettre l'enrôlement, la configuration et la supervision depuis un tableau de bord.
 \end{itemize}
@@ -27,7 +31,7 @@ Le système doit répondre aux besoins suivants :
   \item \textbf{Réactivité} : la fenêtre d'identification d'un visage inconnu est d'une seconde par défaut ;
   \item \textbf{Sobriété} : les modèles retenus sont légers, l'image est réduite avant la détection et les vecteurs des profils sont gardés en mémoire pour éviter d'interroger la base à chaque image ;
   \item \textbf{Résilience} : la caméra se reconnecte seule au dernier réseau Wi-Fi enregistré et la purge des photos s'exécute aussi au démarrage du serveur, ce qui rattrape un arrêt prolongé du serveur ;
-  \item \textbf{Fiabilité des alertes} : une fenêtre de grâce\glsadd{fenetregrace}, de 60 secondes par défaut, évite d'alerter à tort pour un résident pas encore identifié ;
+  \item \textbf{Fiabilité des alertes} : une fenêtre de grâce\glsadd{fenetregrace}, de 60 secondes par défaut, évite d'alerter à tort pour une personne autorisée pas encore identifié ;
   \item \textbf{Contrôle des accès au système} : la caméra et le tableau de bord sont protégés par une clé ou par un code de couplage.
 \end{itemize}
 
@@ -49,9 +53,9 @@ Les schémas suivent la notation \gls{uml}. Dans un diagramme de séquence, une 
 
 Cinq acteurs interagissent avec le système :
 \begin{itemize}
-  \item \textbf{Résident} : personne enrôlée, c'est-à-dire enregistrée par le propriétaire (\glsadd{enrolement}son visage est transformé en vecteurs, rangés dans un profil), qui entre chez elle. Le code et le tableau de bord l'appellent « VIP » ;
+  \item \textbf{Personne autorisée} : personne enrôlée, c'est-à-dire enregistrée par le responsable du lieu (\glsadd{enrolement}son visage est transformé en vecteurs, rangés dans un profil), qui peut entrer dans le lieu. Le code et le tableau de bord l'appellent « VIP » ;
   \item \textbf{Inconnu} : personne non enrôlée, présente devant la caméra ;
-  \item \textbf{Propriétaire} : personne qui supervise et configure le système depuis le tableau de bord ;
+  \item \textbf{Responsable du lieu} : personne qui supervise et configure le système depuis le tableau de bord ;
   \item \textbf{Lecteur d'empreinte} : second facteur, simulé dans le prototype ;
   \item \textbf{Service Telegram} : destinataire des alertes.
 \end{itemize}
@@ -63,10 +67,10 @@ La figure~\ref{fig:usecase} représente les cas d'utilisation. La reconnaissance
   uc/.style={draw, ellipse, align=center, font=\scriptsize, minimum width=3.7cm, minimum height=1.0cm, inner sep=1pt},
   ext/.style={font=\tiny, fill=white, inner sep=1pt}]
   % acteurs
-  \acteur{Res}{0,2.3}{Résident}
+  \acteur{Res}{0,2.3}{Personne autorisée}
   \acteur{Lec}{0,-0.5}{Lecteur d'empreinte\\(simulé)}
   \acteur{Inc}{0,-3.1}{Inconnu}
-  \acteur{Pro}{14.2,0.4}{Propriétaire}
+  \acteur{Pro}{14.2,0.4}{Responsable du lieu}
   \acteur{Tel}{4.4,-6.3}{Service\\Telegram}
   % système
   \draw (1.9,3.6) rectangle (12.3,-4.2);
@@ -256,18 +260,18 @@ Cette section décrit la chaîne de traitement, ou pipeline : les étapes appliq
   \item \textbf{Comparaison} : le vecteur est comparé à ceux des profils par la distance cosinus\glsadd{distancecosinus} définie en section~\ref{sec:cosinus}. Une personne est reconnue si la distance au profil le plus proche est inférieure au seuil de décision de 0,35. La confiance affichée vaut $(1 - d) \times 100$, où $d$ est la distance : elle est de 65~\% au seuil. Une distance de 0,22 donne par exemple une confiance de 78~\% et une reconnaissance ; une distance de 0,40 donne 60~\% et un refus. Les vecteurs sont chargés en mémoire au démarrage et rechargés après chaque enrôlement ou mise à jour, ce qui évite d'interroger la base de données à chaque image.
   \item \textbf{Décision} :
     \begin{itemize}
-      \item un résident est accepté dès la première correspondance sous le seuil ;
+      \item une personne autorisée est accepté dès la première correspondance sous le seuil ;
       \item un visage inconnu est jugé une seconde après son apparition : l'individu devient alors intrus provisoire ;
-      \item une personne identifiée est revérifiée toutes les 0,8 seconde, pour qu'un résident ne puisse pas être remplacé par un intrus après sa validation ;
+      \item une personne identifiée est revérifiée toutes les 0,8 seconde, pour qu'une personne autorisée ne puisse pas être remplacée par un intrus après sa validation ;
       \item trois échecs consécutifs sont nécessaires pour remettre en question une personne identifiée, afin qu'un changement d'expression ou de lumière ne crée pas un faux intrus ;
       \item une personne remise en question dispose de cinq secondes, au lieu d'une, pour être reconnue de nouveau ;
-      \item un intrus provisoire reconnu comme résident à une distance inférieure à 0,25 est reclassé aussitôt, et son alerte est annulée.
+      \item un intrus provisoire reconnu comme personne autorisée à une distance inférieure à 0,25 est reclassé aussitôt, et son alerte est annulée.
     \end{itemize}
     Chaque décision est enregistrée dans la base de données sous forme d'événement.
-  \item \textbf{Photo de l'intrus présumé} : lorsqu'un individu devient intrus provisoire, une photo de sa silhouette est rattachée à l'événement et à l'alerte. Elle est supprimée selon la règle de conservation de 72 heures (section~\ref{sec:vieprivee}). Seul un individu soupçonné est photographié, jamais un résident reconnu.
+  \item \textbf{Photo de l'intrus présumé} : lorsqu'un individu devient intrus provisoire, une photo de sa silhouette est rattachée à l'événement et à l'alerte. Elle est supprimée selon la règle de conservation de 72 heures (section~\ref{sec:vieprivee}). Seul un individu soupçonné est photographié, jamais une personne autorisée reconnu.
 \end{enumerate}
 
-Le seuil de décision de 0,35 a été réglé par des essais à la webcam : à 0,20, des résidents étaient refusés, et à 0,60, des inconnus étaient acceptés. La valeur par défaut de la bibliothèque DeepFace pour FaceNet512 est de 0,30~\cite{serengil_deepface_thresholds}. Relever le seuil réduit les refus de résidents mais augmente le risque de confondre deux personnes ; l'abaisser produit l'effet inverse. C'est le compromis entre les taux de fausse acceptation et de faux rejet défini au chapitre~\ref{chap:1}.
+Le seuil de décision de 0,35 a été réglé par des essais à la webcam : à 0,20, des personnes autorisées étaient refusées, et à 0,60, des inconnus étaient acceptés. La valeur par défaut de la bibliothèque DeepFace pour FaceNet512 est de 0,30~\cite{serengil_deepface_thresholds}. Relever le seuil réduit les refus de personnes autorisées mais augmente le risque de confondre deux personnes ; l'abaisser produit l'effet inverse. C'est le compromis entre les taux de fausse acceptation et de faux rejet défini au chapitre~\ref{chap:1}.
 
 Un intrus est un visage inconnu, et non une silhouette sans visage : le détecteur de personnes prend parfois pour une personne une main placée près de l'objectif ou un torse, qui n'ont pas de visage de face. Une silhouette sans visage reste donc en attente. Elle ne devient jamais intrus provisoire dans les trois premiers profils du tableau~\ref{tab:profils}, et le devient au bout de 5 secondes dans le profil haute sécurité. Si elle disparaît après plus de trois secondes de présence sans avoir montré de visage, le serveur enregistre seulement un passage sans visage dans le journal, sans photo ni alerte.
 \end{maj}
@@ -282,11 +286,11 @@ Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etat
 \begin{itemize}
   \item \textbf{Repos} : état initial, avant l'arrivée d'un individu ;
   \item \textbf{Analyse} : l'individu vient d'apparaître et son visage est en cours d'analyse ;
-  \item \textbf{Accès accordé} : un résident est reconnu et, si besoin, son second facteur est validé ;
+  \item \textbf{Accès accordé} : une personne autorisée est reconnu et, si besoin, son second facteur est validé ;
   \item \textbf{Second facteur en attente} : le visage est reconnu et l'authentification multifacteur est activée ;
   \item \textbf{Accès refusé} : le second facteur a échoué ou le délai est dépassé ;
   \item \textbf{Intrus provisoire} : le visage est resté inconnu, la fenêtre de grâce est ouverte ;
-  \item \textbf{Intrus confirmé} : la fenêtre de grâce s'est terminée sans que l'individu soit reconnu comme résident.
+  \item \textbf{Intrus confirmé} : la fenêtre de grâce s'est terminée sans que l'individu soit reconnu comme personne autorisée.
 \end{itemize}
 
 \begin{figure}[H]
@@ -310,7 +314,7 @@ Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etat
   \draw[->] (fp) -- node[lab, above] {échec ou\\{[}15 s{]}} (den);
   \draw[->] (ana.south) -- node[lab, above right, pos=0.55] {visage inconnu\\{[}après 1 s{]}} (ip.west);
   \draw[->] (ip) -- node[lab, above] {grâce\\écoulée} (ic);
-  \draw[->] (ip.south) -- ++(0,-0.7) -| node[lab, pos=0.25, below] {résident reconnu / alerte annulée} (ana.south west);
+  \draw[->] (ip.south) -- ++(0,-0.7) -| node[lab, pos=0.25, below] {personne autorisée reconnue / alerte annulée} (ana.south west);
 \end{tikzpicture}
 \caption{Diagramme d'états d'un individu suivi}\label{fig:etats}
 \end{figure}
@@ -377,7 +381,7 @@ BioGate n'utilise qu'une caméra ordinaire en deux dimensions, sans capteur de p
 
 \subsection{Adaptation des profils par apprentissage continu}\label{sec:adapt}
 
-L'enrôlement initial d'une personne est une action volontaire du propriétaire. Ensuite, le profil s'enrichit en trois étapes :
+L'enrôlement initial d'une personne est une action volontaire du responsable du lieu. Ensuite, le profil s'enrichit en trois étapes :
 \begin{enumerate}
   \item pendant l'attente du second facteur, le système met de côté le vecteur du visage courant ;
   \item si l'empreinte confirme l'identité, ce vecteur est ajouté au profil ;
@@ -392,12 +396,12 @@ Un ajout sans confirmation a été écarté, car le système pourrait apprendre 
 
 Trois diagrammes de séquence détaillent les échanges, à partir du code du serveur.
 
-Le premier (figure~\ref{fig:seq1}) concerne un résident qui se présente devant la caméra. Le serveur détecte la personne, calcule le vecteur de son visage et le compare à ceux des profils. Si la distance est inférieure au seuil, l'événement est enregistré et le tableau de bord reçoit l'identité et le score. Lorsque l'authentification multifacteur est activée, le tableau de bord affiche le geste demandé, que la personne exécute devant la caméra.
+Le premier (figure~\ref{fig:seq1}) concerne une personne autorisée qui se présente devant la caméra. Le serveur détecte la personne, calcule le vecteur de son visage et le compare à ceux des profils. Si la distance est inférieure au seuil, l'événement est enregistré et le tableau de bord reçoit l'identité et le score. Lorsque l'authentification multifacteur est activée, le tableau de bord affiche le geste demandé, que la personne exécute devant la caméra.
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[>={Stealth[length=2mm]}]
-  \seqhead{A}{0}{Résident}
+  \seqhead{A}{0}{Personne autorisée}
   \seqhead{B}{2.9}{Caméra}
   \seqhead{C}{6.0}{Serveur}
   \seqhead{D}{9.0}{Base\\SQLite}
@@ -420,10 +424,10 @@ Le premier (figure~\ref{fig:seq1}) concerne un résident qui se présente devant
   \seqself{6.0}{-8.1}{geste vérifié (85 \%)}{2.2cm}
   \seqasync{6.0}{12.0}{-9.0}{accès accordé}
 \end{tikzpicture}
-\caption{Diagramme de séquence : reconnaissance d'un résident}\label{fig:seq1}
+\caption{Diagramme de séquence : reconnaissance d'une personne autorisée}\label{fig:seq1}
 \end{figure}
 
-Le deuxième (figure~\ref{fig:seq2}) concerne un visage inconnu. Une seconde après l'apparition du visage, l'individu devient un intrus provisoire et une photo est prise. Pendant la fenêtre de grâce, la reconnaissance d'un résident annule l'alerte et supprime la photo. Sinon, l'intrus est confirmé et le message part vers Telegram avec la photo.
+Le deuxième (figure~\ref{fig:seq2}) concerne un visage inconnu. Une seconde après l'apparition du visage, l'individu devient un intrus provisoire et une photo est prise. Pendant la fenêtre de grâce, la reconnaissance d'une personne autorisée annule l'alerte et supprime la photo. Sinon, l'intrus est confirmé et le message part vers Telegram avec la photo.
 
 \begin{figure}[H]
 \centering
@@ -433,7 +437,7 @@ Le deuxième (figure~\ref{fig:seq2}) concerne un visage inconnu. Une seconde apr
   \seqhead{C}{5.5}{Serveur}
   \seqhead{D}{8.3}{Base\\SQLite}
   \seqhead{E}{10.9}{Service\\Telegram}
-  \seqhead{F}{13.5}{Propriétaire}
+  \seqhead{F}{13.5}{Responsable du lieu}
   \seqlife{A}{-11.8}\seqlife{B}{-11.8}\seqlife{C}{-11.8}\seqlife{D}{-11.8}\seqlife{E}{-11.8}\seqlife{F}{-11.8}
   \seqactiv{5.5}{-2.0}{-4.8}
   \seqactiv{8.3}{-4.2}{-4.7}
@@ -447,7 +451,7 @@ Le deuxième (figure~\ref{fig:seq2}) concerne un visage inconnu. Une seconde apr
   \seqsync{5.5}{8.3}{-4.2}{journalise INTRUDER\_PENDING}
   \seqret{8.3}{5.5}{-4.7}{ok}
   \draw[dashed] (-0.7,-5.2) rectangle (14.4,-11.5);
-  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-5.2) {alt {[}résident reconnu pendant la grâce{]}};
+  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-5.2) {alt {[}personne autorisée reconnu pendant la grâce{]}};
   \seqself{5.5}{-6.0}{alerte annulée, photo supprimée}{2.0cm}
   \draw[dashed] (-0.7,-7.2) -- (14.4,-7.2);
   \node[font=\tiny, anchor=north west] at (-0.6,-7.2) {{[}individu hors du champ{]}};
@@ -466,7 +470,7 @@ Le troisième (figure~\ref{fig:seq3}) concerne l'enrichissement d'un profil. Si 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[>={Stealth[length=2mm]}]
-  \seqhead{A}{0}{Résident}
+  \seqhead{A}{0}{Personne autorisée}
   \seqhead{B}{3.3}{Serveur}
   \seqhead{C}{6.8}{Lecteur d'empreinte\\(simulé)}
   \seqhead{D}{10.2}{Base\\SQLite}
@@ -507,12 +511,12 @@ La base est un fichier SQLite~\cite{sqlite_about} local, exclu du dépôt de cod
 \caption{Modèle de données de BioGate (tables SQLite ; \underline{souligné} : clé primaire, FK : clé étrangère)}\label{fig:donnees}
 \end{figure}
 
-Le journal enregistre dix types d'événements : entrée d'un résident, accès refusé, intrus provisoire, intrus confirmé, test de vivacité réussi, empreinte acceptée, empreinte refusée, alerte de fuite, passage sans visage et simple détection. Dans le code, ces types portent des noms en anglais, comme VIP\_ENTRY pour l'entrée d'un résident ou INTRUDER\_CONFIRMED pour un intrus confirmé. Deux types demandent une précision :
+Le journal enregistre dix types d'événements : entrée d'une personne autorisée, accès refusé, intrus provisoire, intrus confirmé, test de vivacité réussi, empreinte acceptée, empreinte refusée, alerte de fuite, passage sans visage et simple détection. Dans le code, ces types portent des noms en anglais, comme VIP\_ENTRY pour l'entrée d'une personne autorisée ou INTRUDER\_CONFIRMED pour un intrus confirmé. Deux types demandent une précision :
 \begin{itemize}
   \item \textbf{Alerte de fuite} : un visage a été vu, puis l'individu a disparu avant le verdict ;
   \item \textbf{Passage sans visage} : une silhouette est restée sans jamais montrer de visage.
 \end{itemize}
-Un intrus reçoit une ligne dans la table des profils, sous un nom comme « Intrus\_001 », pour que le journal puisse s'y rattacher. Son vecteur n'est jamais conservé. Les vecteurs des résidents ne sont pas chiffrés dans la base.
+Un intrus reçoit une ligne dans la table des profils, sous un nom comme « Intrus\_001 », pour que le journal puisse s'y rattacher. Son vecteur n'est jamais conservé. Les vecteurs des personnes autorisées ne sont pas chiffrés dans la base.
 
 Plusieurs mesures limitent la conservation des données :
 \begin{itemize}
@@ -529,7 +533,7 @@ Cette durée limitée de conservation des photos répond au principe de limitati
 Cette section décrit la confirmation d'un intrus et l'envoi de l'alerte. Le déroulement est le suivant :
 \begin{enumerate}
   \item un visage inconnu est classé intrus provisoire, et une fenêtre de grâce s'ouvre ;
-  \item si un résident est reconnu pendant la fenêtre, l'alerte est annulée en silence et la photo supprimée ;
+  \item si une personne autorisée est reconnu pendant la fenêtre, l'alerte est annulée en silence et la photo supprimée ;
   \item si l'individu quitte le champ de la caméra pendant la fenêtre, le minuteur est annulé, la photo supprimée et aucune alerte n'est envoyée ; seul l'événement d'intrus provisoire reste au journal ;
   \item sinon, l'intrus est confirmé et le serveur envoie un message avec la photo par Telegram.
 \end{enumerate}

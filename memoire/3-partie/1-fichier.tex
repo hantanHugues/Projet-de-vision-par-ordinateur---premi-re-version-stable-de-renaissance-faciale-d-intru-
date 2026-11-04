@@ -44,17 +44,17 @@ La page de surveillance (figure~\ref{fig:dashboard}) constitue l'écran principa
 
 \subsubsection{Page du journal}
 
-La page du journal d'accès (figure~\ref{fig:dashjournal}) liste les événements enregistrés, du plus récent au plus ancien. Trois filtres permettent de choisir la période, le type d'événement et le nom d'un résident. La page propose aussi l'export au format CSV, la suppression d'une ligne avec sa photo, et un bouton de purge dont une boîte de dialogue explique la portée. Des étiquettes distinguent les types d'événements : accès d'un résident, vivacité, empreinte, empreinte refusée, refus, intrus provisoire, intrus, fuite et passage.
+La page du journal d'accès (figure~\ref{fig:dashjournal}) liste les événements enregistrés, du plus récent au plus ancien. Trois filtres permettent de choisir la période, le type d'événement et le nom d'une personne autorisée. La page propose aussi l'export au format CSV, la suppression d'une ligne avec sa photo, et un bouton de purge dont une boîte de dialogue explique la portée. Des étiquettes distinguent les types d'événements : accès d'une personne autorisée, vivacité, empreinte, empreinte refusée, refus, intrus provisoire, intrus, fuite et passage.
 
 \imageouplace{dashboard_journal.png}{0.95\textwidth}{Page du journal d'accès (données de démonstration)}{fig:dashjournal}
 
 \subsubsection{Page des profils}
 
-La page des profils, intitulée VIP dans le menu, affiche une carte par résident : initiales, nom, nombre de vecteurs enregistrés, rôle (administrateur, personnel autorisé ou visiteur) et date d'enrôlement. Elle permet de retirer un profil et d'en enrôler un, soit à partir d'un fichier image, soit par une capture de la webcam. L'enrôlement est la seule voie, avec la confirmation par empreinte, pour ajouter un vecteur de visage à la base.
+La page des profils, intitulée VIP dans le menu, affiche une carte par personne autorisée : initiales, nom, nombre de vecteurs enregistrés, rôle (administrateur, personnel autorisé ou visiteur) et date d'enrôlement. Elle permet de retirer un profil et d'en enrôler un, soit à partir d'un fichier image, soit par une capture de la webcam. L'enrôlement est la seule voie, avec la confirmation par empreinte, pour ajouter un vecteur de visage à la base.
 
 \subsubsection{Page des statistiques}
 
-La page des statistiques présente quatre indicateurs pour la période choisie : le nombre d'accès accordés, d'accès refusés et d'intrus confirmés, ainsi que le score moyen de confiance. Elle ajoute un graphique des accès par jour et la liste des résidents les plus actifs. Elle n'affiche pas encore les compteurs d'alertes de fuite et de passages sans visage, que le serveur calcule déjà.
+La page des statistiques présente quatre indicateurs pour la période choisie : le nombre d'accès accordés, d'accès refusés et d'intrus confirmés, ainsi que le score moyen de confiance. Elle ajoute un graphique des accès par jour et la liste des personnes autorisées les plus actives. Elle n'affiche pas encore les compteurs d'alertes de fuite et de passages sans visage, que le serveur calcule déjà.
 
 \subsubsection{Page de configuration}
 
@@ -148,7 +148,7 @@ Suppression des messages Telegram & 11 & Enregistrement de chaque message envoy�
 Détection du visage de face & 28 & Position du rectangle autour du visage, délai avant de classer une personne dont on ne voit pas le visage, traces laissées par un simple passage, alerte quand une personne s'enfuit \\
 Suppression des photographies & 25 & Suppression des photographies de plus de 72 heures, conservation des lignes du journal, photographies sans événement, heure de coupure en temps universel, tâche répétée toutes les heures, accès réservé au tableau de bord \\
 Sources vidéo et caméras & 37 & Lecture d'un flux protégé par mot de passe (avec un faux flux qui imite la carte), masquage de la clé dans l'adresse, redémarrage d'une caméra modifiée, affichage en miroir de la webcam \\
-Classement des personnes (résident, inconnu, intrus) & 20 & Faux visage sur une chemise, résident remis en question puis reconnu de nouveau, annulation d'un intrus provisoire reconnu comme résident, comptage des intrus \\
+Classement des personnes (personne autorisée, inconnu, intrus) & 20 & Faux visage sur une chemise, personne autorisée remise en question puis reconnue de nouveau, annulation d'un intrus provisoire reconnu comme personne autorisée, comptage des intrus \\
 Test de vivacité & 8 & Activation du geste selon le réglage, prise en compte immédiate d'un changement de réglage, accès par l'empreinte seule quand le test est désactivé \\
 Installation du modèle de points du visage & 5 & Téléchargement du modèle de MediaPipe et contrôle de son intégrité \\
 \midrule
@@ -198,14 +198,14 @@ Le tableau~\ref{tab:regimes} donne le temps de traitement d'une image selon la s
 \textbf{Situation} & \textbf{Médiane (ms)} & \textbf{95\textsuperscript{e} centile (ms)} & \textbf{Images par seconde} \\
 \midrule
 Première image d'un inconnu & 401 & 415 & 2,5 \\
-Première image d'un résident & 443 & 456 & 2,2 \\
+Première image d'une personne autorisée & 443 & 456 & 2,2 \\
 Personne déjà identifiée, débit maximal & 27 & 419 & 18,3 \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \begin{maj}
-Un résident passe de la première image à l'accès accordé en 0,45 seconde en médiane (10 essais sur 10). Un inconnu devient intrus provisoire en 1,64 seconde : ce délai comprend la seconde d'analyse prévue par le réglage, ce n'est pas un coût de calcul. Pendant un essai de 300 secondes, le débit est resté stable (18,42 images par seconde au début, 18,47 à la fin), le processeur a été utilisé à 51~\% et la mémoire du processus n'a pas varié (1\,135 Mo au départ, 1\,133 Mo à la fin). La scène est une photographie fixe sur fond noir, sur une seule machine : ces valeurs isolent le coût de la chaîne, pas celui d'une scène réelle avec plusieurs personnes.
+Une personne autorisée passe de la première image à l'accès accordé en 0,45 seconde en médiane (10 essais sur 10). Un inconnu devient intrus provisoire en 1,64 seconde : ce délai comprend la seconde d'analyse prévue par le réglage, ce n'est pas un coût de calcul. Pendant un essai de 300 secondes, le débit est resté stable (18,42 images par seconde au début, 18,47 à la fin), le processeur a été utilisé à 51~\% et la mémoire du processus n'a pas varié (1\,135 Mo au départ, 1\,133 Mo à la fin). La scène est une photographie fixe sur fond noir, sur une seule machine : ces valeurs isolent le coût de la chaîne, pas celui d'une scène réelle avec plusieurs personnes.
 
 Le filtre de visage (étape 3 du chapitre~\ref{chap:2}) utilise le détecteur de Haar pour confirmer qu'un visage est de face. Le serveur doit aussi tracer à l'écran un rectangle autour du visage. Plutôt que de relancer le détecteur de Haar pour retrouver la position du visage, il réutilise la position déjà trouvée par le filtre. Cette économie a été mesurée sur une photographie de test, avec des modules factices à la place de YOLO et de FaceNet512, ce qui isole le coût du filtre de visage. Par rapport à un fonctionnement où le détecteur est relancé pour tracer le rectangle, le temps de traitement d'une image passe de 121 ms à 63 ms pendant l'identification d'une personne (gain de 48~\%), et de 79 ms à 19 ms pour une personne déjà identifiée, à 5 images par seconde (gain de 76~\%). Avec trois personnes dans l'image, les gains sont de 49~\% et de 78~\%.
 \end{maj}
@@ -217,7 +217,7 @@ Le taux de fausse acceptation (\gls{far}) et le taux de faux rejet (\gls{frr}) o
 \begin{itemize}
   \item \textbf{Données} : 500 paires de la même personne et 500 paires de personnes différentes, soit 1\,549 images distinctes ;
   \item \textbf{Chaîne} : identique à celle de BioGate, c'est-à-dire détection de Haar, \gls{clahe}, FaceNet512 avec alignement et distance cosinus. Le détecteur de Haar a trouvé un visage dans 1\,527 images ; pour les 22 autres, l'image entière a été utilisée ;
-  \item \textbf{Définitions} : le \gls{far} est la part des paires de personnes différentes dont la distance est sous le seuil, c'est-à-dire un inconnu accepté ; le \gls{frr} est la part des paires de la même personne dont la distance est au-dessus du seuil, c'est-à-dire un résident refusé.
+  \item \textbf{Définitions} : le \gls{far} est la part des paires de personnes différentes dont la distance est sous le seuil, c'est-à-dire un inconnu accepté ; le \gls{frr} est la part des paires de la même personne dont la distance est au-dessus du seuil, c'est-à-dire une personne autorisée refusé.
 \end{itemize}
 
 Au seuil de décision de 0,35 (la distance maximale à laquelle deux visages sont jugés identiques), valeur utilisée par BioGate, le \gls{far} est de 0,0~\% et le \gls{frr} de 52,0~\% : aucune paire de personnes différentes n'a été acceptée, mais 52~\% des paires d'une même personne ont été refusées. Le seuil où le \gls{far} et le \gls{frr} sont égaux, appelé point d'égal taux d'erreur, est de 13,1~\%, atteint à 0,74. L'aire sous la courbe \gls{roc}~\cite{fawcett2006roc} est de 0,931. Cette courbe place, pour chaque seuil possible, la part des paires identiques acceptées contre la part des paires différentes acceptées à tort : son aire vaut 1 pour un système parfait et 0,5 pour un tirage au hasard. La distance moyenne est de 0,424 pour la même personne et de 0,923 pour des personnes différentes. Le tableau~\ref{tab:farfrr} donne les taux selon le seuil, et la figure~\ref{fig:farfrr} les courbes.
@@ -258,7 +258,7 @@ Les performances publiées pour FaceNet sont meilleures que celles mesurées ici
 \subsection{Conditions de prise de vue}\label{sec:detection}
 
 \begin{maj}
-Trois séances à la webcam, avec le serveur réel, comparent la reconnaissance selon l'éclairage. La première, avec une webcam peu éclairée, a une luminosité moyenne de l'image de 49 sur 255. Pendant 46 secondes, le serveur a reconfirmé 39 fois l'identité d'un résident, avec une distance moyenne de 0,178 (médiane de 0,160, minimum de 0,11, maximum de 0,29), toujours sous le seuil de 0,35. L'accès a été accordé avec un score de 75,2~\%, calculé sur une seule image : d'après la formule $(1-d)\times 100$ du chapitre~\ref{chap:2}, il correspond à une distance de 0,248, comprise entre le minimum et le maximum. La deuxième séance, en pleine lumière, avec la personne bien placée face à la caméra, a donné 57 reconfirmations avec une distance moyenne de 0,110 (maximum de 0,17), toutes sous le seuil, et 4 accès accordés avec un score de 88,5~\% à 97,4~\%. La distance est donc plus faible en pleine lumière qu'en faible éclairage (0,110 contre 0,178).
+Trois séances à la webcam, avec le serveur réel, comparent la reconnaissance selon l'éclairage. La première, avec une webcam peu éclairée, a une luminosité moyenne de l'image de 49 sur 255. Pendant 46 secondes, le serveur a reconfirmé 39 fois l'identité d'une personne autorisée, avec une distance moyenne de 0,178 (médiane de 0,160, minimum de 0,11, maximum de 0,29), toujours sous le seuil de 0,35. L'accès a été accordé avec un score de 75,2~\%, calculé sur une seule image : d'après la formule $(1-d)\times 100$ du chapitre~\ref{chap:2}, il correspond à une distance de 0,248, comprise entre le minimum et le maximum. La deuxième séance, en pleine lumière, avec la personne bien placée face à la caméra, a donné 57 reconfirmations avec une distance moyenne de 0,110 (maximum de 0,17), toutes sous le seuil, et 4 accès accordés avec un score de 88,5~\% à 97,4~\%. La distance est donc plus faible en pleine lumière qu'en faible éclairage (0,110 contre 0,178).
 
 La troisième séance, à contre-jour, met en échec le filtre de visage : le détecteur de Haar ne trouve le visage que sur une faible part des images, alors que le modèle de points du visage de MediaPipe le voit sur la grande majorité. Ni l'égalisation globale du contraste ni la méthode CLAHE ne changent ce résultat. La personne reste alors en attente de visage et n'est pas reconnue.
 
@@ -460,7 +460,7 @@ Suppression des photos et reprise après incident & Limiter la conservation ; re
 \begin{maj}
 L'objectif du travail était de réaliser un prototype de contrôle d'accès par reconnaissance faciale qui traite les images en local, limite l'usurpation et reste fiable malgré les changements d'apparence de ses utilisateurs. Les essais montrent que ces trois objectifs sont atteints, avec des réserves.
 
-Premièrement, le traitement est local. L'analyse des images, le calcul des vecteurs, la base de données et la purge s'exécutent sur le serveur, et le fonctionnement de base n'appelle aucun service extérieur : seuls les envois d'alerte en sortent, et ils sont désactivés tant que le propriétaire ne les active pas. La photographie de l'intrus transite toutefois par Telegram, et le message est supprimé de la conversation après 24 heures.
+Premièrement, le traitement est local. L'analyse des images, le calcul des vecteurs, la base de données et la purge s'exécutent sur le serveur, et le fonctionnement de base n'appelle aucun service extérieur : seuls les envois d'alerte en sortent, et ils sont désactivés tant que le responsable du lieu ne les active pas. La photographie de l'intrus transite toutefois par Telegram, et le message est supprimé de la conversation après 24 heures.
 
 Deuxièmement, un test de vivacité actif est en place. Il tire au sort un geste à chaque tentative, reconnaît correctement les sourires et les clignements, et rejette les photographies fixes. Il est cependant franchi par une vidéo qui contient les deux gestes en continu, ce qui limite sa protection.
 
@@ -505,7 +505,7 @@ Le chapitre~\ref{chap:1} retient deux exigences : recueillir le consentement exp
 \begin{itemize}
   \item \textbf{Conservation limitée} : les photos d'intrus sont supprimées automatiquement après 72 heures, et les messages Telegram après 24 heures ;
   \item \textbf{Effacement} : un profil se supprime avec ses vecteurs, et un événement avec sa photo ;
-  \item \textbf{Minimisation} : le traitement est local ; pour un résident, seul un vecteur numérique est conservé, sans photo ;
+  \item \textbf{Minimisation} : le traitement est local ; pour une personne autorisée, seul un vecteur numérique est conservé, sans photo ;
   \item \textbf{Accès restreint} : le couplage par un code puis un jeton réserve l'accès aux données au tableau de bord, et les identifiants des canaux d'alerte ne sont jamais renvoyés en clair par l'interface.
 \end{itemize}
 Les photos d'intrus envoyées à Telegram quittent le serveur local : la suppression après 24 heures atténue cette entorse au traitement local. Le consentement explicite des personnes enrôlées, les formalités auprès de l'Autorité de protection des données à caractère personnel et le chiffrement des vecteurs ne sont pas réalisés : ils figurent dans les perspectives.
@@ -521,7 +521,7 @@ Les limites du prototype sont les suivantes :
   \item \textbf{Filtre de visage} : il valide moins de photographies pour certains groupes (région, sexe) et n'a pas été testé sur des visages variés en conditions réelles de caméra ;
   \item \textbf{Contre-jour} : le détecteur de Haar ne trouve le visage que sur une faible part des images lorsque le visage est à contre-jour, et la reconnaissance n'est alors pas lancée ;
   \item \textbf{Matériel} : le lecteur d'empreinte, la gâche et la lumière sont simulés, l'écran \gls{lcd} n'est pas encore intégré, et le portage sur un micro-ordinateur monocarte n'a pas été essayé ;
-  \item \textbf{Visages proches} : le vecteur du second profil de résident le plus proche du profil principal est à 0,306, sous le seuil de 0,35, et une confusion entre ces deux résidents est possible. En conditions réelles, des distances de 0,23 à 0,35 ont été observées entre le visage du premier et ce second profil. La mesure à la webcam donne une marge toujours positive entre les deux profils, d'au moins 0,109. Aucune marge de décision n'est ajoutée entre profils proches ;
+  \item \textbf{Visages proches} : le vecteur du second profil de personne autorisée le plus proche du profil principal est à 0,306, sous le seuil de 0,35, et une confusion entre ces deux personnes autorisées est possible. En conditions réelles, des distances de 0,23 à 0,35 ont été observées entre le visage du premier et ce second profil. La mesure à la webcam donne une marge toujours positive entre les deux profils, d'au moins 0,109. Aucune marge de décision n'est ajoutée entre profils proches ;
   \item \textbf{Sécurité} : pas de \gls{https}, routes sans jeton utilisées par le programme client de développement, aucun audit externe, vecteurs et identifiants d'alerte non chiffrés dans la base, réglages et clé de la caméra non chiffrés dans la mémoire flash de la carte ;
   \item \textbf{Alertes} : un envoi qui échoue n'est pas renvoyé, un intrus qui quitte le champ avant la fin de la fenêtre de grâce n'est pas signalé, les messages Telegram envoyés avant la suppression automatique restent dans la conversation, et l'envoi par courrier électronique n'est pas éprouvé ;
   \item \textbf{Caméra et sources} : le flux \gls{rtsp} et le \gls{https} n'ont pas été éprouvés ;
@@ -538,13 +538,14 @@ Les suites du travail s'articulent autour des axes suivants :
   \item \textbf{Sécuriser les échanges} : étendre le jeton à toutes les routes, ajouter une authentification des équipements, passer en \gls{https} et faire réaliser un audit externe ;
   \item \textbf{Protéger les données} : chiffrer les vecteurs et les identifiants dans la base ainsi que les réglages mémorisés dans la carte, et ne conserver que des gabarits chiffrés, comme l'impose, sur les lieux de travail, le règlement type de la \gls{cnil} pris ici comme référence~\cite{cnil2019reglementtype} ;
   \item \textbf{Compléter le matériel} : relier un lecteur d'empreinte et une gâche réels, réaliser l'écran \gls{lcd} des consignes, et alimenter les modules par une petite batterie pour couvrir les courtes coupures de courant ;
-  \item \textbf{Prévoir un mode dégradé} : si le flux vidéo est coupé, éteint ou illisible, activer automatiquement le lecteur d'empreinte pour que les propriétaires puissent entrer pendant que le problème est résolu. Dans le fonctionnement actuel, le lecteur n'est sollicité qu'après une reconnaissance du visage ;
+  \item \textbf{Prévoir un mode dégradé} : si le flux vidéo est coupé, éteint ou illisible, activer automatiquement le lecteur d'empreinte pour que les personnes autorisées puissent entrer pendant que le problème est résolu. Dans le fonctionnement actuel, le lecteur n'est sollicité qu'après une reconnaissance du visage ;
   \item \textbf{Transmettre le code de couplage} : l'afficher sur un écran \gls{lcd} ou l'envoyer par SMS grâce à un module GSM dédié, au lieu du terminal du serveur ;
   \item \textbf{Renforcer la protection contre l'usurpation} : ajouter un capteur de profondeur, exiger des gestes qui ne peuvent pas être joués en continu par une vidéo, essayer des images et des vidéos générées par intelligence artificielle, et mesurer la résistance du test de vivacité selon la norme ISO/IEC 30107-3~\cite{iso30107} ;
   \item \textbf{Évaluer à plus grande échelle} : valider la mesure des taux d'erreur sur les dix séries de LFW, puis avec plusieurs photographies par personne enrôlées à la webcam, et tester le filtre de visage sur des visages variés en conditions réelles de caméra ;
   \item \textbf{Élargir les alertes} : valider l'envoi par courrier électronique avec un vrai serveur, essayer en conditions réelles la suppression d'une alerte accompagnée d'une photo, et envisager WhatsApp malgré son coût par message ;
   \item \textbf{Améliorer la détection à contre-jour} : s'appuyer sur le modèle de points du visage de MediaPipe, qui trouve le visage dans cette situation, pour décider qu'un visage est présent ;
   \item \textbf{Alléger le calcul} : quantifier les modèles et porter le système sur un micro-ordinateur monocarte ;
+  \item \textbf{Rechercher des personnes précises} : comparer les visages à une liste de personnes recherchées, par exemple dans un lieu public. Cet usage exige un seuil de décision plus strict, une vérification humaine avant toute action et l'accord préalable de l'Autorité de protection des données à caractère personnel ;
   \item \textbf{Respecter le cadre légal} : accomplir les formalités auprès de l'Autorité de protection des données à caractère personnel et recueillir le consentement explicite des personnes enrôlées, comme l'exige le Code du numérique béninois.
 \end{itemize}
 \end{maj}
