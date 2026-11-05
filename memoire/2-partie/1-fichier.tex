@@ -167,6 +167,7 @@ La figure~\ref{fig:reseau} montre l'organisation du réseau prévue. Un routeur 
   \draw[->] (srv) -- node[right, font=\scriptsize] {alerte} (tg);
   \draw[->, dashed] (ups) -- (rt);
   \draw[->, dashed] (ups) -- (srv);
+  \draw[->, dashed] (ups) to[bend left=20] (cam);
 \end{tikzpicture}
 \caption{Réseau local fermé prévu (les éléments en pointillés ne sont pas réalisés ou sont simulés)}\label{fig:reseau}
 \end{figure}
@@ -268,7 +269,7 @@ Cette section décrit la chaîne de traitement, ou pipeline : les étapes appliq
       \item un intrus provisoire reconnu comme personne autorisée à une distance inférieure à 0,25 est reclassé aussitôt, et son alerte est annulée.
     \end{itemize}
     Chaque décision est enregistrée dans la base de données sous forme d'événement.
-  \item \textbf{Photo de l'intrus présumé} : lorsqu'un individu devient intrus provisoire, une photo de sa silhouette est rattachée à l'événement et à l'alerte. Elle est supprimée selon la règle de conservation de 72 heures (section~\ref{sec:vieprivee}). Seul un individu soupçonné est photographié, jamais une personne autorisée reconnu.
+  \item \textbf{Photo de l'intrus présumé} : lorsqu'un individu devient intrus provisoire, une photo de sa silhouette est rattachée à l'événement et à l'alerte. Elle est supprimée selon la règle de conservation de 72 heures (section~\ref{sec:vieprivee}). Seul un individu soupçonné est photographié, jamais une personne autorisée reconnue.
 \end{enumerate}
 
 Le seuil de décision de 0,35 a été réglé par des essais à la webcam : à 0,20, des personnes autorisées étaient refusées, et à 0,60, des inconnus étaient acceptés. La valeur par défaut de la bibliothèque DeepFace pour FaceNet512 est de 0,30~\cite{serengil_deepface_thresholds}. Relever le seuil réduit les refus de personnes autorisées mais augmente le risque de confondre deux personnes ; l'abaisser produit l'effet inverse. C'est le compromis entre les taux de fausse acceptation et de faux rejet défini au chapitre~\ref{chap:1}.
@@ -286,7 +287,7 @@ Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etat
 \begin{itemize}
   \item \textbf{Repos} : état initial, avant l'arrivée d'un individu ;
   \item \textbf{Analyse} : l'individu vient d'apparaître et son visage est en cours d'analyse ;
-  \item \textbf{Accès accordé} : une personne autorisée est reconnu et, si besoin, son second facteur est validé ;
+  \item \textbf{Accès accordé} : une personne autorisée est reconnue et, si besoin, son second facteur est validé ;
   \item \textbf{Second facteur en attente} : le visage est reconnu et l'authentification multifacteur est activée ;
   \item \textbf{Accès refusé} : le second facteur a échoué ou le délai est dépassé ;
   \item \textbf{Intrus provisoire} : le visage est resté inconnu, la fenêtre de grâce est ouverte ;
@@ -299,8 +300,8 @@ Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etat
   st/.style={draw, rounded corners, align=center, minimum height=1cm, inner sep=3pt, font=\scriptsize},
   lab/.style={font=\tiny, align=center, fill=white, inner sep=1pt}]
   \node[circle, fill, inner sep=2.5pt] (init) at (0,0) {};
-  \node[st, minimum width=1.6cm] (idle) at (2.0,0) {IDLE};
-  \node[st, minimum width=2.4cm] (ana) at (4.9,0) {ANALYZING};
+  \node[st, minimum width=1.6cm] (idle) at (2.0,0) {IDLE\\repos};
+  \node[st, minimum width=2.4cm] (ana) at (4.9,0) {ANALYZING\\analyse};
   \node[st, minimum width=3.6cm] (grant) at (10.0,2.6) {GRANTED\\accès accordé};
   \node[st, minimum width=3.6cm] (fp) at (10.0,0) {FINGERPRINT\_PENDING\\second facteur};
   \node[st, minimum width=2.6cm] (den) at (14.9,0) {DENIED\\accès refusé};
@@ -316,7 +317,7 @@ Chaque individu suivi est géré par une machine à états (figure~\ref{fig:etat
   \draw[->] (ip) -- node[lab, above] {grâce\\écoulée} (ic);
   \draw[->] (ip.south) -- ++(0,-0.7) -| node[lab, pos=0.25, below] {personne autorisée reconnue / alerte annulée} (ana.south west);
 \end{tikzpicture}
-\caption{Diagramme d'états d'un individu suivi}\label{fig:etats}
+\caption{Diagramme d'états d'un individu suivi (noms d'états tels qu'ils figurent dans le code)}\label{fig:etats}
 \end{figure}
 
 Le score de confiance accompagne chaque état :
@@ -412,7 +413,7 @@ Le premier (figure~\ref{fig:seq1}) concerne une personne autorisée qui se prés
   \seqactiv{6.0}{-6.5}{-9.2}
   \seqasync{0}{2.9}{-1.3}{se présente de face}
   \seqasync{2.9}{6.0}{-2.0}{images}
-  \seqself{6.0}{-2.6}{identification du visage (distance $<$ 0,35)}{2.2cm}
+  \seqself{6.0}{-2.6}{identification du visage\\(distance $<$ 0,35)}{2.4cm}
   \seqsync{6.0}{9.0}{-4.0}{journalise VIP\_ENTRY}
   \seqret{9.0}{6.0}{-4.5}{ok}
   \seqasync{6.0}{12.0}{-5.1}{identité et score de confiance}
@@ -451,13 +452,13 @@ Le deuxième (figure~\ref{fig:seq2}) concerne un visage inconnu. Une seconde apr
   \seqsync{5.5}{8.3}{-4.2}{journalise INTRUDER\_PENDING}
   \seqret{8.3}{5.5}{-4.7}{ok}
   \draw[dashed] (-0.7,-5.2) rectangle (14.4,-11.5);
-  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-5.2) {alt {[}personne autorisée reconnu pendant la grâce{]}};
+  \node[draw, fill=white, font=\tiny, anchor=north west] at (-0.7,-5.2) {alt {[}personne autorisée reconnue pendant la grâce{]}};
   \seqself{5.5}{-6.0}{alerte annulée, photo supprimée}{2.0cm}
   \draw[dashed] (-0.7,-7.2) -- (14.4,-7.2);
   \node[font=\tiny, anchor=north west] at (-0.6,-7.2) {{[}individu hors du champ{]}};
   \seqself{5.5}{-7.6}{minuteur annulé, photo supprimée, aucune alerte}{2.0cm}
   \draw[dashed] (-0.7,-9.3) -- (14.4,-9.3);
-  \node[font=\tiny, anchor=north west] at (-0.6,-9.3) {{[}sinon, grâce écoulée{]}};
+  \node[font=\tiny, anchor=north west, fill=white] at (-0.6,-9.3) {{[}sinon, grâce écoulée{]}};
   \seqsync{5.5}{8.3}{-9.9}{INTRUDER\_CONFIRMED}
   \seqasync{5.5}{10.9}{-10.5}{message et photo}
   \seqasync{10.9}{13.5}{-11.1}{notification}
@@ -537,7 +538,7 @@ Le traitement est local ; une personne enrôlée n'est représentée que par un 
 Cette section décrit la confirmation d'un intrus et l'envoi de l'alerte. Le déroulement est le suivant :
 \begin{enumerate}
   \item un visage inconnu est classé intrus provisoire, et une fenêtre de grâce s'ouvre ;
-  \item si une personne autorisée est reconnu pendant la fenêtre, l'alerte est annulée en silence et la photo supprimée ;
+  \item si une personne autorisée est reconnue pendant la fenêtre, l'alerte est annulée en silence et la photo supprimée ;
   \item si l'individu quitte le champ de la caméra pendant la fenêtre, le minuteur est annulé, la photo supprimée et aucune alerte n'est envoyée ; seul l'événement d'intrus provisoire reste au journal ;
   \item sinon, l'intrus est confirmé et le serveur envoie un message avec la photo par Telegram.
 \end{enumerate}
