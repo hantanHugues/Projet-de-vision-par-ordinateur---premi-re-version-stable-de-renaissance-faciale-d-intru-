@@ -52,14 +52,14 @@ Les systèmes grand public en tiennent compte. Face ID s'adapte automatiquement 
 \section{Solutions existantes}
 
 \begin{maj}
-Cette section décrit trois familles de solutions de reconnaissance faciale : les caméras reliées à un service en ligne, Face ID et Frigate. Leurs limites sont analysées en section~\ref{sec:limites}.
+Cette section décrit trois familles de solutions de reconnaissance faciale : les caméras reliées à un service en ligne, Face ID et \gls{frigate}. Leurs limites sont analysées en section~\ref{sec:limites}.
 \end{maj}
 
 \subsection{Caméras connectées reliées à un service en ligne}
 
 Les caméras connectées grand public confient en général leurs vidéos à un service du fabricant. En 2023, la \gls{ftc}, autorité américaine de protection des consommateurs, a accusé Ring d'avoir donné à tous ses employés, ainsi qu'à des sous-traitants, un accès complet aux vidéos de ses clients~\cite{ftc2023ring}, et de ne pas avoir empêché des pirates de prendre le contrôle de caméras d'utilisateurs~\cite{ftc2023ringpr}.
 
-Google Nest propose une détection de visages familiers. Selon les modèles, les données de ces visages sont conservées dans le service en ligne, où elles sont chiffrées, ou dans la mémoire interne de la caméra. La page d'aide ne précise pas où la comparaison est calculée. Chaque fois que la caméra reconnaît un visage, des instantanés sont ajoutés à la bibliothèque des visages familiers, et l'application demande à l'utilisateur si un visage inconnu est une connaissance. La fonction exige un abonnement, et la version française de la page indique qu'elle n'est disponible qu'en Australie, au Canada, aux États-Unis et au Japon~\cite{google2026familiarface}.
+\gls{googlenest} propose une détection de visages familiers. Selon les modèles, les données de ces visages sont conservées dans le service en ligne, où elles sont chiffrées, ou dans la mémoire interne de la caméra. La page d'aide ne précise pas où la comparaison est calculée. Chaque fois que la caméra reconnaît un visage, des instantanés sont ajoutés à la bibliothèque des visages familiers, et l'application demande à l'utilisateur si un visage inconnu est une connaissance. La fonction exige un abonnement, et la version française de la page indique qu'elle n'est disponible qu'en Australie, au Canada, aux États-Unis et au Japon~\cite{google2026familiarface}.
 
 \subsection{Face ID}
 

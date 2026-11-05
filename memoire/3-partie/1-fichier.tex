@@ -7,7 +7,7 @@ Ce chapitre présente la réalisation de BioGate, les essais menés et les ensei
 
 \subsection{Organisation du code et environnement}
 
-Le prototype est écrit en Python 3.11. Il s'appuie principalement sur OpenCV, FastAPI, Ultralytics (YOLOv8), DeepFace, MediaPipe et TensorFlow. Le code est organisé en modules, chacun chargé d'une fonction précise : le serveur, la détection, le suivi, la reconnaissance, le score de confiance, le test de vivacité, les caméras, les alertes, les actionneurs simulés, la base de données, le micrologiciel de la caméra et les tests.
+Le prototype est écrit en Python 3.11. Il s'appuie principalement sur OpenCV, FastAPI, Ultralytics (YOLOv8), DeepFace, MediaPipe et \gls{tensorflow}. Le code est organisé en modules, chacun chargé d'une fonction précise : le serveur, la détection, le suivi, la reconnaissance, le score de confiance, le test de vivacité, les caméras, les alertes, les actionneurs simulés, la base de données, le micrologiciel de la caméra et les tests.
 
 \subsection{Réalisation de la caméra}
 
@@ -44,7 +44,7 @@ La page de surveillance (figure~\ref{fig:dashboard}) constitue l'écran principa
 
 \subsubsection{Page du journal}
 
-La page du journal d'accès (figure~\ref{fig:dashjournal}) liste les événements enregistrés, du plus récent au plus ancien. Trois filtres permettent de choisir la période, le type d'événement et le nom d'une personne autorisée. La page propose aussi l'export au format CSV, la suppression d'une ligne avec sa photo, et un bouton de purge dont une boîte de dialogue explique la portée. Des étiquettes distinguent les types d'événements : accès d'une personne autorisée, vivacité, empreinte, empreinte refusée, refus, intrus provisoire, intrus, fuite et passage.
+La page du journal d'accès (figure~\ref{fig:dashjournal}) liste les événements enregistrés, du plus récent au plus ancien. Trois filtres permettent de choisir la période, le type d'événement et le nom d'une personne autorisée. La page propose aussi l'export au format \gls{csv}, la suppression d'une ligne avec sa photo, et un bouton de purge dont une boîte de dialogue explique la portée. Des étiquettes distinguent les types d'événements : accès d'une personne autorisée, vivacité, empreinte, empreinte refusée, refus, intrus provisoire, intrus, fuite et passage.
 
 \imageouplace{dashboard_journal.png}{0.95\textwidth}{Page du journal d'accès (données de démonstration)}{fig:dashjournal}
 
@@ -97,7 +97,7 @@ Vitesse de traitement & Vérifier que le système fonctionne sur un simple proce
 Erreurs de reconnaissance (fausses acceptations et faux rejets) & Choisir la distance maximale (0,35) à laquelle deux visages sont jugés identiques & 1\,000 paires de photographies de la base LFW & Atteint en partie : aucun inconnu accepté, mais 52~\% des paires d'une même personne refusées ; la cause de l'écart avec les performances publiées n'est pas établie \\
 Reconnaissance selon la lumière & Vérifier qu'une personne est reconnue en faible lumière et en pleine lumière & Webcam & Atteint : personne reconnue dans les deux cas \\
 Mise à jour du profil, 150 personnes & Mesurer ce que la mise à jour par l'empreinte apporte à la reconnaissance & 150 personnes de la base LFW & Atteint : de 47,8~\% à 71,6~\% des photographies reconnues \\
-Mise à jour du profil, 38 personnes à plusieurs années d'écart & Vérifier cet effet quand les photographies sont prises des années plus tard & Photographies datées de Wikimedia Commons & Atteint : de 34~\% à 60~\% des personnes reconnues \\
+Mise à jour du profil, 38 personnes à plusieurs années d'écart & Vérifier cet effet quand les photographies sont prises des années plus tard & Photographies datées de \gls{wikicommons} & Atteint : de 34~\% à 60~\% des personnes reconnues \\
 Mise à jour du profil, une personne & Illustrer sur un cas l'effet d'un changement d'apparence (barbe), puis le vérifier à la webcam & Trois photographies datées ; webcam & Atteint : cas illustré (distance de 0,47 à 0,22) ; à la webcam, à faible luminosité, distance moyenne de 0,209 à 0,203\nouvmark{} \\
 Test de vivacité & Vérifier que les gestes demandés sont reconnus et que les photographies sont refusées & Webcam ; photographies fixes ; une vidéo & Atteint en partie : gestes reconnus, photographies refusées ; une vidéo où la personne sourit et cligne des yeux sans cesse franchit le test \\
 Fonctionnement selon la région et le sexe & Vérifier que chaque étape du traitement marche aussi bien pour tous les groupes & 90 personnes de Wikimedia Commons, six régions, deux sexes & Non concluant : aucun écart net sauf pour la détection du visage ; l'échantillon est trop petit pour prouver l'absence de biais \\
