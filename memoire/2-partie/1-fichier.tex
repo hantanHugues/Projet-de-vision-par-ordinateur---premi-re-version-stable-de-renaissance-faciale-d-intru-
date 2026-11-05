@@ -5,7 +5,7 @@ Ce chapitre présente la conception de BioGate. Dans un premier temps, les besoi
 
 \section{Analyse des besoins}
 
-Cette section identifie ce que le système doit faire, les contraintes du projet et les acteurs concernés.
+Les besoins du système, les contraintes du projet et les acteurs concernés sont présentés ci-après.
 
 \begin{maj}
 BioGate est un système de contrôle d'accès destiné aux lieux dont l'entrée est réservée à des personnes enregistrées : habitation, bureau, laboratoire, banque, établissement pénitentiaire. Le niveau d'exigence varie d'un lieu à l'autre ; les quatre profils de la section~\ref{sec:profils} (portail, domicile, bureau, haute sécurité) en couvrent la gamme.
@@ -99,7 +99,7 @@ La figure~\ref{fig:usecase} représente les cas d'utilisation. La reconnaissance
 
 \section{Architecture du système}
 
-Cette section décrit l'organisation de BioGate et l'état de chaque composant dans le prototype.
+L'organisation de BioGate est présentée avec l'état de chaque composant dans le prototype.
 
 \subsection{Vue d'ensemble}
 
@@ -230,7 +230,7 @@ Dans le prototype, le code s'affiche dans le terminal du serveur. Dans une insta
 
 \section{Chaîne de traitement par intelligence artificielle}
 
-Cette section décrit la chaîne de traitement : les étapes appliquées à chaque image et la raison de chacune. La figure~\ref{fig:pipeline} les résume.
+La chaîne de traitement applique à chaque image les étapes suivantes, dont la raison est donnée pour chacune. La figure~\ref{fig:pipeline} les résume.
 
 \begin{figure}[H]
 \centering
@@ -279,7 +279,7 @@ Un intrus est un visage inconnu, et non une silhouette sans visage : le détecte
 
 \section{Authentification multifacteur et score de confiance}\label{sec:mfa}
 
-Cette section décrit les états d'un individu, le score de confiance, le second facteur, le test de vivacité et l'adaptation des profils.
+Cette partie suit un individu de son apparition à la décision : états, score de confiance, second facteur, test de vivacité, puis adaptation des profils.
 
 \subsection{Machine à états}
 
@@ -493,7 +493,7 @@ Le troisième (figure~\ref{fig:seq3}) concerne l'enrichissement d'un profil. Si 
 
 \section{Modèle de données et protection de la vie privée}\label{sec:vieprivee}
 
-Cette section décrit la base de données et les mesures qui limitent la conservation des données.
+Les données sont stockées dans une base locale ; les mesures qui en limitent la conservation suivent sa description.
 
 La base est un fichier \gls{sqlite}~\cite{sqlite_about} local, exclu du dépôt de code. Elle contient six tables (figure~\ref{fig:donnees}). Un profil peut avoir plusieurs vecteurs, au plus 30, et plusieurs événements au journal. Les tables de configuration, des caméras et des messages Telegram sont indépendantes des autres.
 
@@ -535,7 +535,7 @@ Le traitement est local ; une personne enrôlée n'est représentée que par un 
 
 \section{Alertes à distance}
 
-Cette section décrit la confirmation d'un intrus et l'envoi de l'alerte. Le déroulement est le suivant :
+Quand un visage reste inconnu, le système confirme l'intrus puis envoie l'alerte selon le déroulement suivant :
 \begin{enumerate}
   \item un visage inconnu est classé intrus provisoire, et une fenêtre de grâce s'ouvre ;
   \item si une personne autorisée est reconnue pendant la fenêtre, l'alerte est annulée en silence et la photo supprimée ;
@@ -557,7 +557,7 @@ Un essai réel a supprimé un message de test. Le chemin d'une alerte avec photo
 
 \section{Paramètres et profils de sécurité}\label{sec:profils}
 
-Cette section présente les réglages du système et les profils de sécurité. Les réglages sont enregistrés dans la base et rechargés au démarrage du serveur. \begin{maj}
+Les réglages du système et les profils de sécurité sont enregistrés dans la base et rechargés au démarrage du serveur. \begin{maj}
 Quatre profils regroupent des valeurs prêtes à l'emploi pour un type de lieu : portail, domicile, bureau et haute sécurité. Le profil domicile est celui retenu par défaut. Chaque réglage reste modifiable. Au premier démarrage, les valeurs du fichier de configuration s'appliquent : elles sont celles du profil domicile, sauf les alertes à distance, désactivées. La conservation des photos pendant 72 heures limite la durée de détention des images (section~\ref{sec:vieprivee}) ; les autres valeurs ont été réglées pendant les essais.
 \end{maj} Le tableau~\ref{tab:profils} donne les principaux réglages des profils.
 
@@ -593,7 +593,7 @@ L'ajout d'une source vidéo (webcam \gls{usb}, flux MJPEG ou \gls{rtsp}) ne figu
 
 \section{Gestion des erreurs et des pannes}
 
-Cette section décrit le comportement du système face aux défaillances. L'échec d'un élément périphérique ne doit pas bloquer l'analyse. Le comportement prévu face aux principales défaillances est le suivant :
+Le comportement du système face aux défaillances obéit à un principe : l'échec d'un élément périphérique ne doit pas bloquer l'analyse. Il est prévu comme suit pour les principales défaillances :
 
 \begin{itemize}
   \item \textbf{Flux vidéo interrompu} : le serveur libère la source et tente de la rouvrir, toutes les secondes après une lecture ratée et toutes les trois secondes si l'ouverture échoue. La caméra BW21-CBV se reconnecte de son côté au dernier réseau enregistré. Cette reprise a été constatée lors du redémarrage de la carte (section~\ref{sec:resilience}) ;
@@ -614,7 +614,7 @@ Trois pannes ne sont pas traitées :
 \section{Justification des choix techniques}\label{sec:choix}
 
 \begin{maj}
-Cette section justifie les choix techniques de BioGate, classés par fonction.
+Les choix techniques de BioGate sont justifiés ci-dessous, fonction par fonction.
 
 \begin{itemize}
   \item \textbf{Détection des personnes, YOLOv8 nano} : c'est le plus petit modèle de la famille YOLOv8, avec 3,2 millions de paramètres. Il est entraîné sur la base \gls{coco}~\cite{lin2014coco}, qui comprend une classe \og personne \fg{}~\cite{ultralytics_yolov8docs}. Sa légèreté permet de l'exécuter sur un simple processeur ;
