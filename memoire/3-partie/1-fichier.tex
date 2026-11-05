@@ -370,7 +370,7 @@ Le système ne reconnaît pas la personne tant qu'aucun apprentissage n'a eu lie
 \subsubsection{Mesure à la webcam}\label{sec:webcam}
 
 \begin{maj}
-Une séance de 40 secondes a été mesurée à la webcam avec le profil de l'utilisateur, qui compte 8 vecteurs. Elle a donné 78 images retenues : la silhouette est trouvée par YOLO, le visage par Haar dans cette silhouette, puis confirmé par MediaPipe. Pour les mêmes images, la distance moyenne au seul vecteur d'origine est de 0,209, contre 0,203 pour le profil complet. La pire image passe de 0,436 à 0,273, et les deux images au-dessus du seuil de 0,35 disparaissent. Sur un visage proche de celui enregistré, l'apprentissage supprime donc les pires cas sans baisser la moyenne. La mesure porte sur une personne, une séance et un éclairage faible. \adonner{Seconde lecture en pleine lumière à ajouter}
+Une séance de 40 secondes a été mesurée à la webcam avec le profil de l'utilisateur, qui compte 8 vecteurs. Elle a donné 78 images retenues : la silhouette est trouvée par YOLO, le visage par Haar dans cette silhouette, puis confirmé par MediaPipe. Pour les mêmes images, la distance moyenne au seul vecteur d'origine est de 0,209, contre 0,203 pour le profil complet. La pire image passe de 0,436 à 0,273, et les deux images au-dessus du seuil de 0,35 disparaissent. Sur un visage proche de celui enregistré, l'apprentissage supprime donc les pires cas sans baisser la moyenne. La mesure porte sur une personne, une séance et un éclairage faible.
 \end{maj}
 
 \subsection{Test de vivacité}\label{sec:vivacite}
