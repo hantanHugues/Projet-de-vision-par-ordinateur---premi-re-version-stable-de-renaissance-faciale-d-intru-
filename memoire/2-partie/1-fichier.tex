@@ -31,7 +31,7 @@ Le système doit répondre aux besoins suivants :
   \item \textbf{Réactivité} : la fenêtre d'identification d'un visage inconnu est d'une seconde par défaut ;
   \item \textbf{Sobriété} : les modèles retenus sont légers, l'image est réduite avant la détection et les vecteurs des profils sont gardés en mémoire pour éviter d'interroger la base à chaque image ;
   \item \textbf{Résilience} : la caméra se reconnecte seule au dernier réseau \gls{wifi} enregistré et la purge des photos s'exécute aussi au démarrage du serveur, ce qui rattrape un arrêt prolongé du serveur ;
-  \item \textbf{Fiabilité des alertes} : une fenêtre de grâce\glsadd{fenetregrace}, de 60 secondes par défaut, évite d'alerter à tort pour une personne autorisée pas encore identifié ;
+  \item \textbf{Fiabilité des alertes} : une fenêtre de grâce\glsadd{fenetregrace}, de 60 secondes par défaut, évite d'alerter à tort pour une personne autorisée pas encore identifiée ;
   \item \textbf{Contrôle des accès au système} : la caméra et le tableau de bord sont protégés par une clé ou par un code de couplage.
 \end{itemize}
 
@@ -261,7 +261,7 @@ Cette section décrit la chaîne de traitement : les étapes appliquées à chaq
   \item \textbf{Comparaison} : le vecteur est comparé à ceux des profils par la distance cosinus\glsadd{distancecosinus} définie en section~\ref{sec:cosinus}. Une personne est reconnue si la distance au profil le plus proche est inférieure au seuil de décision de 0,35. La confiance affichée vaut $(1 - d) \times 100$, où $d$ est la distance : elle est de 65~\% au seuil. Une distance de 0,22 donne par exemple une confiance de 78~\% et une reconnaissance ; une distance de 0,40 donne 60~\% et un refus. Les vecteurs sont chargés en mémoire au démarrage et rechargés après chaque enrôlement ou mise à jour, ce qui évite d'interroger la base de données à chaque image.
   \item \textbf{Décision} :
     \begin{itemize}
-      \item une personne autorisée est accepté dès la première correspondance sous le seuil ;
+      \item une personne autorisée est acceptée dès la première correspondance sous le seuil ;
       \item un visage inconnu est jugé une seconde après son apparition : l'individu devient alors intrus provisoire ;
       \item une personne identifiée est revérifiée toutes les 0,8 seconde, pour qu'une personne autorisée ne puisse pas être remplacée par un intrus après sa validation ;
       \item trois échecs consécutifs sont nécessaires pour remettre en question une personne identifiée, afin qu'un changement d'expression ou de lumière ne crée pas un faux intrus ;
