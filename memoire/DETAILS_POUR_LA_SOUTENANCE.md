@@ -197,3 +197,8 @@ Lecture : les aires ROC sont presque identiques, donc ni Haar ni CLAHE n'expliqu
 
 - **Distance moyenne 0,269 puis 0,106** (journal, entrée 023) : moyennes de distances journalisées lors de deux séances de la recette du 29/10, avant puis après quatre validations d'empreinte (189 puis 45 mesures). Non reproduite par la mesure contrôlée : elle compare deux séances aux conditions différentes. Ne pas la présenter comme effet de l'apprentissage.
 - **Mesure à la webcam, première lecture de nuit** (78 images) : distance moyenne 0,209 puis 0,203 ; médiane 0,206 puis 0,204 ; écart-type 0,044 puis 0,027 ; pire image 0,436 puis 0,273 ; images sous 0,35 : 76 sur 78 puis 78 sur 78. Marge face à l'autre profil toujours positive (minimum 0,109). Une seconde lecture en pleine lumière est prévue.
+
+## 12. Contre-jour (non écrit dans le mémoire comme résultat)
+
+- Le mémoire dit seulement, dans les limites et les perspectives, que le fonctionnement à contre-jour n'a pas été évalué.
+- Une séance à contre-jour avait montré le détecteur de Haar ne trouvant le visage que sur une faible part des images alors que MediaPipe le voyait, sans amélioration par CLAHE ; l'étudiant indique que cet échec tient à un autre problème (essai mal conduit) : ne pas citer ce résultat. Si le jury pose la question : le contre-jour n'a pas été évalué correctement, à refaire.
