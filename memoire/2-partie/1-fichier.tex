@@ -225,7 +225,7 @@ Le tableau de bord est couplé au serveur comme un appareil domestique :
 Ce jeton est exigé par 26 routes, dont les deux flux vidéo, où il passe dans l'adresse de la requête. Les origines autorisées à appeler le serveur sont limitées à celles du tableau de bord. Les échanges ne sont pas chiffrés : le prototype n'utilise pas HTTPS.
 
 \begin{maj}
-Dans le prototype, le code s'affiche dans le terminal du serveur. Dans une installation réelle, il pourrait apparaître sur un écran \gls{lcd} ou être envoyé par message texte (SMS) grâce à un module de réseau mobile (GSM) dédié (section~\ref{sec:perspectives}).
+Dans le prototype, le code s'affiche dans le terminal du serveur. Dans une installation réelle, il pourrait apparaître sur un écran \gls{lcd} ou être envoyé par \gls{sms} grâce à un module \gls{gsm} dédié (section~\ref{sec:perspectives}).
 \end{maj}
 
 \section{Chaîne de traitement par intelligence artificielle}
@@ -530,7 +530,7 @@ Plusieurs mesures limitent la conservation des données :
 Cette durée limitée de conservation des photos répond au principe de limitation de la conservation du \gls{rgpd}~\cite{ue2016rgpd} et aux articles 383 et 433 du Code du numérique béninois~\cite{apdp2018codenumerique}, vus au chapitre~\ref{chap:1}.
 
 \begin{nouv}
-Le traitement est local ; une personne enrôlée n'est représentée que par un vecteur numérique, sans photographie. Les photographies d'intrus sont supprimées après 72 heures et les messages Telegram après 24 heures ; un profil ou un événement peut être effacé depuis le tableau de bord. L'accès est protégé par un code secret (PIN) puis un jeton. Les photographies d'intrus envoyées à Telegram quittent la machine : c'est la seule entorse au traitement local. Le consentement, le chiffrement des vecteurs et HTTPS ne sont pas encore en place (section~\ref{sec:perspectives}).
+Le traitement est local ; une personne enrôlée n'est représentée que par un vecteur numérique, sans photographie. Les photographies d'intrus sont supprimées après 72 heures et les messages Telegram après 24 heures ; un profil ou un événement peut être effacé depuis le tableau de bord. L'accès est protégé par un \gls{pin} puis un jeton. Les photographies d'intrus envoyées à Telegram quittent la machine : c'est la seule entorse au traitement local. Le consentement, le chiffrement des vecteurs et HTTPS ne sont pas encore en place (section~\ref{sec:perspectives}).
 \end{nouv}
 
 \section{Alertes à distance}
