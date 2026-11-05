@@ -1,7 +1,7 @@
 \addcontentsline{toc}{section}{Introduction}
 \section*{Introduction}
 
-Ce chapitre présente la conception de BioGate. Dans un premier temps, les besoins sont analysés. Ensuite, l'architecture est décrite en distinguant ce qui est visé de ce qui a été réalisé dans le prototype. Le pipeline d'analyse par intelligence artificielle, l'authentification multifacteur, le modèle de données, les alertes à distance, les réglages, la gestion des pannes et les choix techniques sont enfin détaillés.
+Ce chapitre présente la conception de BioGate. Dans un premier temps, les besoins sont analysés. Ensuite, l'architecture est décrite en distinguant ce qui est visé de ce qui a été réalisé dans le prototype. La chaîne d'analyse par intelligence artificielle, l'authentification multifacteur, le modèle de données, les alertes à distance, les réglages, la gestion des pannes et les choix techniques sont enfin détaillés.
 
 \section{Analyse des besoins}
 
@@ -111,7 +111,7 @@ BioGate sépare l'acquisition des images, l'intelligence artificielle et la supe
   box/.style={draw, rounded corners, align=center, minimum height=1.1cm, inner sep=4pt, font=\footnotesize},
   sim/.style={box, dashed}]
   \node[box, minimum width=3cm] (cam) at (0,0) {Caméra BW21-CBV\\flux MJPEG protégé};
-  \node[box, minimum width=4cm] (srv) at (5.6,0) {Serveur local (Edge)\\API FastAPI\\pipeline d'analyse\\score de confiance\\base SQLite};
+  \node[box, minimum width=4cm] (srv) at (5.6,0) {Serveur local (Edge)\\API FastAPI\\chaîne d'analyse\\score de confiance\\base SQLite};
   \node[box, minimum width=3.6cm] (dash) at (11.4,1.7) {Tableau de bord\\Electron / React};
   \node[box, minimum width=3.6cm] (alert) at (11.4,0) {Alertes\\Telegram};
   \node[sim, minimum width=3.6cm] (iot) at (11.4,-1.7) {Empreinte, gâche, lumière\\(simulés)};
@@ -204,7 +204,7 @@ Le serveur lit lui-même les caméras (\gls{usb}, flux \gls{mjpeg} ou \gls{rtsp}
 Les cadres et les noms sont dessinés à la cadence de la caméra avec les dernières annotations calculées : la vidéo reste donc fluide. Le débit de l'analyse atteint 2,5 images par seconde pendant l'identification d'une personne et 18 images par seconde une fois celle-ci identifiée (section~\ref{sec:perf}). Ce fonctionnement est celui utilisé avec la caméra BW21-CBV et le tableau de bord.
 \end{maj}
 
-Deux outils servent au développement et ne font pas partie du produit. Le programme client (\texttt{client\_camera.py}) envoie les images de la webcam au serveur, simule l'empreinte, la porte et la lumière par des touches du clavier, et calcule en local les coefficients du test de vivacité, que le serveur accepte sans pouvoir les vérifier. Le programme autonome (\texttt{main.py}) exécute la chaîne d'analyse sans serveur, pour déboguer l'intelligence artificielle seule.
+Deux outils servent au développement et ne font pas partie du produit. Le programme client envoie les images de la webcam au serveur, simule l'empreinte, la porte et la lumière par des touches du clavier, et calcule en local les coefficients du test de vivacité, que le serveur accepte sans pouvoir les vérifier. Le programme autonome exécute la chaîne d'analyse sans serveur, pour déboguer l'intelligence artificielle seule.
 
 \subsection{Tableau de bord}
 
@@ -225,12 +225,12 @@ Le tableau de bord est couplé au serveur comme un appareil domestique :
 Ce jeton est exigé par 26 routes, dont les deux flux vidéo, où il passe dans l'adresse de la requête. Les origines autorisées à appeler le serveur sont limitées à celles du tableau de bord. Les échanges ne sont pas chiffrés : le prototype n'utilise pas HTTPS.
 
 \begin{maj}
-Dans le prototype, le code s'affiche dans le terminal du serveur. Dans une installation réelle, il pourrait apparaître sur un écran \gls{lcd} ou être envoyé par SMS grâce à un module GSM dédié (section~\ref{sec:perspectives}).
+Dans le prototype, le code s'affiche dans le terminal du serveur. Dans une installation réelle, il pourrait apparaître sur un écran \gls{lcd} ou être envoyé par message texte (SMS) grâce à un module de réseau mobile (GSM) dédié (section~\ref{sec:perspectives}).
 \end{maj}
 
-\section{Pipeline de traitement par intelligence artificielle}
+\section{Chaîne de traitement par intelligence artificielle}
 
-Cette section décrit la chaîne de traitement, ou pipeline : les étapes appliquées à chaque image et la raison de chacune. La figure~\ref{fig:pipeline} les résume.
+Cette section décrit la chaîne de traitement : les étapes appliquées à chaque image et la raison de chacune. La figure~\ref{fig:pipeline} les résume.
 
 \begin{figure}[H]
 \centering
@@ -530,7 +530,7 @@ Plusieurs mesures limitent la conservation des données :
 Cette durée limitée de conservation des photos répond au principe de limitation de la conservation du \gls{rgpd}~\cite{ue2016rgpd} et aux articles 383 et 433 du Code du numérique béninois~\cite{apdp2018codenumerique}, vus au chapitre~\ref{chap:1}.
 
 \begin{nouv}
-Le traitement est local ; une personne enrôlée n'est représentée que par un vecteur numérique, sans photographie. Les photographies d'intrus sont supprimées après 72 heures et les messages Telegram après 24 heures ; un profil ou un événement peut être effacé depuis le tableau de bord. L'accès est protégé par un code PIN puis un jeton. Les photographies d'intrus envoyées à Telegram quittent la machine : c'est la seule entorse au traitement local. Le consentement, le chiffrement des vecteurs et HTTPS ne sont pas encore en place (section~\ref{sec:perspectives}).
+Le traitement est local ; une personne enrôlée n'est représentée que par un vecteur numérique, sans photographie. Les photographies d'intrus sont supprimées après 72 heures et les messages Telegram après 24 heures ; un profil ou un événement peut être effacé depuis le tableau de bord. L'accès est protégé par un code secret (PIN) puis un jeton. Les photographies d'intrus envoyées à Telegram quittent la machine : c'est la seule entorse au traitement local. Le consentement, le chiffrement des vecteurs et HTTPS ne sont pas encore en place (section~\ref{sec:perspectives}).
 \end{nouv}
 
 \section{Alertes à distance}
@@ -636,4 +636,4 @@ Ensemble, ces choix donnent un système local, léger et sans abonnement : chaqu
 \addcontentsline{toc}{section}{Conclusion}
 \section*{Conclusion}
 
-Ce chapitre a présenté l'analyse des besoins, l'architecture, le pipeline d'analyse, l'authentification multifacteur, le modèle de données, les alertes, les réglages, la gestion des pannes et les choix techniques de BioGate. Il a distingué ce qui est réalisé et testé, comme la caméra, le serveur, le tableau de bord et les alertes, de ce qui est simulé ou prévu, comme le lecteur d'empreinte, les actionneurs et l'écran de la caméra. Le chapitre suivant décrit la mise en œuvre, les essais réalisés et les limites du prototype.
+Ce chapitre a présenté l'analyse des besoins, l'architecture, la chaîne d'analyse, l'authentification multifacteur, le modèle de données, les alertes, les réglages, la gestion des pannes et les choix techniques de BioGate. Il a distingué ce qui est réalisé et testé, comme la caméra, le serveur, le tableau de bord et les alertes, de ce qui est simulé ou prévu, comme le lecteur d'empreinte, les actionneurs et l'écran de la caméra. Le chapitre suivant décrit la mise en œuvre, les essais réalisés et les limites du prototype.
